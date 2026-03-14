@@ -65,10 +65,8 @@ public class RobotContainer {
   private final Vision vision;
   public static Drive drive;
   public static Shooter shooter;
-
   public static Intake intake;
   public static Indexer indexer;
-
 
   // Controllers
   private final CommandXboxController driverController = new CommandXboxController(0);

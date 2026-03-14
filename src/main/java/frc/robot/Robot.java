@@ -26,6 +26,8 @@ public class Robot extends LoggedRobot {
   private Command autonomousCommand;
   private RobotContainer robotContainer;
 
+  private boolean started = false;
+
   public Robot() {
     // Record metadata
     Logger.recordMetadata("ProjectName", BuildConstants.MAVEN_NAME);
@@ -69,10 +71,10 @@ public class Robot extends LoggedRobot {
     // Instantiate our RobotContainer. This will perform all our button bindings,
     // and put our autonomous chooser on the dashboard.
     robotContainer = new RobotContainer();
+    started = true;
   }
 
   /** This function is called periodically during all modes. */
-  @SuppressWarnings("static-access")
   @Override
   public void robotPeriodic() {
     // Optionally switch the thread to high priority to improve loop
@@ -89,6 +91,14 @@ public class Robot extends LoggedRobot {
     // Return to non-RT thread priority (do not modify the first argument)
     // Threads.setCurrentThreadPriority(false, 10);
 
+    if(started){
+      periodicAfterFAKINGSTART();
+    }
+  }
+
+
+  @SuppressWarnings("static-access")
+  public void periodicAfterFAKINGSTART(){
     robotContainer.shooter.setRobotEstimatedPose(robotContainer.drive.getPose());
     robotContainer.shooter.setRobotSpeed(robotContainer.drive.getChassisSpeeds());
   }
