@@ -72,6 +72,7 @@ public class Robot extends LoggedRobot {
   }
 
   /** This function is called periodically during all modes. */
+  @SuppressWarnings("static-access")
   @Override
   public void robotPeriodic() {
     // Optionally switch the thread to high priority to improve loop
@@ -87,6 +88,9 @@ public class Robot extends LoggedRobot {
 
     // Return to non-RT thread priority (do not modify the first argument)
     // Threads.setCurrentThreadPriority(false, 10);
+
+    robotContainer.shooter.setRobotEstimatedPose(robotContainer.drive.getPose());
+    robotContainer.shooter.setRobotSpeed(robotContainer.drive.getChassisSpeeds());
   }
 
   /** This function is called once when the robot is disabled. */
