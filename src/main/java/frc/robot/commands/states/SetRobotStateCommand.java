@@ -12,6 +12,7 @@ public class SetRobotStateCommand extends SequentialCommandGroup{
         OUTTAKE,
         SPIT,
         AGITATE,
+        UN_AGITATE,
 
         AUTOSTARTSHOOT,
         HUB_FOCUS,
@@ -43,6 +44,9 @@ public class SetRobotStateCommand extends SequentialCommandGroup{
                 break;
             case AGITATE:
                 addCommands(RobotStateCommands.agitateState());
+                break;
+            case UN_AGITATE:
+                addCommands(RobotStateCommands.unAgitate());
                 break;
             case HUB_FOCUS:
                 addCommands(RobotStateCommands.hubFocusState());

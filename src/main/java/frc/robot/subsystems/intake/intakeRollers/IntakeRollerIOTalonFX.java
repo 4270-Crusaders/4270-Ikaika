@@ -5,10 +5,8 @@ import static frc.robot.util.PhoenixUtil.tryUntilOk;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.Follower;
-import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.signals.MotorAlignmentValue;
 
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -16,36 +14,21 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.subsystems.intake.IntakeConstants;
-import java.util.List;
 
 public class IntakeRollerIOTalonFX implements IntakeRollersIO {
   private final TalonFX LeadMotor =
       new TalonFX(IntakeConstants.IntakeRollerConstants.MAIN_INTAKE_ROLLER_CAN_ID);
-  private final TalonFX FollowMoter = new
-  TalonFX(IntakeConstants.IntakeRollerConstants.FOLLOW_INTAKE_ROLLER_CAN_ID);
+  
 
-  private final List<StatusSignal<AngularVelocity>> measuredVeloRPS =
-  List.of(LeadMotor.getVelocity(), FollowMoter.getVelocity());
-  private final List<StatusSignal<Double>> setVeloRPS =
-  List.of(LeadMotor.getClosedLoopReference(), FollowMoter.getClosedLoopReference());
-  private final List<StatusSignal<Angle>> position = List.of(LeadMotor.getPosition(),
-  FollowMoter.getPosition());
+  private final StatusSignal<AngularVelocity> measuredVeloRPS = LeadMotor.getVelocity();
+  private final StatusSignal<Double> setVeloRPS = LeadMotor.getClosedLoopReference();
+  private final StatusSignal<Angle> position = LeadMotor.getPosition();
+  private final StatusSignal<Voltage> appliedVoltage = LeadMotor.getMotorVoltage();
+  private final StatusSignal<Current> supplyCurrentAmps = LeadMotor.getSupplyCurrent();
+  private final StatusSignal<Current> torqueCurrentAmps = LeadMotor.getTorqueCurrent();
+  private final StatusSignal<Temperature> deviceTemperature = LeadMotor.getDeviceTemp();
 
-  private final List<StatusSignal<Voltage>> appliedVoltage = List.of(LeadMotor.getMotorVoltage(),
-  FollowMoter.getMotorVoltage());
-  private final List<StatusSignal<Current>> supplyCurrentAmps =
-  List.of(LeadMotor.getSupplyCurrent(), FollowMoter.getSupplyCurrent());
-  private final List<StatusSignal<Current>> torqueCurrentAmps =
-  List.of(LeadMotor.getTorqueCurrent(), FollowMoter.getTorqueCurrent());
-  private final List<StatusSignal<Temperature>> deviceTemperature =
-  List.of(LeadMotor.getDeviceTemp(), FollowMoter.getDeviceTemp());
-
-
-  private final Follower followController = new
-  Follower(IntakeConstants.IntakeRollerConstants.MAIN_INTAKE_ROLLER_CAN_ID, MotorAlignmentValue.Opposed);
-
-//   private final VoltageOut voltageRequest = new VoltageOut(0.0);
-  private final VelocityTorqueCurrentFOC velocityRequest = new VelocityTorqueCurrentFOC(0.0);
+  private final VelocityVoltage velocityRequest = new VelocityVoltage(0.0);
 
   private TalonFXConfiguration config = new TalonFXConfiguration();
 
@@ -66,65 +49,44 @@ public class IntakeRollerIOTalonFX implements IntakeRollersIO {
     config.Slot0.kS = IntakeConstants.IntakeRollerConstants.kS;
 
     tryUntilOk(5, () -> LeadMotor.getConfigurator().apply(config, 0.25));
-    tryUntilOk(5, () ->
-        FollowMoter.getConfigurator().apply(config, 0.25)
-        );
 
-    FollowMoter.setControl(followController);
 
     BaseStatusSignal.setUpdateFrequencyForAll(
         50.0,
-        setVeloRPS.get(0),
-        setVeloRPS.get(1),
-        measuredVeloRPS.get(0),
-        measuredVeloRPS.get(1),
-        position.get(0),
-        position.get(1),
-        appliedVoltage.get(0),
-        appliedVoltage.get(1),
-        supplyCurrentAmps.get(0),
-        supplyCurrentAmps.get(1),
-        torqueCurrentAmps.get(0),
-        torqueCurrentAmps.get(1),
-        deviceTemperature.get(0),
-        deviceTemperature.get(1));
+        setVeloRPS,
+        measuredVeloRPS,
+        position,
+        appliedVoltage,
+        supplyCurrentAmps,
+        torqueCurrentAmps,
+        deviceTemperature);
   }
 
   @Override
   public void updateInputs(IntakeRollersIOInputs inputs) {
     BaseStatusSignal.refreshAll(
-        setVeloRPS.get(0),
-        setVeloRPS.get(1),
-        measuredVeloRPS.get(0),
-        measuredVeloRPS.get(1),
-        position.get(0),
-        position.get(1),
-        appliedVoltage.get(0),
-        appliedVoltage.get(1),
-        supplyCurrentAmps.get(0),
-        supplyCurrentAmps.get(1),
-        torqueCurrentAmps.get(0),
-        torqueCurrentAmps.get(1),
-        deviceTemperature.get(0),
-        deviceTemperature.get(1));
+        setVeloRPS,
+        measuredVeloRPS,
+        position,
+        appliedVoltage,
+        supplyCurrentAmps,
+        torqueCurrentAmps,
+        deviceTemperature);
 
     inputs.motorMeasuredVelocityRPS =
-        measuredVeloRPS.stream().mapToDouble(StatusSignal::getValueAsDouble).toArray();
+        measuredVeloRPS.getValueAsDouble();
     inputs.motorSetpointVelocityRPS =
-        setVeloRPS.stream().mapToDouble(StatusSignal::getValueAsDouble).toArray();
-    inputs.motorMeasuredVelocityRPM =
-        new double[] {(inputs.motorMeasuredVelocityRPS[0] * 60)
-          // (inputs.motorMeasuredVelocityRPS[1] * 60)
-        };
+        setVeloRPS.getValueAsDouble();
+    inputs.motorMeasuredVelocityRPM = inputs.motorMeasuredVelocityRPS * 60;
     inputs.deviceTemperature =
-        deviceTemperature.stream().mapToDouble(StatusSignal::getValueAsDouble).toArray();
+        deviceTemperature.getValueAsDouble();
     inputs.appliedVolts =
-        appliedVoltage.stream().mapToDouble(StatusSignal::getValueAsDouble).toArray();
+        appliedVoltage.getValueAsDouble();
     inputs.supplyCurrentAmps =
-        supplyCurrentAmps.stream().mapToDouble(StatusSignal::getValueAsDouble).toArray();
+        supplyCurrentAmps.getValueAsDouble();
     inputs.torqueCurrentAmps =
-        torqueCurrentAmps.stream().mapToDouble(StatusSignal::getValueAsDouble).toArray();
-    inputs.positionRad = position.stream().mapToDouble(StatusSignal::getValueAsDouble).toArray();
+        torqueCurrentAmps.getValueAsDouble();
+    inputs.positionRad = position.getValueAsDouble();
   }
 
   @Override
@@ -140,6 +102,6 @@ public class IntakeRollerIOTalonFX implements IntakeRollersIO {
 
   @Override
   public void runSetVelocity(double velocity) {
-    LeadMotor.setControl(velocityRequest.withVelocity(velocity / 60));
+    LeadMotor.setControl(velocityRequest.withVelocity(velocity / 60).withEnableFOC(true));
   }
 }

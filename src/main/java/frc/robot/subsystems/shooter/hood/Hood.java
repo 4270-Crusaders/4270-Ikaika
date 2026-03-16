@@ -79,7 +79,7 @@ public class Hood {
     }
   }
 
-  @AutoLogOutput private HoodGoal goalSetpoint = HoodGoal.ZERO;
+  @AutoLogOutput(key = "Shooter/Hood/GoalSetpoint") private HoodGoal goalSetpoint = HoodGoal.ZERO;
 
   private boolean setpointMode = true;
 

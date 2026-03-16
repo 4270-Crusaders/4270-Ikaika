@@ -21,12 +21,12 @@ public class ShooterConstants {
     public static final InvertedValue MAIN_FLYWHEEL_INVERTED_VALUE =
         InvertedValue.Clockwise_Positive;
     public static final NeutralModeValue FLYWHEEL_NEUTRAL_MODE = NeutralModeValue.Coast;
-    public static double FlyWheelkP = 4.375;
-    public static double FlyWheelkI = 0.015;
-    public static double FlyWheelkD = 0.001;
-    public static double FlyWheelkA = 0.1;
-    public static double FlyWheelkV = 0.5;
-    public static double FlyWheelkS = 0.05;
+    public static double FlyWheelkP = 0.2;
+    public static double FlyWheelkI = 0.0;
+    public static double FlyWheelkD = 0.0;
+    public static double FlyWheelkA = 0.0;
+    public static double FlyWheelkV = 0.096637;
+    public static double FlyWheelkS = 0.694727;
     public static double FlyWheelMotionMagicVelocity = 0;
     public static double FlyWheelMotionMagicAcceleration = 250;
     public static double FlyWheelMotionMagicJerk = 0;
@@ -55,7 +55,7 @@ public class ShooterConstants {
     public static SensorDirectionValue hoodEncoderDirection =
         SensorDirectionValue.Clockwise_Positive;
     public static double HoodEncoderAbsoluteSensorDiscontinuityPoint = 0.5;
-    public static double HoodEncoderMagnetOffset = 0.171630859375; // TUNE ALOT!!
+    public static double HoodEncoderMagnetOffset = -0.332275390625; // TUNE ALOT!!
     public static double HoodCurrentLimit = 60.0;
     public static InvertedValue HoodInvertedValue = InvertedValue.CounterClockwise_Positive;
     public static boolean HoodSupplyCurrentLimitEnable = true;
@@ -89,7 +89,7 @@ public class ShooterConstants {
         SensorDirectionValue.CounterClockwise_Positive;
     public static double TurretEncoderAbsoluteSensorDiscontinuityPoint = 0.5;
 
-    public static double TurretCurrentLimit = 60.0;
+    public static double TurretCurrentLimit = 25.0;
     public static InvertedValue TurretInvertedValue = InvertedValue.Clockwise_Positive;
     public static boolean TurretSupplyCurrentLimitEnable = true;
     public static NeutralModeValue TurretNeutralModeValue = NeutralModeValue.Brake;

@@ -86,10 +86,12 @@ public class RobotContainer {
                 new ModuleIOTalonFX(TunerConstants.BackLeft),
                 new ModuleIOTalonFX(TunerConstants.BackRight));
         vision =
-            new Vision(
-                drive::addVisionMeasurement,
-                new VisionIOLimelight(camera0Name, drive::getRotation),
-                new VisionIOLimelight(camera1Name, drive::getRotation));
+        new Vision(
+            drive::addVisionMeasurement,
+            new VisionIOLimelight(cameraLeftName, drive::getRotation),
+            new VisionIOLimelight(cameraRightName, drive::getRotation),
+            new VisionIOLimelight(cameraBackName, drive::getRotation));
+
         shooter = new Shooter(new FlywheelIOTalonFX(), new TurretIOTalonFX(), new HoodIOTalonFX());
         indexer = new Indexer(new AgitatorIOTalonFX(), new KickerIOTalonFX(), new ConveyorIOTalonFX(), new RollersIOTalonFX());
         intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeWristIOTalonFX());
@@ -108,8 +110,9 @@ public class RobotContainer {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                new VisionIOPhotonVisionSim(camera0Name, robotToCamera0, drive::getPose),
-                new VisionIOPhotonVisionSim(camera1Name, robotToCamera1, drive::getPose));
+                new VisionIOPhotonVisionSim(cameraLeftName, robotToLeftCam, drive::getPose),
+                new VisionIOPhotonVisionSim(cameraRightName, robotToRightCam, drive::getPose),
+                new VisionIOPhotonVisionSim(cameraBackName, robotToBackCam, drive::getPose));
         shooter = new Shooter(
           new FlywheelIO() {},
           new TurretIO() {},
@@ -186,10 +189,10 @@ public class RobotContainer {
 
     driverController.leftBumper().onTrue(new SetRobotStateCommand(ROBOT_STATE.INTAKE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.DEFAULT));
     driverController.leftTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.HUB_FOCUS)).onFalse(new SetRobotStateCommand(ROBOT_STATE.DEFAULT));
-    driverController.rightTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.HUB_SHOOT));
+    driverController.rightTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.HUB_SHOOT)).onFalse(new SetRobotStateCommand(ROBOT_STATE.DEFAULT));
 
-    operatorController.button(6).onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE));
-    operatorController.button(7).onTrue(new SetRobotStateCommand(ROBOT_STATE.SPIT));
+    driverController.a().onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
+    // operatorController.button(7).onTrue(new SetRobotStateCommand(ROBOT_STATE.SPIT));
   }
 
   /**

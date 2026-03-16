@@ -167,6 +167,20 @@ public class RobotStateCommands {
     }
 
     //TODO
+    public static Command unAgitate() {
+        return new ParallelCommandGroup(
+            /**
+             * Intake: Intake           done
+             * Indexer: Intake          done
+             * Shooter: --
+             * Climber: --
+             */
+
+            Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake)
+        );
+    }
+
+    //TODO
     public static Command outtakeState() {
         return new SequentialCommandGroup(
             /**

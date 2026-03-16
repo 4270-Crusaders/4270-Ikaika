@@ -5,14 +5,14 @@ import org.littletonrobotics.junction.AutoLog;
 public interface IntakeRollersIO {
   @AutoLog
   public static class IntakeRollersIOInputs {
-    public double[] motorMeasuredVelocityRPS = new double[] {};
-    public double[] motorSetpointVelocityRPS = new double[] {};
-    public double[] motorMeasuredVelocityRPM = new double[] {};
-    public double[] deviceTemperature = new double[] {};
-    public double[] appliedVolts = new double[] {};
-    public double[] supplyCurrentAmps = new double[] {};
-    public double[] torqueCurrentAmps = new double[] {};
-    public double[] positionRad = new double[] {};
+    public double motorMeasuredVelocityRPS = 0.0;
+    public double motorSetpointVelocityRPS = 0.0;
+    public double motorMeasuredVelocityRPM = 0.0;
+    public double deviceTemperature = 0.0;
+    public double appliedVolts = 0.0;
+    public double supplyCurrentAmps = 0.0;
+    public double torqueCurrentAmps = 0.0;
+    public double positionRad = 0.0;
   }
 
   public default void setPID(double kP, double kI, double kD, double kS, double kV, double kA) {}

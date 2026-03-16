@@ -1,6 +1,7 @@
 package frc.robot.subsystems.shooter;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
@@ -19,7 +20,12 @@ import frc.robot.subsystems.shooter.turret.Turret.TurretGoal;
 import frc.robot.subsystems.shooter.turret.TurretIO;
 import frc.robot.util.geometry.AllianceFlipUtil;
 
+import static edu.wpi.first.units.Units.Degrees;
+import static edu.wpi.first.units.Units.RPM;
+import static edu.wpi.first.units.Units.Radians;
+
 import org.littletonrobotics.junction.AutoLogOutput;
+import org.littletonrobotics.junction.Logger;
 
 public class Shooter extends SubsystemBase {
   public enum SHOOTER_STATE {
@@ -61,29 +67,30 @@ public class Shooter extends SubsystemBase {
     this.currentShooterState = shooterState;
   }
 
-  LaunchingParameters launchParam = new LaunchingParameters(false, null, 0, 0, 0, 0); //empty param
-  LaunchCalculator calculator = new LaunchCalculator();
+  LaunchingParameters launchParam = new LaunchingParameters(false, new Rotation2d(), 0, 0, 0, 0); //empty param
+  LaunchCalculator calculator = LaunchCalculator.getInstance();
 
   @Override
   public void periodic() {
+    flywheel.periodic();
+    turret.periodic();
+    hood.periodic();
+
+    calculator = LaunchCalculator.getInstance();
+    
     if(currentShooterState == SHOOTER_STATE.PASS){
       launchParam = calculator.getParameters(
         RobotEstimatedPose,
         robotChassisSpeeds,
         AllianceFlipUtil.apply(new Translation2d()) //TODO change place to pass
       ); //update
-    } else if(currentShooterState == SHOOTER_STATE.HUB){
+    } else {
       launchParam = calculator.getParameters(
         RobotEstimatedPose,
         robotChassisSpeeds,
         AllianceFlipUtil.apply(FieldConstants.Hub.topCenterPoint.toTranslation2d())
       ); //update
     }
-    
-
-    flywheel.periodic();
-    turret.periodic();
-    hood.periodic();
 
     switch (currentShooterState) {
       case ZERO:
@@ -92,12 +99,16 @@ public class Shooter extends SubsystemBase {
         flywheel.setGoalSetPoint(0);
         break;
       case HUB:
-        turret.setGoalSetPoint(launchParam.turretAngle().getDegrees());
+        turret.setGoalSetPoint(RobotEstimatedPose.getRotation().minus(launchParam.turretAngle()).getDegrees());
         hood.setGoalSetPoint(Units.radiansToDegrees(launchParam.hoodAngle()));
         flywheel.setGoalSetPoint(launchParam.flywheelSpeed());
+
+        // flywheel.setGoalSetPoint(FlyWheelGoal.CUSTOM);
+        // turret.setGoalSetPoint(TurretGoal.CUSTOM);
+        // hood.setGoalSetPoint(HoodGoal.CUSTOM);
         break;
       case PASS:
-        turret.setGoalSetPoint(launchParam.turretAngle().getDegrees());
+        turret.setGoalSetPoint(RobotEstimatedPose.getRotation().minus(launchParam.turretAngle()).getDegrees());
         hood.setGoalSetPoint(Units.radiansToDegrees(launchParam.hoodAngle()));
         flywheel.setGoalSetPoint(launchParam.flywheelSpeed());
         break;
@@ -119,6 +130,14 @@ public class Shooter extends SubsystemBase {
         hood.setGoalSetPoint(HoodGoal.CUSTOM);
         break;
     }
+
+    Logger.recordOutput("Shooter/Calculation/FlywheelSpeed", launchParam.flywheelSpeed(), RPM);
+    Logger.recordOutput("Shooter/Calculation/HoodAngle", launchParam.hoodAngle(), Radians);
+    Logger.recordOutput("Shooter/Calculation/TurretAngleFieldCentric", launchParam.turretAngle().getDegrees(), Degrees);
+    Logger.recordOutput("Shooter/Calculation/TurretAngleTurretCentric", RobotEstimatedPose.getRotation().minus(launchParam.turretAngle()).getDegrees(), Degrees);
+    Logger.recordOutput("Shooter/RobotEstimatedPose", RobotEstimatedPose);
+    Logger.recordOutput("Shooter/RobotVelocity", robotChassisSpeeds);
+    Logger.recordOutput("Shooter/AllianceHubPose", AllianceFlipUtil.apply(FieldConstants.Hub.topCenterPoint.toTranslation2d()));
   }
 
   public static Command getSetStateCommand(SHOOTER_STATE state, Shooter shooter) {

@@ -45,16 +45,9 @@ public class Flywheel {
 
   public enum FlyWheelGoal {
     ZERO(new LoggedTunableNumber("Shooter/FlyWheel/Goals/Zero", 0.0)),
-    AUTOIDLE(new LoggedTunableNumber("Shooter/FlyWheel/Goals/Idle", 3000)),
-    TELEIDLE(new LoggedTunableNumber("Shooter/FlyWheel/Goals/Idle", 2500)),
-    SHOOTING(
-        new LoggedTunableNumber("Shooter/FlyWheel/Goals/Shooting", 3000)), // TODO: Tune this value
-    PASSNEUTRAL(
-        new LoggedTunableNumber(
-            "Shooter/FlyWheel/Goals/PassNeutral", 4000)), // TODO: Tune this value
-    PASSOPPONENT(
-        new LoggedTunableNumber("Shooter/FlyWheel/Goals/pass", 5000)), // TODO: Tune this value
-    CUSTOM(new LoggedTunableNumber("Shooter/FlyWheel/Goals/custom", 80)); // TODO: Tune this value
+    AUTOIDLE(new LoggedTunableNumber("Shooter/FlyWheel/Goals/AUTOIDLE", 3000)),
+    TELEIDLE(new LoggedTunableNumber("Shooter/FlyWheel/Goals/TELEIDLE", 2500)),
+    CUSTOM(new LoggedTunableNumber("Shooter/FlyWheel/Goals/Custom", 100)); // TODO: Tune this value
 
     private final DoubleSupplier SHOOTER_SET_POINT_SUPPLIER;
 
@@ -67,7 +60,7 @@ public class Flywheel {
     }
   }
 
-  @AutoLogOutput private FlyWheelGoal goalSetpoint = FlyWheelGoal.ZERO;
+  @AutoLogOutput(key = "Shooter/FlyWheel/GoalSetpoint") private FlyWheelGoal goalSetpoint = FlyWheelGoal.ZERO;
 
   private boolean setpointMode = true;
 

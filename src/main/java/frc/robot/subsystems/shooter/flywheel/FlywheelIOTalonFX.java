@@ -6,7 +6,8 @@ import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
-import com.ctre.phoenix6.controls.MotionMagicVelocityTorqueCurrentFOC;
+import com.ctre.phoenix6.controls.VelocityDutyCycle;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import edu.wpi.first.units.measure.Angle;
@@ -43,8 +44,8 @@ public class FlywheelIOTalonFX implements FlywheelIO {
   private final Follower followController =
       new Follower(
           ShooterConstants.FlywheelConstants.FLYWHEEL_LEAD_CAN_ID, MotorAlignmentValue.Opposed);
-  private final MotionMagicVelocityTorqueCurrentFOC velocityRequest =
-      new MotionMagicVelocityTorqueCurrentFOC(0.0);
+  private final VelocityVoltage velocityRequest =
+      new VelocityVoltage(0.0);
 
   private TalonFXConfiguration config = new TalonFXConfiguration();
 
@@ -115,6 +116,10 @@ public class FlywheelIOTalonFX implements FlywheelIO {
         new double[] {
           (inputs.motorMeasuredVelocityRPS[0] * 60), (inputs.motorMeasuredVelocityRPS[1] * 60)
         };
+    inputs.motorSetpointVelocityRPM =
+        new double[] {
+          (inputs.motorSetpointVelocityRPS[0] * 60), (inputs.motorSetpointVelocityRPS[1] * 60)
+        };
     inputs.MainFlyWheelRPM =
         ((inputs.motorMeasuredVelocityRPM[0] + inputs.motorMeasuredVelocityRPM[1]) / 2)
             / ShooterConstants.FlywheelConstants.TurretMotorToMainFlyWheelReduction;
@@ -158,6 +163,6 @@ public class FlywheelIOTalonFX implements FlywheelIO {
 
   @Override
   public void runSetVelocity(double setpointVelocityRotPerSec) {
-    LeadMotor.setControl(velocityRequest.withVelocity(setpointVelocityRotPerSec));
+    LeadMotor.setControl(velocityRequest.withVelocity(setpointVelocityRotPerSec).withEnableFOC(true));
   }
 }

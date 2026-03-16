@@ -18,6 +18,7 @@ import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.math.interpolation.InterpolatingTreeMap;
 import edu.wpi.first.math.interpolation.InverseInterpolator;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.util.Units;
 import lombok.experimental.ExtensionMethod;
 import frc.robot.Constants;
 // import frc.robot.FieldConstants;
@@ -72,27 +73,31 @@ public class LaunchCalculator {
         maxDistance = 5.60;
         phaseDelay = 0.03;
 
-        launchHoodAngleMap.put(1.34, Rotation2d.fromDegrees(19.0));
-        launchHoodAngleMap.put(1.78, Rotation2d.fromDegrees(19.0));
-        launchHoodAngleMap.put(2.17, Rotation2d.fromDegrees(24.0));
-        launchHoodAngleMap.put(2.81, Rotation2d.fromDegrees(27.0));
-        launchHoodAngleMap.put(3.82, Rotation2d.fromDegrees(29.0));
-        launchHoodAngleMap.put(4.09, Rotation2d.fromDegrees(30.0));
-        launchHoodAngleMap.put(4.40, Rotation2d.fromDegrees(31.0));
-        launchHoodAngleMap.put(4.77, Rotation2d.fromDegrees(32.0));
-        launchHoodAngleMap.put(5.57, Rotation2d.fromDegrees(32.0));
-        launchHoodAngleMap.put(5.60, Rotation2d.fromDegrees(35.0));
+        launchHoodAngleMap.put(Units.inchesToMeters(71),    Rotation2d.fromDegrees(9));
+        launchHoodAngleMap.put(Units.inchesToMeters(81),    Rotation2d.fromDegrees(9.25));
+        launchHoodAngleMap.put(Units.inchesToMeters(93),    Rotation2d.fromDegrees(10.5));
+        launchHoodAngleMap.put(Units.inchesToMeters(105),   Rotation2d.fromDegrees(11));
+        launchHoodAngleMap.put(Units.inchesToMeters(117),   Rotation2d.fromDegrees(12.5));
+        launchHoodAngleMap.put(Units.inchesToMeters(129),   Rotation2d.fromDegrees(13.5));
+        launchHoodAngleMap.put(Units.inchesToMeters(141),   Rotation2d.fromDegrees(17.5));
+        launchHoodAngleMap.put(Units.inchesToMeters(153),   Rotation2d.fromDegrees(19));
+        launchHoodAngleMap.put(Units.inchesToMeters(165),   Rotation2d.fromDegrees(21));
+        launchHoodAngleMap.put(Units.inchesToMeters(177),   Rotation2d.fromDegrees(21.75));
+        launchHoodAngleMap.put(Units.inchesToMeters(189),   Rotation2d.fromDegrees(22));
+        launchHoodAngleMap.put(Units.inchesToMeters(201),   Rotation2d.fromDegrees(23));
 
-        launchFlywheelSpeedMap.put(1.34, 210.0);
-        launchFlywheelSpeedMap.put(1.78, 220.0);
-        launchFlywheelSpeedMap.put(2.17, 220.0);
-        launchFlywheelSpeedMap.put(2.81, 230.0);
-        launchFlywheelSpeedMap.put(3.82, 250.0);
-        launchFlywheelSpeedMap.put(4.09, 255.0);
-        launchFlywheelSpeedMap.put(4.40, 260.0);
-        launchFlywheelSpeedMap.put(4.77, 265.0);
-        launchFlywheelSpeedMap.put(5.57, 275.0);
-        launchFlywheelSpeedMap.put(5.60, 290.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(71), 2050.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(81), 2100.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(93), 2300.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(105), 2350.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(117), 2400.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(129), 2475.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(141), 2650.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(153), 2675.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(165), 2700.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(177), 2850.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(189), 2850.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(201), 2950.0);
 
         timeOfFlightMap.put(5.68, 1.16);
         timeOfFlightMap.put(4.55, 1.12);
@@ -102,9 +107,9 @@ public class LaunchCalculator {
     }
 
     public LaunchingParameters getParameters(Pose2d robotEstimatedPose2d, ChassisSpeeds robotRelativeVelocityChassisSpeed, Translation2d targeTranslation2d) {
-        if (latestParameters != null) {
-            return latestParameters;
-        }
+        // if (latestParameters != null) {
+        //     return latestParameters;
+        // }
 
         // Calculate estimated pose while accounting for phase delay
         Pose2d estimatedPose = robotEstimatedPose2d;
@@ -142,14 +147,14 @@ public class LaunchCalculator {
         Pose2d lookaheadPose = turretPosition;
         double lookaheadTurretToTargetDistance = turretToTargetDistance;
         for (int i = 0; i < 20; i++) {
-        timeOfFlight = timeOfFlightMap.get(lookaheadTurretToTargetDistance);
-        double offsetX = turretVelocityX * timeOfFlight;
-        double offsetY = turretVelocityY * timeOfFlight;
-        lookaheadPose =
-            new Pose2d(
-                turretPosition.getTranslation().plus(new Translation2d(offsetX, offsetY)),
-                turretPosition.getRotation());
-        lookaheadTurretToTargetDistance = target.getDistance(lookaheadPose.getTranslation());
+            timeOfFlight = timeOfFlightMap.get(lookaheadTurretToTargetDistance);
+            double offsetX = turretVelocityX * timeOfFlight;
+            double offsetY = turretVelocityY * timeOfFlight;
+            lookaheadPose =
+                new Pose2d(
+                    turretPosition.getTranslation().plus(new Translation2d(offsetX, offsetY)),
+                    turretPosition.getRotation());
+            lookaheadTurretToTargetDistance = target.getDistance(lookaheadPose.getTranslation());
         }
 
         // Calculate parameters accounted for imparted velocity

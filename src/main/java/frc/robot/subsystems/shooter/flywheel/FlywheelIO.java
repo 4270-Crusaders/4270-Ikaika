@@ -13,6 +13,7 @@ public interface FlywheelIO {
     public double supplyCurrentAmps[] = new double[] {};
     public double motorSetpointVelocityRPS[] = new double[] {};
     public double motorMeasuredVelocityRPS[] = new double[] {};
+    public double motorSetpointVelocityRPM[] = new double[] {};
     public double motorMeasuredVelocityRPM[] = new double[] {};
     public double deviceTemperature[] = new double[] {};
   }

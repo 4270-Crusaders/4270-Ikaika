@@ -35,17 +35,16 @@ public class IntakeConstants {
   // Intake Roller
   public static final class IntakeRollerConstants {
     public static final int MAIN_INTAKE_ROLLER_CAN_ID = 31;
-    public static final int FOLLOW_INTAKE_ROLLER_CAN_ID = 32;
     public static final double INTAKE_ROLLER_CURRENT_LIMIT = 60;
     public static final boolean INTAKE_ROLLER_CURRENT_LIMIT_ENABLE = true;
     public static final NeutralModeValue INTAKE_ROLL_NEUTRAL_MODE_VALUE = NeutralModeValue.Coast;
     public static final InvertedValue INTAKE_ROLL_INVERTED_VALUE = InvertedValue.Clockwise_Positive;
 
-    public static final double kP = 0;
-    public static final double kI = 0;
+    public static final double kP = 0.05;
+    public static final double kI = 0.001;
     public static final double kD = 0;
     public static final double kA = 0;
-    public static final double kV = 0;
-    public static final double kS = 0;
+    public static final double kV = 0.0981465;
+    public static final double kS = 0.900842;
   }
 }

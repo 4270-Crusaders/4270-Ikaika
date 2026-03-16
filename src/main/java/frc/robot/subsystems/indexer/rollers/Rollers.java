@@ -26,7 +26,7 @@ public class Rollers {
 
   public enum RollersGoal {
     ZERO(new LoggedTunableNumber("Indexer/Rollers/Goals/ZERO", 0)),
-    INTAKE(new LoggedTunableNumber("Indexer/Rollers/Goals/AGITATE", 2000)),
+    INTAKE(new LoggedTunableNumber("Indexer/Rollers/Goals/AGITATE", 1500)),
     SHOOT(new LoggedTunableNumber("Indexer/Rollers/Goals/SHOOT", 6000)),
     OUTTAKE(new LoggedTunableNumber("Indexer/Rollers/Goals/OUTTAKE", -3000)),
     SPIT(new LoggedTunableNumber("Indexer/Rollers/Goals/SPIT", 2000)),

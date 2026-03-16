@@ -75,7 +75,7 @@ public class Turret {
     }
   }
 
-  @AutoLogOutput private TurretGoal goalSetpoint = TurretGoal.ZERO;
+  @AutoLogOutput(key="Shooter/Turret/GoalSetpoint") private TurretGoal goalSetpoint = TurretGoal.ZERO;
 
   private boolean setpointMode = true;
 

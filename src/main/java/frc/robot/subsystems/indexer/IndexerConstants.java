@@ -26,12 +26,12 @@ public class IndexerConstants {
     public static final boolean CONVEYOR_CURRENT_LIMIT_ENABLE = true;
     public static final NeutralModeValue CONVEY_NEUTRAL_MODE_VALUE = NeutralModeValue.Coast;
     public static final InvertedValue CONVEYOR_INVERTED_VALUE = InvertedValue.Clockwise_Positive;
-    public static final double kP = 11;
-    public static final double kI = 0.0;
+    public static final double kP = 0.4;
+    public static final double kI = 0.2;
     public static final double kD = 0.0;
     public static final double kA = 0.0;
-    public static final double kV = 0.25;
-    public static final double kS = 2;
+    public static final double kV = 0.121666;
+    public static final double kS = 0.436549;
   }
 
   public static final class AgitatorConstants {
@@ -50,16 +50,16 @@ public class IndexerConstants {
 
   public static final class KickerConstants {
     public static final int KICKER_CAN_ID = 43;
-    public static final double KICKER_CURRENT_LIMIT = 60;
+    public static final double KICKER_CURRENT_LIMIT = 75;
     public static final boolean KICKER_CURRENT_LIMIT_ENABLE = true;
     public static final NeutralModeValue KICKER_NEUTRAL_MODE_VALUE = NeutralModeValue.Brake;
     public static final InvertedValue KICKER_INVERTED_VALUE =
         InvertedValue.CounterClockwise_Positive;
-    public static final double kP = 8;
+    public static final double kP = 0.5;
     public static final double kI = 0.0;
     public static final double kD = 0.0;
     public static final double kA = 0.0;
-    public static final double kV = 0.0;
-    public static final double kS = 1.5;
+    public static final double kV = 0.120347;
+    public static final double kS = 0.116575;
   }
 }
