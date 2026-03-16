@@ -45,6 +45,7 @@ public class VisionConstants {
 
   // Standard deviation multipliers for each camera
   // (Adjust to trust some cameras more than others)
+  //TODO -> Change priority for back camera overlap (lower prio for front facing cam)
   public static double[] cameraStdDevFactors =
       new double[] {
         1.0, // Camera 0

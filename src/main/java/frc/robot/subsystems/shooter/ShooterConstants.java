@@ -31,13 +31,15 @@ public class ShooterConstants {
     public static double FlyWheelMotionMagicAcceleration = 250;
     public static double FlyWheelMotionMagicJerk = 0;
 
-    // TODO: Tune these values
-    public static final double FLYWHEEL_TOP_RPM_ALLIANCE = 2500;
-    public static final double FLYWHEEL_BOTTOM_RPM_ALLIANCE = 2500;
-    public static final double FLYWHEEL_TOP_RPM_OPP = 2500;
-    public static final double FLYWHEEL_BOTTOM_RPM_OPP = 2500;
-    public static final double FLYWHEEL_TOP_RPM_NEUTRAL = 2500;
-    public static final double FLYWHEEL_BOTTOM_RPM_NEUTRAL = 2500;
+    // TODO -> Delete when necessary (using interpolated data)
+    // public static final double FLYWHEEL_TOP_RPM_ALLIANCE = 2500;
+    // public static final double FLYWHEEL_BOTTOM_RPM_ALLIANCE = 2500;
+    // public static final double FLYWHEEL_TOP_RPM_OPP = 2500;
+    // public static final double FLYWHEEL_BOTTOM_RPM_OPP = 2500;
+    // public static final double FLYWHEEL_TOP_RPM_NEUTRAL = 2500;
+    // public static final double FLYWHEEL_BOTTOM_RPM_NEUTRAL = 2500;
+
+    public static final double FLYWHEEL_GEAR_RATIO = 0.0; //TODO -> Change when mech change on bot
 
     public static double TurretMotorToMainFlyWheelReduction = 0.952941176471;
     public static double TurretMotorToHoodFlyWheelReduction = 0.700692041522;

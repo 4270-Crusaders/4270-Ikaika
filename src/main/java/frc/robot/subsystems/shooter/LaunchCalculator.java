@@ -73,6 +73,7 @@ public class LaunchCalculator {
         maxDistance = 5.60;
         phaseDelay = 0.03;
 
+        //TODO -> Double check if more points needed for close shots (near hub)
         launchHoodAngleMap.put(Units.inchesToMeters(71),    Rotation2d.fromDegrees(9));
         launchHoodAngleMap.put(Units.inchesToMeters(81),    Rotation2d.fromDegrees(9.25));
         launchHoodAngleMap.put(Units.inchesToMeters(93),    Rotation2d.fromDegrees(10.5));
@@ -113,6 +114,7 @@ public class LaunchCalculator {
         launchFlywheelSpeedMap.put(Units.inchesToMeters(183.5), 2875.0);
         launchFlywheelSpeedMap.put(Units.inchesToMeters(206),   3000.0);
 
+        //TODO -> Double check tof mapping values (if more is needed for better curve)
         timeOfFlightMap.put(Units.inchesToMeters(84),  1.05333);
         timeOfFlightMap.put(Units.inchesToMeters(123), 1.16666);
         timeOfFlightMap.put(Units.inchesToMeters(155), 1.17333);
@@ -137,7 +139,8 @@ public class LaunchCalculator {
                     robotRelativeVelocity.omegaRadiansPerSecond * phaseDelay));
 
         // Calculate distance from turret to target
-        Translation2d target = targeTranslation2d; //AllianceFlipUtil.apply(FieldConstants.Hub.topCenterPoint.toTranslation2d());
+        Translation2d target = targeTranslation2d; 
+        //AllianceFlipUtil.apply(FieldConstants.Hub.topCenterPoint.toTranslation2d());
 
         Pose2d turretPosition = estimatedPose.transformBy(robotToTurret.toTransform2d());
         double turretToTargetDistance = target.getDistance(turretPosition.getTranslation());
@@ -172,6 +175,7 @@ public class LaunchCalculator {
         }
 
         // Calculate parameters accounted for imparted velocity
+        //TODO -> Look into if fixed velocity is needed for better calculation
         turretAngle = target.minus(lookaheadPose.getTranslation()).getAngle();
         hoodAngle = launchHoodAngleMap.get(lookaheadTurretToTargetDistance).getRadians();
         if (lastTurretAngle == null) lastTurretAngle = turretAngle;
