@@ -12,7 +12,7 @@ import edu.wpi.first.math.geometry.Transform3d;
 
 public class LauncherConstants {
   public static final double TURRET_HEIGHT = 0.4826; // inches multiplied by meter conversion
-  public static final double SHOOTER_X_OFFSET = 0.2032;
+  public static final double SHOOTER_X_OFFSET = -0.2032;
   public static final double SHOOTER_Y_OFFSET = -0.1905;
 
   public static Transform3d robotToTurret = new Transform3d(SHOOTER_X_OFFSET, SHOOTER_Y_OFFSET, TURRET_HEIGHT, Rotation3d.kZero);

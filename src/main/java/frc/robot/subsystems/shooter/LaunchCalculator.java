@@ -85,25 +85,39 @@ public class LaunchCalculator {
         launchHoodAngleMap.put(Units.inchesToMeters(177),   Rotation2d.fromDegrees(21.75));
         launchHoodAngleMap.put(Units.inchesToMeters(189),   Rotation2d.fromDegrees(22));
         launchHoodAngleMap.put(Units.inchesToMeters(201),   Rotation2d.fromDegrees(23));
+        launchHoodAngleMap.put(Units.inchesToMeters(154.5), Rotation2d.fromDegrees(20));
+        launchHoodAngleMap.put(Units.inchesToMeters(158),   Rotation2d.fromDegrees(20.5));
+        launchHoodAngleMap.put(Units.inchesToMeters(162),   Rotation2d.fromDegrees(20.625));
+        launchHoodAngleMap.put(Units.inchesToMeters(167),   Rotation2d.fromDegrees(21.125));
+        launchHoodAngleMap.put(Units.inchesToMeters(174),   Rotation2d.fromDegrees(21.5));
+        launchHoodAngleMap.put(Units.inchesToMeters(183.5), Rotation2d.fromDegrees(21.9));
+        launchHoodAngleMap.put(Units.inchesToMeters(206),   Rotation2d.fromDegrees(23.5));
 
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(71), 2050.0);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(81), 2100.0);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(93), 2300.0);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(105), 2350.0);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(117), 2400.0);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(129), 2475.0);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(141), 2650.0);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(153), 2675.0);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(165), 2700.0);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(177), 2850.0);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(189), 2850.0);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(201), 2950.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(71),    2050.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(81),    2100.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(93),    2300.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(105),   2350.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(117),   2400.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(129),   2475.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(141),   2650.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(153),   2675.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(165),   2700.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(177),   2850.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(189),   2850.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(201),   2950.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(154.5), 2688.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(158),   2695.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(162),   2696.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(167),   2750.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(174),   2800.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(183.5), 2875.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(206),   3000.0);
 
-        timeOfFlightMap.put(5.68, 1.16);
-        timeOfFlightMap.put(4.55, 1.12);
-        timeOfFlightMap.put(3.15, 1.11);
-        timeOfFlightMap.put(1.88, 1.09);
-        timeOfFlightMap.put(1.38, 0.90);
+        timeOfFlightMap.put(Units.inchesToMeters(84),  1.05333);
+        timeOfFlightMap.put(Units.inchesToMeters(123), 1.16666);
+        timeOfFlightMap.put(Units.inchesToMeters(155), 1.17333);
+        timeOfFlightMap.put(Units.inchesToMeters(185), 1.19666);
+        timeOfFlightMap.put(Units.inchesToMeters(222), 1.27000);
     }
 
     public LaunchingParameters getParameters(Pose2d robotEstimatedPose2d, ChassisSpeeds robotRelativeVelocityChassisSpeed, Translation2d targeTranslation2d) {

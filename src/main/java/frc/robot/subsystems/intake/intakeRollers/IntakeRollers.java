@@ -1,6 +1,5 @@
 package frc.robot.subsystems.intake.intakeRollers;
 
-import frc.robot.subsystems.indexer.IndexerConstants;
 import frc.robot.subsystems.intake.IntakeConstants;
 import frc.robot.util.EqualsUtil;
 import frc.robot.util.LoggedTunableNumber;
