@@ -12,6 +12,8 @@ import edu.wpi.first.math.geometry.Transform3d;
 
 public class LauncherConstants {
   public static final double TURRET_HEIGHT = 0.4826; // inches multiplied by meter conversion
+
+  //TODO -> Double Check Values of offsets
   public static final double SHOOTER_X_OFFSET = -0.2032;
   public static final double SHOOTER_Y_OFFSET = -0.1905;
 
