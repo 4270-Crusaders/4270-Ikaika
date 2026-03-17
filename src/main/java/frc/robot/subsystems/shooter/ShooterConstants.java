@@ -38,22 +38,11 @@ public class ShooterConstants {
     // diff old -> new 0.61563786007
 
     // 12->18  22->30  18->15 (new) 0.58666666666
-    
-    // TODO -> Delete when necessary (using interpolated data)
-    // public static final double FLYWHEEL_TOP_RPM_ALLIANCE = 2500;
-    // public static final double FLYWHEEL_BOTTOM_RPM_ALLIANCE = 2500;
-    // public static final double FLYWHEEL_TOP_RPM_OPP = 2500;
-    // public static final double FLYWHEEL_BOTTOM_RPM_OPP = 2500;
-    // public static final double FLYWHEEL_TOP_RPM_NEUTRAL = 2500;
-    // public static final double FLYWHEEL_BOTTOM_RPM_NEUTRAL = 2500;
-
-    public static final double FLYWHEEL_GEAR_RATIO = 0.0; //TODO -> Change when mech change on bot
-
-    public static double TurretMotorToMainFlyWheelReduction = 0.952941176471;
-    public static double TurretMotorToHoodFlyWheelReduction = 0.700692041522;
-    // 12->18  34->18  15->18
     // 34->30  18->15
 
+    // 12->18  34->18  15->18 (old)
+
+    public static final double FLYWHEEL_GEAR_RATIO = 0.0; //TODO -> Change when mech change on bot
   }
 
   // Hood
