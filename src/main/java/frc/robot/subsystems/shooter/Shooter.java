@@ -69,6 +69,8 @@ public class Shooter extends SubsystemBase {
 
   LaunchingParameters launchParam = new LaunchingParameters(false, new Rotation2d(), 0, 0, 0, 0); //empty param
   LaunchCalculator calculator = LaunchCalculator.getInstance();
+  Translation2d passPoint = new Translation2d();
+  Translation2d target = new Translation2d();
 
   @Override
   public void periodic() {
@@ -77,20 +79,26 @@ public class Shooter extends SubsystemBase {
     hood.periodic();
 
     calculator = LaunchCalculator.getInstance();
-    
-    if(currentShooterState == SHOOTER_STATE.PASS){
-      launchParam = calculator.getParameters(
-        RobotEstimatedPose,
-        robotChassisSpeeds,
-        AllianceFlipUtil.apply(new Translation2d()) //TODO change place to pass
-      ); //update
+
+    if(!AllianceFlipUtil.shouldFlip()){ // if blue
+      passPoint = RobotEstimatedPose.getY() > FieldConstants.fieldWidth/2 ?
+          AllianceFlipUtil.apply(LauncherConstants.passPointLeft) :
+          AllianceFlipUtil.apply(LauncherConstants.passPointRight);
     } else {
-      launchParam = calculator.getParameters(
-        RobotEstimatedPose,
-        robotChassisSpeeds,
-        AllianceFlipUtil.apply(FieldConstants.Hub.topCenterPoint.toTranslation2d())
-      ); //update
+      passPoint = RobotEstimatedPose.getY() < FieldConstants.fieldWidth/2 ?
+          AllianceFlipUtil.apply(LauncherConstants.passPointLeft) :
+          AllianceFlipUtil.apply(LauncherConstants.passPointRight);
     }
+
+    target = currentShooterState == SHOOTER_STATE.PASS ?
+              passPoint : 
+              AllianceFlipUtil.apply(FieldConstants.Hub.topCenterPoint.toTranslation2d());
+
+    launchParam = calculator.getParameters(
+      RobotEstimatedPose,
+      robotChassisSpeeds,
+      AllianceFlipUtil.apply(target)
+    );
 
     switch (currentShooterState) {
       case ZERO:
@@ -137,7 +145,7 @@ public class Shooter extends SubsystemBase {
     Logger.recordOutput("Shooter/Calculation/TurretAngleTurretCentric", RobotEstimatedPose.getRotation().minus(launchParam.turretAngle()).getDegrees(), Degrees);
     Logger.recordOutput("Shooter/RobotEstimatedPose", RobotEstimatedPose);
     Logger.recordOutput("Shooter/RobotVelocity", robotChassisSpeeds);
-    Logger.recordOutput("Shooter/AllianceHubPose", AllianceFlipUtil.apply(FieldConstants.Hub.topCenterPoint.toTranslation2d()));
+    Logger.recordOutput("Shooter/Target", target);
   }
 
   public static Command getSetStateCommand(SHOOTER_STATE state, Shooter shooter) {
