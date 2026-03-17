@@ -6,6 +6,7 @@ import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
+import com.ctre.phoenix6.controls.VelocityDutyCycle;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
@@ -43,6 +44,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
   private final Follower followController =
       new Follower(
           ShooterConstants.FlywheelConstants.FLYWHEEL_LEAD_CAN_ID, MotorAlignmentValue.Opposed);
+
   private final VelocityVoltage velocityRequest =
       new VelocityVoltage(0.0);
 

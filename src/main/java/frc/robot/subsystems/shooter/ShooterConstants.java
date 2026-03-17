@@ -21,26 +21,24 @@ public class ShooterConstants {
     public static final InvertedValue MAIN_FLYWHEEL_INVERTED_VALUE =
         InvertedValue.Clockwise_Positive;
     public static final NeutralModeValue FLYWHEEL_NEUTRAL_MODE = NeutralModeValue.Coast;
-    public static double FlyWheelkP = 0.2;
+    public static double FlyWheelkP = 0.01;
     public static double FlyWheelkI = 0.0;
     public static double FlyWheelkD = 0.0;
     public static double FlyWheelkA = 0.0;
-    public static double FlyWheelkV = 0.096637;
-    public static double FlyWheelkS = 0.694727;
+    public static double FlyWheelkV = 0.0968061;
+    public static double FlyWheelkS = 0.469788;
     public static double FlyWheelMotionMagicVelocity = 0;
     public static double FlyWheelMotionMagicAcceleration = 250;
     public static double FlyWheelMotionMagicJerk = 0;
 
-    // TODO: Tune these values
-    public static final double FLYWHEEL_TOP_RPM_ALLIANCE = 2500;
-    public static final double FLYWHEEL_BOTTOM_RPM_ALLIANCE = 2500;
-    public static final double FLYWHEEL_TOP_RPM_OPP = 2500;
-    public static final double FLYWHEEL_BOTTOM_RPM_OPP = 2500;
-    public static final double FLYWHEEL_TOP_RPM_NEUTRAL = 2500;
-    public static final double FLYWHEEL_BOTTOM_RPM_NEUTRAL = 2500;
+    
+    public static double TurretMotorToMainFlyWheelReduction = 0.58666666666; //0.952941176471;
+    public static double TurretMotorToHoodFlyWheelReduction = 0.431372549; //0.700692041522;  
 
-    public static double TurretMotorToMainFlyWheelReduction = 0.952941176471;
-    public static double TurretMotorToHoodFlyWheelReduction = 0.700692041522;
+    // diff old -> new 0.61563786007
+
+    // 12->18  22->30  18->15 (new) 0.58666666666
+    
     // 12->18  34->18  15->18
     // 34->30  18->15
 
