@@ -1,0 +1,112 @@
+{
+  "version": "2025.0",
+  "waypoints": [
+    {
+      "anchor": {
+        "x": 7.302,
+        "y": 3.244
+      },
+      "prevControl": null,
+      "nextControl": {
+        "x": 7.420023724792409,
+        "y": 2.6524436536180303
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 6.326647727272728,
+        "y": 0.6050662878787887
+      },
+      "prevControl": {
+        "x": 7.424527539727314,
+        "y": 0.6335826466438451
+      },
+      "nextControl": {
+        "x": 5.68716856060606,
+        "y": 0.5884564393939388
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 4.145,
+        "y": 0.605
+      },
+      "prevControl": {
+        "x": 4.964640151515152,
+        "y": 0.5966950757575751
+      },
+      "nextControl": null,
+      "isLocked": false,
+      "linkedName": null
+    }
+  ],
+  "rotationTargets": [
+    {
+      "waypointRelativePos": 1.0099290780141805,
+      "rotationDegrees": 0.0
+    }
+  ],
+  "constraintZones": [
+    {
+      "name": "Constraints Zone",
+      "minWaypointRelativePos": 0.42966751918158386,
+      "maxWaypointRelativePos": 0.9991474850809876,
+      "constraints": {
+        "maxVelocity": 2.0,
+        "maxAcceleration": 5.12,
+        "maxAngularVelocity": 540.0,
+        "maxAngularAcceleration": 720.0,
+        "nominalVoltage": 12.0,
+        "unlimited": false
+      }
+    }
+  ],
+  "pointTowardsZones": [],
+  "eventMarkers": [
+    {
+      "name": "TRENCH",
+      "waypointRelativePos": 0.7195225916453518,
+      "endWaypointRelativePos": null,
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "TRENCH"
+        }
+      }
+    },
+    {
+      "name": "HUB_FOCUS",
+      "waypointRelativePos": 2.0,
+      "endWaypointRelativePos": null,
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "HUB_FOCUS"
+        }
+      }
+    }
+  ],
+  "globalConstraints": {
+    "maxVelocity": 5.12,
+    "maxAcceleration": 5.12,
+    "maxAngularVelocity": 540.0,
+    "maxAngularAcceleration": 720.0,
+    "nominalVoltage": 12.0,
+    "unlimited": false
+  },
+  "goalEndState": {
+    "velocity": 0.0,
+    "rotation": 0.0
+  },
+  "reversed": false,
+  "folder": "Right-Side-Double-Swipe",
+  "idealStartingState": {
+    "velocity": 1.0,
+    "rotation": 100.0
+  },
+  "useDefaultConstraints": true
+}

@@ -1,0 +1,91 @@
+{
+  "version": "2025.0",
+  "waypoints": [
+    {
+      "anchor": {
+        "x": 3.594,
+        "y": 0.58
+      },
+      "prevControl": null,
+      "nextControl": {
+        "x": 2.320166073546858,
+        "y": 0.5974377224199282
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 0.6197409909909914,
+        "y": 0.58
+      },
+      "prevControl": {
+        "x": 1.4266441441441446,
+        "y": 0.5724662162162166
+      },
+      "nextControl": null,
+      "isLocked": false,
+      "linkedName": null
+    }
+  ],
+  "rotationTargets": [],
+  "constraintZones": [
+    {
+      "name": "Constraints Zone",
+      "minWaypointRelativePos": 0.08907563025210116,
+      "maxWaypointRelativePos": 1.0,
+      "constraints": {
+        "maxVelocity": 1.75,
+        "maxAcceleration": 5.0,
+        "maxAngularVelocity": 540.0,
+        "maxAngularAcceleration": 720.0,
+        "nominalVoltage": 12.0,
+        "unlimited": false
+      }
+    }
+  ],
+  "pointTowardsZones": [],
+  "eventMarkers": [
+    {
+      "name": "HUB_FOCUS",
+      "waypointRelativePos": 0.0,
+      "endWaypointRelativePos": null,
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "HUB_FOCUS"
+        }
+      }
+    },
+    {
+      "name": "HUB_SHOOT",
+      "waypointRelativePos": 0.25042016806722706,
+      "endWaypointRelativePos": null,
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "HUB_SHOOT"
+        }
+      }
+    }
+  ],
+  "globalConstraints": {
+    "maxVelocity": 5.12,
+    "maxAcceleration": 5.12,
+    "maxAngularVelocity": 540.0,
+    "maxAngularAcceleration": 720.0,
+    "nominalVoltage": 12.0,
+    "unlimited": false
+  },
+  "goalEndState": {
+    "velocity": 0.0,
+    "rotation": 180.0
+  },
+  "reversed": false,
+  "folder": "Right-Side-Rush-Double-Swipe",
+  "idealStartingState": {
+    "velocity": 2.0,
+    "rotation": 180.0
+  },
+  "useDefaultConstraints": true
+}

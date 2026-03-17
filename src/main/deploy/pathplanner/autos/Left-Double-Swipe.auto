@@ -1,0 +1,61 @@
+{
+  "version": "2025.0",
+  "command": {
+    "type": "sequential",
+    "data": {
+      "commands": [
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Left-Double-Swipe-1"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "HUB_FOCUS"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "HUB_SHOOT"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 2.0
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Left-Double-Swipe-2"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "HUB_FOCUS"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "HUB_SHOOT"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 2.0
+          }
+        }
+      ]
+    }
+  },
+  "resetOdom": true,
+  "folder": "CanPac",
+  "choreoAuto": false
+}
