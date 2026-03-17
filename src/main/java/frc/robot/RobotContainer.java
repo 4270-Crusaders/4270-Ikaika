@@ -88,9 +88,9 @@ public class RobotContainer {
         vision =
         new Vision(
             drive::addVisionMeasurement,
+            new VisionIOLimelight(cameraFrontName, drive::getRotation),
             new VisionIOLimelight(cameraLeftName, drive::getRotation),
-            new VisionIOLimelight(cameraRightName, drive::getRotation),
-            new VisionIOLimelight(cameraBackName, drive::getRotation));
+            new VisionIOLimelight(cameraRightName, drive::getRotation));
 
         shooter = new Shooter(new FlywheelIOTalonFX(), new TurretIOTalonFX(), new HoodIOTalonFX());
         indexer = new Indexer(new AgitatorIOTalonFX(), new KickerIOTalonFX(), new ConveyorIOTalonFX(), new RollersIOTalonFX());
@@ -110,9 +110,9 @@ public class RobotContainer {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
+                new VisionIOPhotonVisionSim(cameraFrontName, robotToFrontCam, drive::getPose),
                 new VisionIOPhotonVisionSim(cameraLeftName, robotToLeftCam, drive::getPose),
-                new VisionIOPhotonVisionSim(cameraRightName, robotToRightCam, drive::getPose),
-                new VisionIOPhotonVisionSim(cameraBackName, robotToBackCam, drive::getPose));
+                new VisionIOPhotonVisionSim(cameraRightName, robotToRightCam, drive::getPose));
         shooter = new Shooter(
           new FlywheelIO() {},
           new TurretIO() {},
