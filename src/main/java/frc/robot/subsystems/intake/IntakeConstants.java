@@ -39,7 +39,7 @@ public class IntakeConstants {
     public static final NeutralModeValue INTAKE_ROLL_NEUTRAL_MODE_VALUE = NeutralModeValue.Coast;
     public static final InvertedValue INTAKE_ROLL_INVERTED_VALUE = InvertedValue.Clockwise_Positive;
 
-    public static final double kP = 0.075;
+    public static final double kP = 0.025;
     public static final double kI = 0.00;
     public static final double kD = 0;
     public static final double kA = 0;

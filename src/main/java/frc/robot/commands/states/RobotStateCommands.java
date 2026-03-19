@@ -166,7 +166,7 @@ public class RobotStateCommands {
 
     //TODO
     public static Command outtakeState() {
-        return new SequentialCommandGroup(
+        return new ParallelCommandGroup(
             /**
              * Intake: outtake           done
              * Indexer: outtake         done
