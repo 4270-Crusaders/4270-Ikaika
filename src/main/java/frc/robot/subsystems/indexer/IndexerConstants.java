@@ -27,7 +27,7 @@ public class IndexerConstants {
     public static final NeutralModeValue CONVEY_NEUTRAL_MODE_VALUE = NeutralModeValue.Coast;
     public static final InvertedValue CONVEYOR_INVERTED_VALUE = InvertedValue.Clockwise_Positive;
     public static final double kP = 0.4;
-    public static final double kI = 0.2;
+    public static final double kI = 0;
     public static final double kD = 0.0;
     public static final double kA = 0.0;
     public static final double kV = 0.121666;
