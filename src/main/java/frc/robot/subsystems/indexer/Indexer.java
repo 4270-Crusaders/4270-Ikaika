@@ -33,6 +33,7 @@ public class Indexer extends SubsystemBase {
   private Kicker kicker;
   private Conveyor conveyor;
   private Rollers Rollers;
+  private boolean readyToShoot = false;
 
   public Indexer(
       AgitatorIO agitatorIO, KickerIO kickerIO, ConveyorIO conveyorIO, RollersIO RollersIO) {
@@ -45,6 +46,12 @@ public class Indexer extends SubsystemBase {
   public void setIndexerState(INDEXER_STATE state) {
     currentIndexerState = state;
   }
+
+  public void setReadyToShoot(boolean value){
+    readyToShoot = value;
+  }
+
+
 
   @Override
   public void periodic() {
@@ -68,10 +75,17 @@ public class Indexer extends SubsystemBase {
         Rollers.Setpoint(RollersGoal.SPIT);
         break;
       case SHOOT:
-        agitator.Setpoint(AgitatorGoal.SHOOT);
-        kicker.Setpoint(KickerGoal.SHOOT);
-        conveyor.Setpoint(ConveyorGoal.SHOOT);
-        Rollers.Setpoint(RollersGoal.SHOOT);
+        if(!readyToShoot){
+          agitator.Setpoint(AgitatorGoal.SHOOT);
+          kicker.Setpoint(KickerGoal.ZERO);
+          conveyor.Setpoint(ConveyorGoal.INTAKE);
+          Rollers.Setpoint(RollersGoal.SHOOT);
+        } else {
+          agitator.Setpoint(AgitatorGoal.SHOOT);
+          kicker.Setpoint(KickerGoal.SHOOT);
+          conveyor.Setpoint(ConveyorGoal.SHOOT);
+          Rollers.Setpoint(RollersGoal.SHOOT);
+        }
         break;
       case AUTOSHOOT:
         agitator.Setpoint(AgitatorGoal.SHOOT);

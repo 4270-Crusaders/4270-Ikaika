@@ -101,6 +101,7 @@ public class Robot extends LoggedRobot {
   public void periodicAfterFAKINGSTART(){
     robotContainer.shooter.setRobotEstimatedPose(robotContainer.drive.getPose());
     robotContainer.shooter.setRobotSpeed(robotContainer.drive.getChassisSpeeds());
+    robotContainer.indexer.setReadyToShoot(robotContainer.shooter.readyToShoot());
   }
 
   /** This function is called once when the robot is disabled. */

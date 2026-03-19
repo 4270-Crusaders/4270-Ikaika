@@ -42,6 +42,9 @@ public class FieldConstants {
    * Officially defined and relevant vertical lines found on the field (defined by X-axis offset)
    */
   public static class LinesVertical {
+    public static final double startTrench = 3.9;
+    public static final double endTrench = 5.450;
+
     public static final double center = fieldLength / 2.0;
     public static final double starting =
         AprilTagLayoutType.OFFICIAL.getLayout().getTagPose(26).get().getX();

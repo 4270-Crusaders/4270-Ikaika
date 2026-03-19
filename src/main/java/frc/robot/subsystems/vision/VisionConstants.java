@@ -19,9 +19,9 @@ public class VisionConstants {
       AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField);
 
   // Camera names, must match names configured on coprocessor
-  public static String cameraFrontName = "limelight-Front";
-  public static String cameraLeftName = "limelight-Left";
-  public static String cameraRightName = "limelight-Right";
+  public static String cameraFrontName = "limelight-front";
+  public static String cameraLeftName = "limelight-left";
+  public static String cameraRightName = "limelight-right";
 
 
   // Robot to camera transforms
@@ -37,12 +37,12 @@ public class VisionConstants {
         new Transform3d(Units.inchesToMeters(-12.45784),       // Right
                         Units.inchesToMeters(-9.440023),       // Forward
                         Units.inchesToMeters(20.68442), // Up
-                        new Rotation3d(0, Units.degreesToRadians(10), Units.degreesToRadians(205)));
+                        new Rotation3d(0, Units.degreesToRadians(10), Units.degreesToRadians(205))); //clockwise positive
     public static Transform3d robotToRightCam =
         new Transform3d(Units.inchesToMeters(-12.6474354),     // Right
                         Units.inchesToMeters(-9.380305),       // Forward
                         Units.inchesToMeters(18.38072), // Up
-                        new Rotation3d(0, Units.degreesToRadians(10), Units.degreesToRadians(155)));
+                        new Rotation3d(0, Units.degreesToRadians(10), Units.degreesToRadians(155))); //clockwise positive
 
   // Basic filtering thresholds
   public static double maxAmbiguity = 0.3;
@@ -58,9 +58,9 @@ public class VisionConstants {
   //TODO -> Change priority for back camera overlap (lower prio for front facing cam)
   public static double[] cameraStdDevFactors =
       new double[] {
-        1.0, // Camera 0
-        1.0, // Camera 1
-        1.0
+        0.75, // Front
+        1.0, // Left
+        1.0  // Right
       };
 
   // Multipliers to apply for MegaTag 2 observations

@@ -55,11 +55,11 @@ public class IndexerConstants {
     public static final NeutralModeValue KICKER_NEUTRAL_MODE_VALUE = NeutralModeValue.Brake;
     public static final InvertedValue KICKER_INVERTED_VALUE =
         InvertedValue.CounterClockwise_Positive;
-    public static final double kP = 0.5;
+    public static final double kP = 0.025;
     public static final double kI = 0.0;
     public static final double kD = 0.0;
     public static final double kA = 0.0;
-    public static final double kV = 0.120347;
-    public static final double kS = 0.116575;
+    public static final double kV = 0.11658;
+    public static final double kS = 0.247818;
   }
 }

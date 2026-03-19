@@ -54,7 +54,7 @@ public class ShooterConstants {
     public static SensorDirectionValue hoodEncoderDirection =
         SensorDirectionValue.Clockwise_Positive;
     public static double HoodEncoderAbsoluteSensorDiscontinuityPoint = 0.5;
-    public static double HoodEncoderMagnetOffset = -0.332275390625; // TUNE ALOT!!
+    public static double HoodEncoderMagnetOffset = -0.19384765625; // TUNE ALOT!!
     public static double HoodCurrentLimit = 60.0;
     public static InvertedValue HoodInvertedValue = InvertedValue.CounterClockwise_Positive;
     public static boolean HoodSupplyCurrentLimitEnable = true;
@@ -76,14 +76,13 @@ public class ShooterConstants {
   // Turret
   public static final class TurretConstants {
     public static final int TURRET_CAN_ID = 24;
-    public static final double TURRET_MAX_DEGREE = 201;
-    public static final double TURRET_MIN_DEGREE = -111;
-    public static final double TURRET_LIMIT_DEGREE = 2.5;
+    public static final double TURRET_MAX_DEGREE = 170;
+    public static final double TURRET_MIN_DEGREE = -146;
 
     public static final int TURRET_ENCODER_CAN_ID = 25;
     public static double TurretSensorToMechanismRatio = 1;
     public static double TurretRotorToSensorRatio = 62.5;
-    public static double TurretEncoderMagnetOffset = 0.381103515625;
+    public static double TurretEncoderMagnetOffset = 0.379150390625;
     public static SensorDirectionValue turretEncoderDirection =
         SensorDirectionValue.CounterClockwise_Positive;
     public static double TurretEncoderAbsoluteSensorDiscontinuityPoint = 0.5;

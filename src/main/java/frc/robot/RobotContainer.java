@@ -9,6 +9,8 @@ package frc.robot;
 
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
+import com.pathplanner.lib.auto.NamedCommands;
+
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.GenericHID;
@@ -187,12 +189,19 @@ public class RobotContainer {
       ).ignoringDisable(true)
     );
 
-    driverController.leftBumper().onTrue(new SetRobotStateCommand(ROBOT_STATE.INTAKE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.DEFAULT));
-    driverController.leftTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.HUB_FOCUS)).onFalse(new SetRobotStateCommand(ROBOT_STATE.DEFAULT));
-    driverController.rightTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.HUB_SHOOT)).onFalse(new SetRobotStateCommand(ROBOT_STATE.DEFAULT));
-
+    driverController.leftTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.INTAKE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.DEFAULT));
+    driverController.rightTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.SHOOT)).onFalse(new SetRobotStateCommand(ROBOT_STATE.DEFAULT));
+    
     driverController.a().onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
     // operatorController.button(7).onTrue(new SetRobotStateCommand(ROBOT_STATE.SPIT));
+  }
+
+  void registerNamedCommand(){
+    NamedCommands.registerCommand("TRENCH", new SetRobotStateCommand(ROBOT_STATE.TRENCH));
+    NamedCommands.registerCommand("INTAKE", new SetRobotStateCommand(ROBOT_STATE.INTAKE));
+    NamedCommands.registerCommand("DEFAULT", new SetRobotStateCommand(ROBOT_STATE.AUTODEFAULT));
+    NamedCommands.registerCommand("HUB_FOCUS", new SetRobotStateCommand(ROBOT_STATE.AUTO_AIM));
+    NamedCommands.registerCommand("HUB_SHOOT", new SetRobotStateCommand(ROBOT_STATE.AUTO_SHOOT));
   }
 
   /**

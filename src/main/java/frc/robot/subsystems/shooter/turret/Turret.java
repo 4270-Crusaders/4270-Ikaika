@@ -98,15 +98,11 @@ public class Turret {
 
   private double getLimitedDeg(double goal) {
     if (goal
-        >= ShooterConstants.TurretConstants.TURRET_MAX_DEGREE
-            + ShooterConstants.TurretConstants.TURRET_LIMIT_DEGREE) {
-      return ShooterConstants.TurretConstants.TURRET_MAX_DEGREE
-          + ShooterConstants.TurretConstants.TURRET_LIMIT_DEGREE;
+        >= ShooterConstants.TurretConstants.TURRET_MAX_DEGREE) {
+      return ShooterConstants.TurretConstants.TURRET_MAX_DEGREE;
     } else if (goal
-        < ShooterConstants.TurretConstants.TURRET_MIN_DEGREE
-            - ShooterConstants.TurretConstants.TURRET_LIMIT_DEGREE) {
-      return ShooterConstants.TurretConstants.TURRET_MIN_DEGREE
-          - ShooterConstants.TurretConstants.TURRET_LIMIT_DEGREE;
+        < ShooterConstants.TurretConstants.TURRET_MIN_DEGREE) {
+      return ShooterConstants.TurretConstants.TURRET_MIN_DEGREE;
     } else {
       return goal;
     }
@@ -162,7 +158,7 @@ public class Turret {
 
     // Diagnostics
     Logger.recordOutput("Shooter/Turret/GoalDegrees", goalDeg, Degrees);
-    nearGoal = EqualsUtil.epsilonEquals(inputs.measuredPostionDeg, goalDeg, 1);
+    nearGoal = EqualsUtil.epsilonEquals(inputs.measuredPostionDeg, goalDeg, 10);
 
     Logger.recordOutput("Shooter/Turret/nearGoal", nearGoal);
   }

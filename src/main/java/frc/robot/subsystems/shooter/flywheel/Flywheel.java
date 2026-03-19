@@ -115,7 +115,7 @@ public class Flywheel {
         EqualsUtil.epsilonEquals(
             (inputs.motorMeasuredVelocityRPM[0] + inputs.motorMeasuredVelocityRPM[1]) / 2,
             goalRPM,
-            150);
+            200);
     Logger.recordOutput("Shooter/FlyWheel/nearGoal", nearGoal);
   }
 

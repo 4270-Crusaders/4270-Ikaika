@@ -23,8 +23,7 @@ public class IntakeConstants {
     public static double IntakeWristkG = -0.2;
     public static GravityTypeValue intakeWristGravityType = GravityTypeValue.Arm_Cosine;
     public static double IntakeWristMotionMagicVelocity = 0.0; // Target cruise velocity in rps
-    public static double IntakeWristMotionMagicAcceleration =
-        0.0; // Target acceleration in rps/s (0.5 seconds)
+    public static double IntakeWristMotionMagicAcceleration = 0.0; // Target acceleration in rps/s (0.5 seconds)
     public static double IntakeWristMotionMagicJerk = 0.0; // Target jerk in rps/s/s (0.1 seconds)
     public static double IntakeWristMotionMagickA = 0.1;
     public static double IntakeWristMotionMagickV = 0.12;
@@ -40,11 +39,11 @@ public class IntakeConstants {
     public static final NeutralModeValue INTAKE_ROLL_NEUTRAL_MODE_VALUE = NeutralModeValue.Coast;
     public static final InvertedValue INTAKE_ROLL_INVERTED_VALUE = InvertedValue.Clockwise_Positive;
 
-    public static final double kP = 0.05;
-    public static final double kI = 0.001;
+    public static final double kP = 0.075;
+    public static final double kI = 0.00;
     public static final double kD = 0;
     public static final double kA = 0;
-    public static final double kV = 0.0981465;
-    public static final double kS = 0.900842;
+    public static final double kV = 0.12146;
+    public static final double kS = 0.495659;
   }
 }

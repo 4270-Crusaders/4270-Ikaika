@@ -22,7 +22,6 @@ import frc.robot.util.geometry.AllianceFlipUtil;
 
 import static edu.wpi.first.units.Units.Degrees;
 import static edu.wpi.first.units.Units.RPM;
-import static edu.wpi.first.units.Units.Radians;
 
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
@@ -31,15 +30,22 @@ public class Shooter extends SubsystemBase {
   public enum SHOOTER_STATE {
     AUTOHOME,
     HOME,
-    HUB,
-    PASS,
+    AIM,
+    AUTOAIM,
     ZERO,
 
     CUSTOM,
   }
 
-  @AutoLogOutput private SHOOTER_STATE currentShooterState = SHOOTER_STATE.ZERO;
-  
+  private boolean trenchTeleNear = false;
+
+  public enum SHOOT_MODE {
+    HUB,
+    PASS
+  }
+
+  @AutoLogOutput(key = "Shooter/ShooterState") private SHOOTER_STATE currentShooterState = SHOOTER_STATE.ZERO;
+  @AutoLogOutput(key = "Shooter/ShootMode") private SHOOT_MODE currentShooterMode = SHOOT_MODE.HUB;
 
   private Flywheel flywheel;
   private Turret turret;
@@ -62,9 +68,12 @@ public class Shooter extends SubsystemBase {
     robotChassisSpeeds = speed;
   }
 
-
   public void setShooterState(SHOOTER_STATE shooterState) {
     this.currentShooterState = shooterState;
+  }
+
+  public boolean readyToShoot(){
+    return (flywheel.nearGoal && turret.nearGoal && !trenchTeleNear);
   }
 
   LaunchingParameters launchParam = new LaunchingParameters(false, new Rotation2d(), 0, 0, 0, 0); //empty param
@@ -78,26 +87,31 @@ public class Shooter extends SubsystemBase {
     turret.periodic();
     hood.periodic();
 
-    calculator = LaunchCalculator.getInstance();
+    trenchTeleNear = 
+    (AllianceFlipUtil.apply(RobotEstimatedPose.getTranslation()).getX()>FieldConstants.LinesVertical.startTrench&&
+    AllianceFlipUtil.apply(RobotEstimatedPose.getTranslation()).getX()<FieldConstants.LinesVertical.endTrench) ?
+    true:false;
 
-    if(!AllianceFlipUtil.shouldFlip()){ // if blue
-      passPoint = RobotEstimatedPose.getY() > FieldConstants.fieldWidth/2 ?
-          AllianceFlipUtil.apply(LauncherConstants.passPointLeft) :
-          AllianceFlipUtil.apply(LauncherConstants.passPointRight);
-    } else {
-      passPoint = RobotEstimatedPose.getY() < FieldConstants.fieldWidth/2 ?
-          AllianceFlipUtil.apply(LauncherConstants.passPointLeft) :
-          AllianceFlipUtil.apply(LauncherConstants.passPointRight);
-    }
+    currentShooterMode = 
+    (AllianceFlipUtil.apply(RobotEstimatedPose.getTranslation()).getX()>LauncherConstants.passPoint)?
+    SHOOT_MODE.PASS:SHOOT_MODE.HUB;
 
-    target = currentShooterState == SHOOTER_STATE.PASS ?
-              passPoint : 
-              AllianceFlipUtil.apply(FieldConstants.Hub.topCenterPoint.toTranslation2d());
+    passPoint = !AllianceFlipUtil.shouldFlip()?
+      (RobotEstimatedPose.getY() > FieldConstants.fieldWidth/2 ?
+          AllianceFlipUtil.apply(LauncherConstants.passPointLeft) :
+          AllianceFlipUtil.apply(LauncherConstants.passPointRight)):
+      (RobotEstimatedPose.getY() < FieldConstants.fieldWidth/2 ?
+          AllianceFlipUtil.apply(LauncherConstants.passPointLeft) :
+          AllianceFlipUtil.apply(LauncherConstants.passPointRight));
+
+    target = currentShooterMode == SHOOT_MODE.PASS ?
+      passPoint : 
+      AllianceFlipUtil.apply(FieldConstants.Hub.topCenterPoint.toTranslation2d());
 
     launchParam = calculator.getParameters(
       RobotEstimatedPose,
       robotChassisSpeeds,
-      AllianceFlipUtil.apply(target)
+      target
     );
 
     switch (currentShooterState) {
@@ -106,20 +120,16 @@ public class Shooter extends SubsystemBase {
         hood.setGoalSetPoint(0);
         flywheel.setGoalSetPoint(0);
         break;
-      case HUB:
+      case AIM:
+        turret.setGoalSetPoint(trenchTeleNear ? 0 : RobotEstimatedPose.getRotation().minus(launchParam.turretAngle()).getDegrees());
+        flywheel.setGoalSetPoint(launchParam.flywheelSpeed());
+        hood.setGoalSetPoint(trenchTeleNear ? 0 : Units.radiansToDegrees(launchParam.hoodAngle()));
+        break; 
+      case AUTOAIM:
         turret.setGoalSetPoint(RobotEstimatedPose.getRotation().minus(launchParam.turretAngle()).getDegrees());
         hood.setGoalSetPoint(Units.radiansToDegrees(launchParam.hoodAngle()));
         flywheel.setGoalSetPoint(launchParam.flywheelSpeed());
-
-        // flywheel.setGoalSetPoint(FlyWheelGoal.CUSTOM);
-        // turret.setGoalSetPoint(TurretGoal.CUSTOM);
-        // hood.setGoalSetPoint(HoodGoal.CUSTOM);
-        break;
-      case PASS:
-        turret.setGoalSetPoint(RobotEstimatedPose.getRotation().minus(launchParam.turretAngle()).getDegrees());
-        hood.setGoalSetPoint(Units.radiansToDegrees(launchParam.hoodAngle()));
-        flywheel.setGoalSetPoint(launchParam.flywheelSpeed());
-        break;
+        break; 
       case HOME:
         flywheel.setGoalSetPoint(FlyWheelGoal.TELEIDLE);
         turret.setGoalSetPoint(0);
@@ -130,22 +140,23 @@ public class Shooter extends SubsystemBase {
         turret.setGoalSetPoint(0);
         hood.setGoalSetPoint(0);
         break;
-      default:
-        break;
       case CUSTOM:
         flywheel.setGoalSetPoint(FlyWheelGoal.CUSTOM);
         turret.setGoalSetPoint(TurretGoal.CUSTOM);
         hood.setGoalSetPoint(HoodGoal.CUSTOM);
         break;
+      default:
+        break;
     }
 
-    Logger.recordOutput("Shooter/Calculation/FlywheelSpeed", launchParam.flywheelSpeed(), RPM);
-    Logger.recordOutput("Shooter/Calculation/HoodAngle", launchParam.hoodAngle(), Radians);
-    Logger.recordOutput("Shooter/Calculation/TurretAngleFieldCentric", launchParam.turretAngle().getDegrees(), Degrees);
-    Logger.recordOutput("Shooter/Calculation/TurretAngleTurretCentric", RobotEstimatedPose.getRotation().minus(launchParam.turretAngle()).getDegrees(), Degrees);
+    Logger.recordOutput("Shooter/LaunchCalculator/FlywheelSpeed", launchParam.flywheelSpeed(), RPM);
+    Logger.recordOutput("Shooter/LaunchCalculator/HoodAngleDeg", Units.radiansToDegrees(launchParam.hoodAngle()), Degrees);
+    Logger.recordOutput("Shooter/LaunchCalculator/TurretAngleFieldCentric", launchParam.turretAngle().getDegrees(), Degrees);
+    Logger.recordOutput("Shooter/LaunchCalculator/TurretAngleTurretCentric", RobotEstimatedPose.getRotation().minus(launchParam.turretAngle()).getDegrees(), Degrees);
     Logger.recordOutput("Shooter/RobotEstimatedPose", RobotEstimatedPose);
+
     Logger.recordOutput("Shooter/RobotVelocity", robotChassisSpeeds);
-    Logger.recordOutput("Shooter/Target", target);
+    Logger.recordOutput("Shooter/Target", new Pose2d(target.getX(), target.getY(), new Rotation2d()));
   }
 
   public static Command getSetStateCommand(SHOOTER_STATE state, Shooter shooter) {
