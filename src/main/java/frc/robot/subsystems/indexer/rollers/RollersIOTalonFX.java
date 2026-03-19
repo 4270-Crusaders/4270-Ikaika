@@ -5,7 +5,7 @@ import static frc.robot.util.PhoenixUtil.tryUntilOk;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.units.measure.Angle;
@@ -27,7 +27,7 @@ public class RollersIOTalonFX implements RollersIO {
   private final StatusSignal<Temperature> deviceTemperature = LeadMotor.getDeviceTemp();
 
   private final VoltageOut voltageRequest = new VoltageOut(0.0);
-  private final VelocityTorqueCurrentFOC velocityRequest = new VelocityTorqueCurrentFOC(0.0);
+  private final VelocityVoltage velocityRequest = new VelocityVoltage(0.0);
 
   private TalonFXConfiguration config = new TalonFXConfiguration();
 
@@ -98,6 +98,6 @@ public class RollersIOTalonFX implements RollersIO {
 
   @Override
   public void runVelocityRPM(double RPM) {
-    LeadMotor.setControl(velocityRequest.withVelocity(RPM / 60));
+    LeadMotor.setControl(velocityRequest.withVelocity(RPM / 60).withEnableFOC(true));
   }
 }

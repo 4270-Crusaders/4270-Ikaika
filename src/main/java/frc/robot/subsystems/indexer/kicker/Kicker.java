@@ -28,7 +28,7 @@ public class Kicker {
     ZERO(new LoggedTunableNumber("Indexer/Kicker/Goals/ZERO", 0)),
     INTAKE(new LoggedTunableNumber("Indexer/Kicker/Goals/AGITATE", 100)),
     SHOOT(new LoggedTunableNumber("Indexer/Kicker/Goals/SHOOT", 4500)),
-    OUTTAKE(new LoggedTunableNumber("Indexer/Kicker/Goals/OUTTAKE", -3000)),
+    OUTTAKE(new LoggedTunableNumber("Indexer/Kicker/Goals/OUTTAKE", -1500)),
     SPIT(new LoggedTunableNumber("Indexer/Kicker/Goals/SPIT", -4000)),
     CUSTOM(new LoggedTunableNumber("Indexer/Kicker/Goals/CUSTOM", 100));
 

@@ -12,12 +12,12 @@ public class IndexerConstants {
     public static final NeutralModeValue ROLLERS_NEUTRAL_MODE_VALUE = NeutralModeValue.Coast;
     public static final InvertedValue TOP_ROLL_INVERTED_VALUE =
         InvertedValue.CounterClockwise_Positive;
-    public static final double kP = 16;
+    public static final double kP = 0.1;
     public static final double kI = 0.0;
-    public static final double kD = 0.001;
+    public static final double kD = 0.0;
     public static final double kA = 0.0;
-    public static final double kV = 0.0;
-    public static final double kS = 2;
+    public static final double kV = 0.0957467;
+    public static final double kS = 0.739238;
   }
 
   public static final class ConveyorConstants {
