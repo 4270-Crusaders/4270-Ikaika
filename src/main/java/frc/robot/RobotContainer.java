@@ -191,7 +191,7 @@ public class RobotContainer {
 
     driverController.leftTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.INTAKE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.DEFAULT));
     driverController.rightTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.SHOOT)).onFalse(new SetRobotStateCommand(ROBOT_STATE.DEFAULT));
-    
+    driverController.povRight().onTrue(new SetRobotStateCommand(ROBOT_STATE.OUTTAKE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.DEFAULT));
     driverController.a().onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
     // operatorController.button(7).onTrue(new SetRobotStateCommand(ROBOT_STATE.SPIT));
   }
