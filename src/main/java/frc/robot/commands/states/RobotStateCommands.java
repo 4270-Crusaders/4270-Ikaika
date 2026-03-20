@@ -174,8 +174,8 @@ public class RobotStateCommands {
              * Climber: --
              */
 
-            Intake.getSetStateCommand(INTAKE_STATE.OUTTAKE, RobotContainer.intake),
-            Indexer.getSetStateCommand(INDEXER_STATE.OUTTAKE, RobotContainer.indexer)
+            Intake.getSetStateCommand(INTAKE_STATE.OUTTAKE, RobotContainer.intake)
+           // Indexer.getSetStateCommand(INDEXER_STATE.OUTTAKE, RobotContainer.indexer)
         );
     }
 
