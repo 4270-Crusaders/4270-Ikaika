@@ -31,7 +31,10 @@ public class Shooter extends SubsystemBase {
     AUTOHOME,
     HOME,
     AIM,
-    AUTOAIM,
+
+    AUTOAIMHUB,
+    AUTOAIMPASS,
+
     ZERO,
 
     CUSTOM,
@@ -124,8 +127,23 @@ public class Shooter extends SubsystemBase {
         turret.setGoalSetPoint(trenchTeleNear ? 0 : RobotEstimatedPose.getRotation().minus(launchParam.turretAngle()).getDegrees());
         flywheel.setGoalSetPoint(launchParam.flywheelSpeed());
         hood.setGoalSetPoint(trenchTeleNear ? 0 : Units.radiansToDegrees(launchParam.hoodAngle()));
+        break;
+      case AUTOAIMHUB:
+        launchParam = calculator.getParameters(
+          RobotEstimatedPose,
+          robotChassisSpeeds,
+          AllianceFlipUtil.apply(FieldConstants.Hub.topCenterPoint.toTranslation2d())
+        );
+        turret.setGoalSetPoint(RobotEstimatedPose.getRotation().minus(launchParam.turretAngle()).getDegrees());
+        hood.setGoalSetPoint(Units.radiansToDegrees(launchParam.hoodAngle()));
+        flywheel.setGoalSetPoint(launchParam.flywheelSpeed());
         break; 
-      case AUTOAIM:
+      case AUTOAIMPASS:
+        launchParam = calculator.getParameters(
+          RobotEstimatedPose,
+          robotChassisSpeeds,
+          passPoint
+        );
         turret.setGoalSetPoint(RobotEstimatedPose.getRotation().minus(launchParam.turretAngle()).getDegrees());
         hood.setGoalSetPoint(Units.radiansToDegrees(launchParam.hoodAngle()));
         flywheel.setGoalSetPoint(launchParam.flywheelSpeed());

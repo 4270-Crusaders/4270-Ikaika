@@ -14,11 +14,14 @@ public class SetRobotStateCommand extends SequentialCommandGroup{
         AGITATE,
         UN_AGITATE,
 
-        
-        AUTO_SHOOT,
+
         SHOOT,
-        AUTO_AIM,
         AIM,
+        
+        AUTO_SHOOT_HUB,
+        AUTO_SHOOT_PASS,
+        AUTO_AIM_HUB,
+        AUTO_AIM_PASS,
     }
 
     public SetRobotStateCommand(ROBOT_STATE state) {
@@ -50,14 +53,20 @@ public class SetRobotStateCommand extends SequentialCommandGroup{
             case AIM:
                 addCommands(RobotStateCommands.aimState());
                 break;
-            case AUTO_AIM:
-                addCommands(RobotStateCommands.autoAimState());
-                break;
             case SHOOT:
                 addCommands(RobotStateCommands.shootState());
                 break;
-            case AUTO_SHOOT:
-                addCommands(RobotStateCommands.autoShootState());
+            case AUTO_AIM_HUB:
+                addCommands(RobotStateCommands.autoAimHubState());
+                break;
+            case AUTO_SHOOT_HUB:
+                addCommands(RobotStateCommands.autoShootHubState());
+                break;
+            case AUTO_AIM_PASS:
+                addCommands(RobotStateCommands.autoAimPassState());
+                break;
+            case AUTO_SHOOT_PASS:
+                addCommands(RobotStateCommands.autoShootPassState());
                 break;
         }
     }

@@ -201,8 +201,12 @@ public class RobotContainer {
     NamedCommands.registerCommand("TRENCH", new SetRobotStateCommand(ROBOT_STATE.TRENCH));
     NamedCommands.registerCommand("INTAKE", new SetRobotStateCommand(ROBOT_STATE.INTAKE));
     NamedCommands.registerCommand("DEFAULT", new SetRobotStateCommand(ROBOT_STATE.AUTODEFAULT));
-    NamedCommands.registerCommand("HUB_FOCUS", new SetRobotStateCommand(ROBOT_STATE.AUTO_AIM));
-    NamedCommands.registerCommand("HUB_SHOOT", new SetRobotStateCommand(ROBOT_STATE.AUTO_SHOOT));
+    NamedCommands.registerCommand("HUB_FOCUS", new SetRobotStateCommand(ROBOT_STATE.AUTO_AIM_HUB));
+    NamedCommands.registerCommand("HUB_SHOOT", new SetRobotStateCommand(ROBOT_STATE.AUTO_SHOOT_HUB));
+    NamedCommands.registerCommand("PASS_FOCUS", new SetRobotStateCommand(ROBOT_STATE.AUTO_SHOOT_PASS));
+    NamedCommands.registerCommand("PASS_SHOOT", new SetRobotStateCommand(ROBOT_STATE.AUTO_SHOOT_PASS));
+
+
   }
 
   /**

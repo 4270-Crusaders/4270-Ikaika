@@ -91,20 +91,6 @@ public class RobotStateCommands {
         );
     }
 
-    public static Command autoAimState() {
-        return new ParallelCommandGroup(
-            /**
-             * Intake: Intake
-             * Indexer: Stop   
-             * Shooter: Hub        
-             * Climber: --
-             */
-            Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake),
-            Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
-            Shooter.getSetStateCommand(SHOOTER_STATE.AUTOAIM, RobotContainer.shooter)
-        );
-    }
-
     //TODO
     public static Command shootState() {
         return new ParallelCommandGroup(
@@ -120,8 +106,22 @@ public class RobotStateCommands {
         );
     }
 
+    public static Command autoAimHubState() {
+        return new ParallelCommandGroup(
+            /**
+             * Intake: Intake
+             * Indexer: Stop   
+             * Shooter: Hub        
+             * Climber: --
+             */
+            Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake),
+            Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
+            Shooter.getSetStateCommand(SHOOTER_STATE.AUTOAIMHUB, RobotContainer.shooter)
+        );
+    }
+
     //TODO
-    public static Command autoShootState() {
+    public static Command autoShootHubState() {
         return new ParallelCommandGroup(
             /**
              * Intake: --
@@ -131,7 +131,35 @@ public class RobotStateCommands {
              */
 
             Indexer.getSetStateCommand(INDEXER_STATE.AUTOSHOOT, RobotContainer.indexer),
-            Shooter.getSetStateCommand(SHOOTER_STATE.AUTOAIM, RobotContainer.shooter)
+            Shooter.getSetStateCommand(SHOOTER_STATE.AUTOAIMHUB, RobotContainer.shooter)
+        );
+    }
+
+    public static Command autoAimPassState() {
+        return new ParallelCommandGroup(
+            /**
+             * Intake: Intake
+             * Indexer: Stop   
+             * Shooter: Hub        
+             * Climber: --
+             */
+            Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake),
+            Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
+            Shooter.getSetStateCommand(SHOOTER_STATE.AUTOAIMPASS, RobotContainer.shooter)
+        );
+    }
+
+    public static Command autoShootPassState() {
+        return new ParallelCommandGroup(
+            /**
+             * Intake: --
+             * Indexer: Shoot        done
+             * Shooter: HUB          done
+             * Climber: --
+             */
+
+            Indexer.getSetStateCommand(INDEXER_STATE.AUTOSHOOT, RobotContainer.indexer),
+            Shooter.getSetStateCommand(SHOOTER_STATE.AUTOAIMPASS, RobotContainer.shooter)
         );
     }
 
