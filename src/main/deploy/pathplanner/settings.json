@@ -3,13 +3,14 @@
   "robotLength": 0.8128,
   "holonomicMode": true,
   "pathFolders": [
-    "Left-Side-Double-Swipe",
-    "Right-Side-Rush-Double-Swipe",
+    "Left-Triple-Swipe-Shoot",
+    "Left-Triple-Swipe-Pass",
+    "Right-Rush-Double-Swipe",
     "Right-Side-Double-Swipe",
     "Tests"
   ],
   "autoFolders": [
-    "CanPac",
+    "Comp",
     "Tests",
     "V1"
   ],

@@ -20,7 +20,7 @@
         "y": 7.231970720720721
       },
       "prevControl": {
-        "x": 6.9741877419421545,
+        "x": 6.974187741942154,
         "y": 7.362640982752861
       },
       "nextControl": {
@@ -124,7 +124,7 @@
     "rotation": 0.0
   },
   "reversed": false,
-  "folder": "Left-Side-Double-Swipe",
+  "folder": "Left-Triple-Swipe-Shoot",
   "idealStartingState": {
     "velocity": 0,
     "rotation": -45.0

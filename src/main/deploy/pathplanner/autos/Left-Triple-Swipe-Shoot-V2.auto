@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Left-Double-Swipe-1"
+            "pathName": "Left-Triple-Swipe-Shoot-1"
           }
         },
         {
@@ -31,7 +31,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Left-Double-Swipe-2"
+            "pathName": "Left-Triple-Swipe-Shoot-2"
           }
         },
         {
@@ -51,11 +51,17 @@
           "data": {
             "waitTime": 2.0
           }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Left-Triple-Swipe-Shoot-3"
+          }
         }
       ]
     }
   },
   "resetOdom": true,
-  "folder": "CanPac",
+  "folder": "Comp",
   "choreoAuto": false
 }

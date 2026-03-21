@@ -18,6 +18,7 @@ import frc.robot.subsystems.shooter.hood.HoodIO;
 import frc.robot.subsystems.shooter.turret.Turret;
 import frc.robot.subsystems.shooter.turret.Turret.TurretGoal;
 import frc.robot.subsystems.shooter.turret.TurretIO;
+import frc.robot.util.LoggedTunableNumber;
 import frc.robot.util.geometry.AllianceFlipUtil;
 
 import static edu.wpi.first.units.Units.Degrees;
@@ -47,12 +48,21 @@ public class Shooter extends SubsystemBase {
     PASS
   }
 
+  private static final LoggedTunableNumber RPMIncreaseValue =
+      new LoggedTunableNumber(
+          "Shooter/IncreaseOffset", LauncherConstants.INCREASE);
+  private static final LoggedTunableNumber RPMMultiplierValue =
+      new LoggedTunableNumber(
+          "Shooter/Multiplier", 1);
+
   @AutoLogOutput(key = "Shooter/ShooterState") private SHOOTER_STATE currentShooterState = SHOOTER_STATE.ZERO;
   @AutoLogOutput(key = "Shooter/ShootMode") private SHOOT_MODE currentShooterMode = SHOOT_MODE.HUB;
 
   private Flywheel flywheel;
   private Turret turret;
   private Hood hood;
+  private double currentRPMIncrease = RPMIncreaseValue.get();
+  private double currentRPMMultiplier = RPMMultiplierValue.get();
 
   private Pose2d RobotEstimatedPose = new Pose2d();
   private ChassisSpeeds robotChassisSpeeds = new ChassisSpeeds();
@@ -86,6 +96,16 @@ public class Shooter extends SubsystemBase {
 
   @Override
   public void periodic() {
+
+    LoggedTunableNumber.ifChanged(
+        hashCode(),
+        () -> {
+          currentRPMIncrease = RPMIncreaseValue.get();
+          currentRPMMultiplier = RPMMultiplierValue.get();
+        },
+        RPMIncreaseValue,RPMMultiplierValue);
+
+
     flywheel.periodic();
     turret.periodic();
     hood.periodic();
@@ -114,7 +134,9 @@ public class Shooter extends SubsystemBase {
     launchParam = calculator.getParameters(
       RobotEstimatedPose,
       robotChassisSpeeds,
-      target
+      target,
+      currentRPMIncrease,
+      currentRPMMultiplier
     );
 
     switch (currentShooterState) {
@@ -132,7 +154,9 @@ public class Shooter extends SubsystemBase {
         launchParam = calculator.getParameters(
           RobotEstimatedPose,
           robotChassisSpeeds,
-          AllianceFlipUtil.apply(FieldConstants.Hub.topCenterPoint.toTranslation2d())
+          AllianceFlipUtil.apply(FieldConstants.Hub.topCenterPoint.toTranslation2d()),
+          currentRPMIncrease,
+          currentRPMMultiplier
         );
         turret.setGoalSetPoint(RobotEstimatedPose.getRotation().minus(launchParam.turretAngle()).getDegrees());
         hood.setGoalSetPoint(Units.radiansToDegrees(launchParam.hoodAngle()));
@@ -142,7 +166,9 @@ public class Shooter extends SubsystemBase {
         launchParam = calculator.getParameters(
           RobotEstimatedPose,
           robotChassisSpeeds,
-          passPoint
+          passPoint,
+          currentRPMIncrease,
+          currentRPMMultiplier
         );
         turret.setGoalSetPoint(RobotEstimatedPose.getRotation().minus(launchParam.turretAngle()).getDegrees());
         hood.setGoalSetPoint(Units.radiansToDegrees(launchParam.hoodAngle()));

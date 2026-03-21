@@ -82,7 +82,7 @@
     "rotation": 180.0
   },
   "reversed": false,
-  "folder": "Right-Side-Rush-Double-Swipe",
+  "folder": "Right-Rush-Double-Swipe",
   "idealStartingState": {
     "velocity": 2.0,
     "rotation": 180.0

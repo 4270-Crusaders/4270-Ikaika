@@ -74,7 +74,7 @@ public class LaunchCalculator {
         phaseDelay = 0.03;
 
         //TODO -> Double check if more points needed for close shots (near hub)
-        launchHoodAngleMap.put(Units.inchesToMeters(71),    Rotation2d.fromDegrees(9));
+        launchHoodAngleMap.put(Units.inchesToMeters(50),    Rotation2d.fromDegrees(9));
         launchHoodAngleMap.put(Units.inchesToMeters(81),    Rotation2d.fromDegrees(9.25));
         launchHoodAngleMap.put(Units.inchesToMeters(93),    Rotation2d.fromDegrees(10.5));
         launchHoodAngleMap.put(Units.inchesToMeters(105),   Rotation2d.fromDegrees(11));
@@ -96,22 +96,22 @@ public class LaunchCalculator {
         launchHoodAngleMap.put(Units.inchesToMeters(216.9),   Rotation2d.fromDegrees(24));
 
         
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(71),    2050.0*1.62433155+150);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(81),    2100.0*1.62433155+150);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(93),    2300.0*1.62433155+150);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(105),   2350.0*1.62433155+150);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(117),   2400.0*1.62433155+150);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(129),   2475.0*1.62433155+150);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(141),   2650.0*1.62433155+150);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(153),   2675.0*1.62433155+150);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(154.5), 2688.0*1.62433155+150);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(158),   2695.0*1.62433155+150);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(162),   2696.0*1.62433155+150);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(165),   4700.0);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(181.3), 4900.0);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(193.6), 5150.0);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(205),   5500.0);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(216.9),   5700.0);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(81),    2100.0*1.62433155+150+800);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(71),    2050.0*1.62433155+150+800);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(93),    2300.0*1.62433155+150+800);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(105),   2350.0*1.62433155+150+800);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(117),   2400.0*1.62433155+150+800);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(129),   2475.0*1.62433155+150+800);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(141),   2650.0*1.62433155+150+800);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(153),   2675.0*1.62433155+150+1000);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(154.5), 2688.0*1.62433155+150+1000);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(158),   2695.0*1.62433155+150+1000);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(162),   2696.0*1.62433155+150+1250);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(165),   4700.0+1250);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(181.3), 4900.0+1250);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(193.6), 5150.0+1250);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(205),   5500.0+1250);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(216.9),   5700.0+1250);
 
 
         //TODO -> Double check tof mapping values (if more is needed for better curve)
@@ -122,7 +122,7 @@ public class LaunchCalculator {
         timeOfFlightMap.put(Units.inchesToMeters(222), 1.24);
     }
 
-    public LaunchingParameters getParameters(Pose2d robotEstimatedPose2d, ChassisSpeeds robotRelativeVelocityChassisSpeed, Translation2d targeTranslation2d) {
+    public LaunchingParameters getParameters(Pose2d robotEstimatedPose2d, ChassisSpeeds robotRelativeVelocityChassisSpeed, Translation2d targeTranslation2d, double IncreaseValue, double multiplier) {
         // if (latestParameters != null) {
         //     return latestParameters;
         // }
@@ -138,7 +138,7 @@ public class LaunchCalculator {
                     robotRelativeVelocity.vyMetersPerSecond * phaseDelay,
                     robotRelativeVelocity.omegaRadiansPerSecond * phaseDelay));
 
-        // Calculate distance from turret to target
+        // Calculate distance from turret to target`
         Translation2d target = targeTranslation2d; 
         //AllianceFlipUtil.apply(FieldConstants.Hub.topCenterPoint.toTranslation2d());
 
@@ -195,7 +195,7 @@ public class LaunchCalculator {
                 turretVelocity,
                 hoodAngle,
                 hoodVelocity,
-                launchFlywheelSpeedMap.get(lookaheadTurretToTargetDistance));
+                (launchFlywheelSpeedMap.get(lookaheadTurretToTargetDistance)+IncreaseValue)*multiplier);
 
         // Log calculated values
         Logger.recordOutput("Shooter/LaunchCalculator/LookaheadPose", lookaheadPose);
