@@ -26,9 +26,9 @@ public class IntakeRollers {
 
   public enum IntakeRollersGoal {
     ZERO(new LoggedTunableNumber("Intake/Roller/Goals/ZERO", 0.0)),
-    INTAKE(new LoggedTunableNumber("Intake/Roller/Goals/INTAKE", 4000)),
-    OUTTAKE(new LoggedTunableNumber("Intake/Roller/Goals/OUTTAKE", -2000)),
-    AGITATE(new LoggedTunableNumber("Intake/Roller/Goals/AGITATE", 200)),
+    INTAKE(new LoggedTunableNumber("Intake/Roller/Goals/INTAKE", 6000)),
+    OUTTAKE(new LoggedTunableNumber("Intake/Roller/Goals/OUTTAKE", -3000)),
+    AGITATE(new LoggedTunableNumber("Intake/Roller/Goals/AGITATE", 1000)),
     CUSTOM(new LoggedTunableNumber("Intake/Roller/Goals/CUSTOM", 0));
 
     private final DoubleSupplier intakeRollerSetpointSupplier;
@@ -70,7 +70,14 @@ public class IntakeRollers {
 
     if (closedLoop) {
       goalRPM = goalSetpoint.getRPM();
-      io.runSetVelocity(goalRPM);
+      // io.runSetVelocity(goalRPM);
+      if(goalRPM>0){
+        io.runSetVoltage(12);
+      } else if(goalRPM==0){
+        io.runSetVoltage(0);
+      } else if(goalRPM<0){
+        io.runSetVoltage(-5);
+      }
     }
 
     LoggedTunableNumber.ifChanged(

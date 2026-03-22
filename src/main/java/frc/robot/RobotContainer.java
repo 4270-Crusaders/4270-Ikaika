@@ -200,7 +200,9 @@ public class RobotContainer {
     driverController.povRight().onTrue(new SetRobotStateCommand(ROBOT_STATE.OUTTAKE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.STOP_INTAKE));
     
     driverController.a().onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
-    // operatorController.button(7).onTrue(new SetRobotStateCommand(ROBOT_STATE.SPIT));
+    operatorController.button(3).onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
+    operatorController.button(4).onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
+    operatorController.button(5).onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
   }
 
   void registerNamedCommand(){
