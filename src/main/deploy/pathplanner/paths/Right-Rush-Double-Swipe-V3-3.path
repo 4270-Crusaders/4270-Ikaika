@@ -59,7 +59,7 @@
     },
     {
       "name": "HUB_SHOOT",
-      "waypointRelativePos": 0.25042016806722706,
+      "waypointRelativePos": 1.0,
       "endWaypointRelativePos": null,
       "command": {
         "type": "named",
@@ -84,7 +84,7 @@
   "reversed": false,
   "folder": "Right-Rush-Double-Swipe",
   "idealStartingState": {
-    "velocity": 2.0,
+    "velocity": 0.0,
     "rotation": 180.0
   },
   "useDefaultConstraints": true

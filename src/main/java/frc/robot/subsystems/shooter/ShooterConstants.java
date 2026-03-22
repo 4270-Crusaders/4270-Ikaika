@@ -11,6 +11,7 @@ public class ShooterConstants {
     public static final int FLYWHEEL_LEAD_CAN_ID = 20;
     public static final int FLYWHEEL_FOLLOW_CAN_ID = 21;
 
+    public static final double FLYWHEEL_MAX_RPM = 6500;
     public static final double TOP_FLYWHEEL_RADIUS_METERS = 0.0254;
     public static final double BOTTOM_FLYWHEEL_RADIUS_METER = 0.0381;
     public static final boolean FLYWHEEL_CURRENT_LIMIT_ENABLE = true;
@@ -25,15 +26,17 @@ public class ShooterConstants {
     public static double FlyWheelkI = 0.0;
     public static double FlyWheelkD = 0.0;
     public static double FlyWheelkA = 0.0;
-    public static double FlyWheelkV = 0.0968815;
-    public static double FlyWheelkS = 0.473166;
+    public static double FlyWheelkV = 0.0976759;
+    public static double FlyWheelkS = 0.849814;
     public static double FlyWheelMotionMagicVelocity = 0;
     public static double FlyWheelMotionMagicAcceleration = 250;
     public static double FlyWheelMotionMagicJerk = 0;
 
     
-    public static double TurretMotorToMainFlyWheelReduction = 0.58666666666; //0.952941176471;
-    public static double TurretMotorToHoodFlyWheelReduction = 0.431372549; //0.700692041522;  
+    // public static double TurretMotorToMainFlyWheelReduction = 0.58666666666; //0.952941176471;
+    // public static double TurretMotorToHoodFlyWheelReduction = 0.431372549; //0.700692041522;  
+    public static double TurretMotorToMainFlyWheelReduction = 0.952941176471;
+    public static double TurretMotorToHoodFlyWheelReduction = 0.700692041522;  
 
     // diff old -> new 0.61563786007
 
@@ -54,8 +57,8 @@ public class ShooterConstants {
     public static SensorDirectionValue hoodEncoderDirection =
         SensorDirectionValue.Clockwise_Positive;
     public static double HoodEncoderAbsoluteSensorDiscontinuityPoint = 0.5;
-    public static double HoodEncoderMagnetOffset = 0.239990234375; // TUNE ALOT!!
-    public static double HoodCurrentLimit = 75.0;
+    public static double HoodEncoderMagnetOffset = 0.01708984375; // TUNE ALOT!!
+    public static double HoodCurrentLimit = 60.0;
     public static InvertedValue HoodInvertedValue = InvertedValue.CounterClockwise_Positive;
     public static boolean HoodSupplyCurrentLimitEnable = true;
     public static NeutralModeValue HoodNeutralModeValue = NeutralModeValue.Brake;
@@ -82,12 +85,12 @@ public class ShooterConstants {
     public static final int TURRET_ENCODER_CAN_ID = 25;
     public static double TurretSensorToMechanismRatio = 1;
     public static double TurretRotorToSensorRatio = 62.5;
-    public static double TurretEncoderMagnetOffset = 0.379150390625;
+    public static double TurretEncoderMagnetOffset = 0.378662109375;
     public static SensorDirectionValue turretEncoderDirection =
         SensorDirectionValue.CounterClockwise_Positive;
     public static double TurretEncoderAbsoluteSensorDiscontinuityPoint = 0.5;
 
-    public static double TurretCurrentLimit = 75.0;
+    public static double TurretCurrentLimit = 65.0;
     public static InvertedValue TurretInvertedValue = InvertedValue.Clockwise_Positive;
     public static boolean TurretSupplyCurrentLimitEnable = true;
     public static NeutralModeValue TurretNeutralModeValue = NeutralModeValue.Brake;

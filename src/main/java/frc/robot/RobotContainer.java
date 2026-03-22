@@ -195,9 +195,9 @@ public class RobotContainer {
       ).ignoringDisable(true)
     );
 
-    driverController.leftTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.INTAKE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.DEFAULT));
-    driverController.rightTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.SHOOT));
-    driverController.povRight().onTrue(new SetRobotStateCommand(ROBOT_STATE.OUTTAKE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.DEFAULT));
+    driverController.leftTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.INTAKE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.STOP_INTAKE));
+    driverController.rightTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.SHOOT)).onFalse(new SetRobotStateCommand(ROBOT_STATE.STOP_SHOOT));
+    driverController.povRight().onTrue(new SetRobotStateCommand(ROBOT_STATE.OUTTAKE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.STOP_INTAKE));
     
     driverController.a().onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
     // operatorController.button(7).onTrue(new SetRobotStateCommand(ROBOT_STATE.SPIT));

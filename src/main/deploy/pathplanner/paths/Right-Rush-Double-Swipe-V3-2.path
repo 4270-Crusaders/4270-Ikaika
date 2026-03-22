@@ -3,13 +3,13 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 3.902,
-        "y": 0.58
+        "x": 3.75,
+        "y": 0.65
       },
       "prevControl": null,
       "nextControl": {
-        "x": 5.156576512455517,
-        "y": 0.6081969157769855
+        "x": 5.004576512455517,
+        "y": 0.6781969157769856
       },
       "isLocked": false,
       "linkedName": null
@@ -164,7 +164,7 @@
     },
     {
       "name": "INTAKE",
-      "waypointRelativePos": 0.8672268907563019,
+      "waypointRelativePos": 0.5399325084364544,
       "endWaypointRelativePos": null,
       "command": {
         "type": "named",
@@ -175,7 +175,13 @@
     },
     {
       "name": "TRENCH",
-      "waypointRelativePos": 5.294117647058819,
+      "waypointRelativePos": 5.129358830146231,
+      "endWaypointRelativePos": null,
+      "command": null
+    },
+    {
+      "name": "HUB_FOCUS",
+      "waypointRelativePos": 6.0,
       "endWaypointRelativePos": null,
       "command": null
     }
@@ -189,7 +195,7 @@
     "unlimited": false
   },
   "goalEndState": {
-    "velocity": 2.0,
+    "velocity": 0.0,
     "rotation": 180.0
   },
   "reversed": false,

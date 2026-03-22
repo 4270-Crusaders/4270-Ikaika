@@ -10,14 +10,16 @@ public class SetRobotStateCommand extends SequentialCommandGroup{
 
         INTAKE,
         OUTTAKE,
+        STOP_INTAKE,
         SPIT,
         AGITATE,
         UN_AGITATE,
 
-
         SHOOT,
         AIM,
-        
+
+        STOP_SHOOT,
+
         AUTO_SHOOT_HUB,
         AUTO_SHOOT_PASS,
         AUTO_AIM_HUB,
@@ -26,6 +28,12 @@ public class SetRobotStateCommand extends SequentialCommandGroup{
 
     public SetRobotStateCommand(ROBOT_STATE state) {
         switch (state) {
+            case STOP_SHOOT:
+                addCommands(RobotStateCommands.stopShootState());
+                break;
+            case STOP_INTAKE:
+                addCommands(RobotStateCommands.stopIntakeState());
+                break;
             case DEFAULT:
                 addCommands(RobotStateCommands.defaultState());
                 break;

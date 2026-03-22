@@ -35,15 +35,21 @@
           }
         },
         {
-          "type": "path",
-          "data": {
-            "pathName": "Right-Rush-Double-Swipe-V3-3"
-          }
-        },
-        {
           "type": "named",
           "data": {
             "name": "HUB_SHOOT"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 2.0
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Right-Rush-Double-Swipe-V3-3"
           }
         }
       ]

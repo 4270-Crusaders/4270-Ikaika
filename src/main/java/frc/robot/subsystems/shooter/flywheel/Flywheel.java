@@ -105,7 +105,7 @@ public class Flywheel {
         MOTION_MAGIC_VELOCITY);
 
     if (setpointMode) {
-      goalRPM = goalSetpoint.getRPM();
+      goalRPM = goalSetpoint.getRPM()>ShooterConstants.FlywheelConstants.FLYWHEEL_MAX_RPM?ShooterConstants.FlywheelConstants.FLYWHEEL_MAX_RPM:goalSetpoint.getRPM();
     }
 
     io.runSetVelocity(goalRPM / 60);

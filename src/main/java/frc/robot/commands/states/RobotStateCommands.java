@@ -47,6 +47,31 @@ public class RobotStateCommands {
         );
     }
 
+    public static Command stopIntakeState() {
+        return new ParallelCommandGroup(
+            /**
+             * Intake: Down         done
+             * Indexer: Zero        done
+             * Shooter: Hub         done
+             * Climber: --
+             */
+            Intake.getSetStateCommand(INTAKE_STATE.DOWN, RobotContainer.intake),
+            Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer)
+        );
+    }
+
+    public static Command stopShootState() {
+        return new ParallelCommandGroup(
+            /**
+             * Intake: Down         done
+             * Indexer: Zero        done
+             * Shooter: Hub         done
+             * Climber: --
+             */
+            Shooter.getSetStateCommand(SHOOTER_STATE.HOME, RobotContainer.shooter)
+        );
+    }
+
     public static Command autoDefaultState() {
         return new ParallelCommandGroup(
             /**
