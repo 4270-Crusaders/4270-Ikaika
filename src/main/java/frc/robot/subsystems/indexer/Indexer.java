@@ -75,11 +75,6 @@ public class Indexer extends SubsystemBase {
         Rollers.Setpoint(RollersGoal.SPIT);
         break;
       case SHOOT:
-        // if(!readyToShoot){
-        //   agitator.Setpoint(AgitatorGoal.SHOOT);
-        //   kicker.Setpoint(KickerGoal.ZERO);
-        //   conveyor.Setpoint(ConveyorGoal.INTAKE);
-        //   Rollers.Setpoint(RollersGoal.SHOOT);
         if(readyToShoot) {
           agitator.Setpoint(AgitatorGoal.SHOOT);
           kicker.Setpoint(KickerGoal.SHOOT);

@@ -66,7 +66,7 @@ public class Hood {
   public enum HoodGoal {
     ZERO(new LoggedTunableNumber("Shooter/Hood/Goals/Zero", 0)),
     TEST(new LoggedTunableNumber("Shooter/Hood/Goals/TEST", 15)),
-    CUSTOM(new LoggedTunableNumber("Shooter/Hood/Goals/CUSTOM", 25));
+    CUSTOM(new LoggedTunableNumber("Shooter/Hood/Goals/CUSTOM", 9.25));
 
     private final DoubleSupplier HOOD_SET_POINT_SUPPLIER;
 

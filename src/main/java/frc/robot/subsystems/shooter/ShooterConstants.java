@@ -57,7 +57,7 @@ public class ShooterConstants {
     public static SensorDirectionValue hoodEncoderDirection =
         SensorDirectionValue.Clockwise_Positive;
     public static double HoodEncoderAbsoluteSensorDiscontinuityPoint = 0.5;
-    public static double HoodEncoderMagnetOffset = 0.01708984375; // TUNE ALOT!!
+    public static double HoodEncoderMagnetOffset = -0.333740234375; // TUNE ALOT!!
     public static double HoodCurrentLimit = 60.0;
     public static InvertedValue HoodInvertedValue = InvertedValue.CounterClockwise_Positive;
     public static boolean HoodSupplyCurrentLimitEnable = true;

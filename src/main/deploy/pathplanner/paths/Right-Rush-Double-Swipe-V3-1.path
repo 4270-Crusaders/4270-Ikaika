@@ -64,16 +64,16 @@
     },
     {
       "anchor": {
-        "x": 6.871304863582444,
-        "y": 0.8771767497034408
+        "x": 7.021933570581259,
+        "y": 0.7265480427046258
       },
       "prevControl": {
-        "x": 7.4907771237310365,
-        "y": 1.1937959048904991
+        "x": 7.715488147621549,
+        "y": 0.7810972791010522
       },
       "nextControl": {
-        "x": 6.387141162514829,
-        "y": 0.6297153024911041
+        "x": 6.064365361803087,
+        "y": 0.6512336892052202
       },
       "isLocked": false,
       "linkedName": null
@@ -102,19 +102,19 @@
       "rotationDegrees": 110.0
     },
     {
-      "waypointRelativePos": 3.5,
+      "waypointRelativePos": 3.2326820603907596,
       "rotationDegrees": 90.0
     },
     {
-      "waypointRelativePos": 4.424511545293093,
+      "waypointRelativePos": 4.12078152753108,
       "rotationDegrees": 0.0
     }
   ],
   "constraintZones": [
     {
       "name": "Constraints Zone",
-      "minWaypointRelativePos": 3.4971878515185617,
-      "maxWaypointRelativePos": 4.015748031496068,
+      "minWaypointRelativePos": 3.5545556805399388,
+      "maxWaypointRelativePos": 4.150731158605176,
       "constraints": {
         "maxVelocity": 5.0,
         "maxAcceleration": 5.12,
@@ -177,7 +177,7 @@
   "folder": "Right-Rush-Double-Swipe",
   "idealStartingState": {
     "velocity": 0.0,
-    "rotation": 45.0
+    "rotation": 0.0
   },
   "useDefaultConstraints": true
 }

@@ -24,10 +24,15 @@ public class SetRobotStateCommand extends SequentialCommandGroup{
         AUTO_SHOOT_PASS,
         AUTO_AIM_HUB,
         AUTO_AIM_PASS,
+
+        CUSTOM
     }
 
     public SetRobotStateCommand(ROBOT_STATE state) {
         switch (state) {
+            case CUSTOM:
+                addCommands(RobotStateCommands.CUSTOMSHOOT());
+                break;
             case STOP_SHOOT:
                 addCommands(RobotStateCommands.stopShootState());
                 break;

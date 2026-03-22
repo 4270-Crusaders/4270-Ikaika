@@ -31,6 +31,12 @@ public class RobotStateCommands {
     //     );
     // }
 
+    public static Command CUSTOMSHOOT(){
+        return new ParallelCommandGroup(
+            Shooter.getSetStateCommand(SHOOTER_STATE.CUSTOM, RobotContainer.shooter),
+            Indexer.getSetStateCommand(INDEXER_STATE.SHOOT, RobotContainer.indexer)
+        );
+    }
     
     //TODO
     public static Command defaultState() {
@@ -69,6 +75,7 @@ public class RobotStateCommands {
              * Climber: --
              */
             Shooter.getSetStateCommand(SHOOTER_STATE.HOME, RobotContainer.shooter)
+            // Shooter.getSetStateCommand(null, null)
         );
     }
 

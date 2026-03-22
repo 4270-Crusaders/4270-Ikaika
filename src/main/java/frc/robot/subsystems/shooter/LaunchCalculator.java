@@ -94,6 +94,7 @@ public class LaunchCalculator {
         launchHoodAngleMap.put(Units.inchesToMeters(183.5), Rotation2d.fromDegrees(21.9));
         launchHoodAngleMap.put(Units.inchesToMeters(206),   Rotation2d.fromDegrees(23.5));
         launchHoodAngleMap.put(Units.inchesToMeters(216.9),   Rotation2d.fromDegrees(24));
+        launchHoodAngleMap.put(Units.inchesToMeters(220),   Rotation2d.fromDegrees(25));
 
         
         // launchFlywheelSpeedMap.put(Units.inchesToMeters(81),    2100.0*1.62433155+150+800);
