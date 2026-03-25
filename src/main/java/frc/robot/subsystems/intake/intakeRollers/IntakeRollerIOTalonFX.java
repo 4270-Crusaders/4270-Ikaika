@@ -6,6 +6,7 @@ import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.VelocityVoltage;
+import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 
 import edu.wpi.first.units.measure.Angle;
@@ -19,7 +20,6 @@ public class IntakeRollerIOTalonFX implements IntakeRollersIO {
   private final TalonFX LeadMotor =
       new TalonFX(IntakeConstants.IntakeRollerConstants.MAIN_INTAKE_ROLLER_CAN_ID);
   
-
   private final StatusSignal<AngularVelocity> measuredVeloRPS = LeadMotor.getVelocity();
   private final StatusSignal<Double> setVeloRPS = LeadMotor.getClosedLoopReference();
   private final StatusSignal<Angle> position = LeadMotor.getPosition();
@@ -29,6 +29,7 @@ public class IntakeRollerIOTalonFX implements IntakeRollersIO {
   private final StatusSignal<Temperature> deviceTemperature = LeadMotor.getDeviceTemp();
 
   private final VelocityVoltage velocityRequest = new VelocityVoltage(0.0);
+  private final VoltageOut voltageRequest = new VoltageOut(0.0);
 
   private TalonFXConfiguration config = new TalonFXConfiguration();
 
@@ -103,5 +104,10 @@ public class IntakeRollerIOTalonFX implements IntakeRollersIO {
   @Override
   public void runSetVelocity(double velocity) {
     LeadMotor.setControl(velocityRequest.withVelocity(velocity / 60).withEnableFOC(true));
+  }
+
+  @Override
+  public void runSetVoltage(double voltage) {
+      LeadMotor.setControl(voltageRequest.withOutput(voltage).withEnableFOC(true));
   }
 }

@@ -66,7 +66,7 @@ public class Hood {
   public enum HoodGoal {
     ZERO(new LoggedTunableNumber("Shooter/Hood/Goals/Zero", 0)),
     TEST(new LoggedTunableNumber("Shooter/Hood/Goals/TEST", 15)),
-    CUSTOM(new LoggedTunableNumber("Shooter/Hood/Goals/CUSTOM", 25));
+    CUSTOM(new LoggedTunableNumber("Shooter/Hood/Goals/CUSTOM", 9.25));
 
     private final DoubleSupplier HOOD_SET_POINT_SUPPLIER;
 
@@ -98,12 +98,12 @@ public class Hood {
   }
 
   public void setGoalSetPoint(HoodGoal goal) {
-    if (goal.getDegrees() < 25) {
+    if (goal.getDegrees() < ShooterConstants.HoodConstants.MAX_DEGREE) {
       setpointMode = true;
       this.goalSetpoint = goal;
     } else {
       setpointMode = true;
-      this.goalDeg = 25;
+      this.goalDeg = ShooterConstants.HoodConstants.MAX_DEGREE;
     }
   }
 

@@ -9,6 +9,9 @@ package frc.robot;
 
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
+import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
+
+import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 
 import edu.wpi.first.math.geometry.Pose2d;
@@ -74,6 +77,7 @@ public class RobotContainer {
   private final CommandXboxController driverController = new CommandXboxController(0);
   private final CommandJoystick operatorController = new CommandJoystick(1);
 
+  public static LoggedDashboardChooser<Command> autoSelector;
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
@@ -162,6 +166,8 @@ public class RobotContainer {
 
     // Configure the button bindings
     configureButtonBindings();
+    registerNamedCommand();
+    autoSelector = new LoggedDashboardChooser<>("Auto Selection", AutoBuilder.buildAutoChooser());
   }
 
   /**
@@ -189,19 +195,25 @@ public class RobotContainer {
       ).ignoringDisable(true)
     );
 
-    driverController.leftTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.INTAKE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.DEFAULT));
-    driverController.rightTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.SHOOT)).onFalse(new SetRobotStateCommand(ROBOT_STATE.DEFAULT));
-    driverController.povRight().onTrue(new SetRobotStateCommand(ROBOT_STATE.OUTTAKE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.DEFAULT));
+    driverController.leftTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.INTAKE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.STOP_INTAKE));
+    driverController.rightTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.SHOOT)).onFalse(new SetRobotStateCommand(ROBOT_STATE.STOP_SHOOT));
+    driverController.povRight().onTrue(new SetRobotStateCommand(ROBOT_STATE.OUTTAKE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.STOP_INTAKE));
+    
     driverController.a().onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
-    // operatorController.button(7).onTrue(new SetRobotStateCommand(ROBOT_STATE.SPIT));
+    operatorController.button(3).onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
+    operatorController.button(4).onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
+    operatorController.button(5).onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
+    operatorController.button(1).onTrue(new SetRobotStateCommand(ROBOT_STATE.CUSTOM)).onFalse(new SetRobotStateCommand(ROBOT_STATE.STOP_SHOOT));
   }
 
   void registerNamedCommand(){
     NamedCommands.registerCommand("TRENCH", new SetRobotStateCommand(ROBOT_STATE.TRENCH));
     NamedCommands.registerCommand("INTAKE", new SetRobotStateCommand(ROBOT_STATE.INTAKE));
     NamedCommands.registerCommand("DEFAULT", new SetRobotStateCommand(ROBOT_STATE.AUTODEFAULT));
-    NamedCommands.registerCommand("HUB_FOCUS", new SetRobotStateCommand(ROBOT_STATE.AUTO_AIM));
-    NamedCommands.registerCommand("HUB_SHOOT", new SetRobotStateCommand(ROBOT_STATE.AUTO_SHOOT));
+    NamedCommands.registerCommand("HUB_FOCUS", new SetRobotStateCommand(ROBOT_STATE.AUTO_AIM_HUB));
+    NamedCommands.registerCommand("HUB_SHOOT", new SetRobotStateCommand(ROBOT_STATE.AUTO_SHOOT_HUB));
+    NamedCommands.registerCommand("PASS_FOCUS", new SetRobotStateCommand(ROBOT_STATE.AUTO_SHOOT_PASS));
+    NamedCommands.registerCommand("PASS_SHOOT", new SetRobotStateCommand(ROBOT_STATE.AUTO_SHOOT_PASS));
   }
 
   /**
@@ -210,6 +222,6 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
-    return Commands.none();
+    return autoSelector.get();
   }
 }

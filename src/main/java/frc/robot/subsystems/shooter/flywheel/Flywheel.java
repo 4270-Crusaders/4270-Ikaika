@@ -48,7 +48,7 @@ public class Flywheel {
     ZERO(new LoggedTunableNumber("Shooter/FlyWheel/Goals/Zero", 0.0)),
     AUTOIDLE(new LoggedTunableNumber("Shooter/FlyWheel/Goals/AUTOIDLE", 3000)),
     TELEIDLE(new LoggedTunableNumber("Shooter/FlyWheel/Goals/TELEIDLE", 2500)),
-    CUSTOM(new LoggedTunableNumber("Shooter/FlyWheel/Goals/Custom", 100)); // TODO: Tune this value
+    CUSTOM(new LoggedTunableNumber("Shooter/FlyWheel/Goals/Custom", 2300)); // TODO: Tune this value
 
     private final DoubleSupplier SHOOTER_SET_POINT_SUPPLIER;
 
@@ -105,7 +105,7 @@ public class Flywheel {
         MOTION_MAGIC_VELOCITY);
 
     if (setpointMode) {
-      goalRPM = goalSetpoint.getRPM();
+      goalRPM = goalSetpoint.getRPM()>ShooterConstants.FlywheelConstants.FLYWHEEL_MAX_RPM?ShooterConstants.FlywheelConstants.FLYWHEEL_MAX_RPM:goalSetpoint.getRPM();
     }
 
     io.runSetVelocity(goalRPM / 60);

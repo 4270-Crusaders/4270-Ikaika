@@ -11,29 +11,36 @@ public class ShooterConstants {
     public static final int FLYWHEEL_LEAD_CAN_ID = 20;
     public static final int FLYWHEEL_FOLLOW_CAN_ID = 21;
 
+    public static final double FLYWHEEL_MAX_RPM = 6500;
     public static final double TOP_FLYWHEEL_RADIUS_METERS = 0.0254;
     public static final double BOTTOM_FLYWHEEL_RADIUS_METER = 0.0381;
     public static final boolean FLYWHEEL_CURRENT_LIMIT_ENABLE = true;
-    public static final double FLYWHEEL_CURRENT_LIMIT = 60;
+    public static final double FLYWHEEL_CURRENT_LIMIT = 75;
     public static final boolean FLYWHEEL_LIMIT_ENABLE = false;
     public static final double FLYWHEEL_MAIN_ROLLER_REDUCTION = 1;
     public static final double FLYWHEEL_HOOD_ROLLER_REDUCTION = 1;
     public static final InvertedValue MAIN_FLYWHEEL_INVERTED_VALUE =
         InvertedValue.Clockwise_Positive;
     public static final NeutralModeValue FLYWHEEL_NEUTRAL_MODE = NeutralModeValue.Coast;
-    public static double FlyWheelkP = 0.01;
+    public static double FlyWheelkP = 0.25;
     public static double FlyWheelkI = 0.0;
     public static double FlyWheelkD = 0.0;
     public static double FlyWheelkA = 0.0;
-    public static double FlyWheelkV = 0.0968061;
-    public static double FlyWheelkS = 0.469788;
+    public static double FlyWheelkV = 0.0976759;
+    public static double FlyWheelkS = 0.849814;
     public static double FlyWheelMotionMagicVelocity = 0;
     public static double FlyWheelMotionMagicAcceleration = 250;
     public static double FlyWheelMotionMagicJerk = 0;
 
     
-    public static double TurretMotorToMainFlyWheelReduction = 0.58666666666; //0.952941176471;
-    public static double TurretMotorToHoodFlyWheelReduction = 0.431372549; //0.700692041522;  
+    // public static double TurretMotorToMainFlyWheelReduction = 0.58666666666; //0.952941176471;
+    // public static double TurretMotorToHoodFlyWheelReduction = 0.431372549; //0.700692041522;  
+    public static double TurretMotorToMainFlyWheelReduction = 0.952941176471;
+    public static double TurretMotorToHoodFlyWheelReduction = 0.700692041522;  
+
+    // 2,912 rpm at 153in or 3.8862m
+
+    
 
     // diff old -> new 0.61563786007
 
@@ -48,13 +55,15 @@ public class ShooterConstants {
   // Hood
   public static final class HoodConstants {
     public static final int HOOD_CAN_ID = 22;
+
+    public static final double MAX_DEGREE = 24;
     public static final int HOOD_ENCODER_CAN_ID = 23;
     public static double HoodSensorToMechanismRatio = -21.1428571; // 296/14
     public static double HoodRotorToSensorRatio = -5.25000001; // 42/8
     public static SensorDirectionValue hoodEncoderDirection =
         SensorDirectionValue.Clockwise_Positive;
     public static double HoodEncoderAbsoluteSensorDiscontinuityPoint = 0.5;
-    public static double HoodEncoderMagnetOffset = -0.19384765625; // TUNE ALOT!!
+    public static double HoodEncoderMagnetOffset = -0.056884765625; // TUNE ALOT!!
     public static double HoodCurrentLimit = 60.0;
     public static InvertedValue HoodInvertedValue = InvertedValue.CounterClockwise_Positive;
     public static boolean HoodSupplyCurrentLimitEnable = true;
@@ -82,12 +91,12 @@ public class ShooterConstants {
     public static final int TURRET_ENCODER_CAN_ID = 25;
     public static double TurretSensorToMechanismRatio = 1;
     public static double TurretRotorToSensorRatio = 62.5;
-    public static double TurretEncoderMagnetOffset = 0.379150390625;
+    public static double TurretEncoderMagnetOffset = 0.378662109375;
     public static SensorDirectionValue turretEncoderDirection =
         SensorDirectionValue.CounterClockwise_Positive;
     public static double TurretEncoderAbsoluteSensorDiscontinuityPoint = 0.5;
 
-    public static double TurretCurrentLimit = 25.0;
+    public static double TurretCurrentLimit = 65.0;
     public static InvertedValue TurretInvertedValue = InvertedValue.Clockwise_Positive;
     public static boolean TurretSupplyCurrentLimitEnable = true;
     public static NeutralModeValue TurretNeutralModeValue = NeutralModeValue.Brake;

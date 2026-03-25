@@ -1,97 +1,74 @@
 package frc.robot.subsystems.intake.intakeRollers;
 
-import frc.robot.subsystems.intake.IntakeConstants;
-import frc.robot.util.EqualsUtil;
-import frc.robot.util.LoggedTunableNumber;
 import java.util.function.DoubleSupplier;
+
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
-public class IntakeRollers {
-  private final IntakeRollersIO io;
-  private final IntakeRollersIOInputsAutoLogged inputs = new IntakeRollersIOInputsAutoLogged();
+import frc.robot.subsystems.indexer.IndexerConstants;
+import frc.robot.util.EqualsUtil;
+import frc.robot.util.LoggedTunableNumber;
 
-  private static final LoggedTunableNumber kP =
-      new LoggedTunableNumber("Intake/Rollers/kP", IntakeConstants.IntakeRollerConstants.kP);
-  private static final LoggedTunableNumber kI =
-      new LoggedTunableNumber("Intake/Rollers/kI", IntakeConstants.IntakeRollerConstants.kI);
-  private static final LoggedTunableNumber kD =
-      new LoggedTunableNumber("Intake/Rollers/kD", IntakeConstants.IntakeRollerConstants.kD);
-  private static final LoggedTunableNumber kA =
-      new LoggedTunableNumber("Intake/Rollers/kA", IntakeConstants.IntakeRollerConstants.kA);
-  private static final LoggedTunableNumber kV =
-      new LoggedTunableNumber("Intake/Rollers/kV", IntakeConstants.IntakeRollerConstants.kV);
-  private static final LoggedTunableNumber kS =
-      new LoggedTunableNumber("Intake/Rollers/kS", IntakeConstants.IntakeRollerConstants.kS);
+public class IntakeRollers { 
+    private final IntakeRollersIO io;
+    private final IntakeRollersIOInputsAutoLogged inputs = new IntakeRollersIOInputsAutoLogged();
 
-  public enum IntakeRollersGoal {
-    ZERO(new LoggedTunableNumber("Intake/Roller/Goals/ZERO", 0.0)),
-    INTAKE(new LoggedTunableNumber("Intake/Roller/Goals/INTAKE", 4000)),
-    OUTTAKE(new LoggedTunableNumber("Intake/Roller/Goals/OUTTAKE", 200)),
-    AGITATE(new LoggedTunableNumber("Intake/Roller/Goals/AGITATE", 200)),
-    CUSTOM(new LoggedTunableNumber("Intake/Roller/Goals/CUSTOM", 0));
+    private static final LoggedTunableNumber kP = new LoggedTunableNumber("Indexer/Rollers/kP", IndexerConstants.RollersConstants.kP);
+    private static final LoggedTunableNumber kI = new LoggedTunableNumber("Indexer/Rollers/kI", IndexerConstants.RollersConstants.kI);
+    private static final LoggedTunableNumber kD = new LoggedTunableNumber("Indexer/Rollers/kD", IndexerConstants.RollersConstants.kD);
+    private static final LoggedTunableNumber kA = new LoggedTunableNumber("Indexer/Rollers/kA", IndexerConstants.RollersConstants.kA);
+    private static final LoggedTunableNumber kV = new LoggedTunableNumber("Indexer/Rollers/kV", IndexerConstants.RollersConstants.kV);
+    private static final LoggedTunableNumber kS = new LoggedTunableNumber("Indexer/Rollers/kS", IndexerConstants.RollersConstants.kS);
 
-    private final DoubleSupplier intakeRollerSetpointSupplier;
+    public enum IntakeRollersGoal {
+        ZERO(new LoggedTunableNumber("Intake/Roller/Goals/ZERO", 0.0)),
+        INTAKE(new LoggedTunableNumber("Intake/Roller/Goals/INTAKE", 10)),
+        OUTTAKE(new LoggedTunableNumber("Intake/Roller/Goals/OUTTAKE", -5)),
+        AGITATE(new LoggedTunableNumber("Intake/Roller/Goals/AGITATE", 2)),
+        CUSTOM(new LoggedTunableNumber("Intake/Roller/Goals/CUSTOM", 0));
 
-    private IntakeRollersGoal(DoubleSupplier intakeRollerSetpointSupplier) {
-      this.intakeRollerSetpointSupplier = intakeRollerSetpointSupplier;
+        private final DoubleSupplier intakeRollerSetpointSupplier;
+
+        private IntakeRollersGoal(DoubleSupplier intakeRollerSetpointSupplier) {
+            this.intakeRollerSetpointSupplier = intakeRollerSetpointSupplier;
+        }
+
+        private double getVoltage() {
+        return intakeRollerSetpointSupplier.getAsDouble();
+        }
     }
 
-    private double getRPM() {
-      return intakeRollerSetpointSupplier.getAsDouble();
-    }
-  }
+    @AutoLogOutput private IntakeRollersGoal goalSetpoint = IntakeRollersGoal.ZERO;
 
-  @AutoLogOutput private IntakeRollersGoal goalSetpoint = IntakeRollersGoal.ZERO;
+    private boolean closedLoop = false;
 
-  private boolean closedLoop = false;
+    private double goalVoltage = 0.0;
 
-  private double goalRPM = 0.0;
+    private boolean nearGoal = false;
 
-  private boolean nearGoal = false;
-
-  public void setGoalSetPoint(IntakeRollersGoal goal) {
-    closedLoop = true;
-    this.goalSetpoint = goal;
-  }
-
-  public void setGoalSetPoint(double goal) {
-    closedLoop = true;
-    this.goalRPM = goal;
-  }
-
-  public IntakeRollers(IntakeRollersIO io) {
-    this.io = io;
-  }
-
-  public void periodic() {
-    io.updateInputs(inputs);
-    Logger.processInputs("Intake/Roller", inputs);
-
-    if (closedLoop) {
-      goalRPM = goalSetpoint.getRPM();
-      io.runSetVelocity(goalRPM);
+    public void setGoalSetPoint(IntakeRollersGoal goal){
+        closedLoop = true;
+        this.goalSetpoint = goal;
     }
 
-    LoggedTunableNumber.ifChanged(
-        hashCode(),
-        () -> io.setPID(kP.get(), kI.get(), kD.get(), kS.get(), kV.get(), kA.get()),
-        kP,
-        kI,
-        kD,
-        kV,
-        kS,
-        kA);
+    public IntakeRollers(IntakeRollersIO io){
+        this.io = io;
+    }
 
-    nearGoal = EqualsUtil.epsilonEquals(inputs.appliedVolts, goalRPM, 10);
-    Logger.recordOutput("Intake/Roller/nearGoal", nearGoal);
-  }
+    public void periodic() {
+        io.updateInputs(inputs);
+        Logger.processInputs("Intake/Roller", inputs);
 
-  public void Setpoint(IntakeRollersGoal goalSetPoint) {
-    setGoalSetPoint(goalSetPoint);
-  }
+        if (closedLoop){
+            goalVoltage = goalSetpoint.getVoltage();
+            io.runSetVoltage(goalVoltage);
+        }
 
-  public void Setpoint(double goalSetPoint) {
-    setGoalSetPoint(goalSetPoint);
-  }
+        nearGoal = EqualsUtil.epsilonEquals(inputs.appliedVolts, goalVoltage,1);
+        Logger.recordOutput("Intake/Roller/nearGoal", nearGoal);
+    }
+
+    public void Setpoint(IntakeRollersGoal goalSetPoint) {
+        setGoalSetPoint(goalSetPoint);
+    };
 }

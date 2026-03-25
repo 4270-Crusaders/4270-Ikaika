@@ -39,17 +39,11 @@
           "data": {
             "pathName": "Right-Rush-Double-Swipe-V3-3"
           }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "HUB_SHOOT"
-          }
         }
       ]
     }
   },
   "resetOdom": true,
-  "folder": "CanPac",
+  "folder": "Comp",
   "choreoAuto": false
 }

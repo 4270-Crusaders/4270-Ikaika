@@ -10,19 +10,35 @@ public class SetRobotStateCommand extends SequentialCommandGroup{
 
         INTAKE,
         OUTTAKE,
+        STOP_INTAKE,
         SPIT,
         AGITATE,
         UN_AGITATE,
 
-        
-        AUTO_SHOOT,
         SHOOT,
-        AUTO_AIM,
         AIM,
+
+        STOP_SHOOT,
+
+        AUTO_SHOOT_HUB,
+        AUTO_SHOOT_PASS,
+        AUTO_AIM_HUB,
+        AUTO_AIM_PASS,
+
+        CUSTOM
     }
 
     public SetRobotStateCommand(ROBOT_STATE state) {
         switch (state) {
+            case CUSTOM:
+                addCommands(RobotStateCommands.CUSTOMSHOOT());
+                break;
+            case STOP_SHOOT:
+                addCommands(RobotStateCommands.stopShootState());
+                break;
+            case STOP_INTAKE:
+                addCommands(RobotStateCommands.stopIntakeState());
+                break;
             case DEFAULT:
                 addCommands(RobotStateCommands.defaultState());
                 break;
@@ -50,14 +66,20 @@ public class SetRobotStateCommand extends SequentialCommandGroup{
             case AIM:
                 addCommands(RobotStateCommands.aimState());
                 break;
-            case AUTO_AIM:
-                addCommands(RobotStateCommands.autoAimState());
-                break;
             case SHOOT:
                 addCommands(RobotStateCommands.shootState());
                 break;
-            case AUTO_SHOOT:
-                addCommands(RobotStateCommands.autoShootState());
+            case AUTO_AIM_HUB:
+                addCommands(RobotStateCommands.autoAimHubState());
+                break;
+            case AUTO_SHOOT_HUB:
+                addCommands(RobotStateCommands.autoShootHubState());
+                break;
+            case AUTO_AIM_PASS:
+                addCommands(RobotStateCommands.autoAimPassState());
+                break;
+            case AUTO_SHOOT_PASS:
+                addCommands(RobotStateCommands.autoShootPassState());
                 break;
         }
     }

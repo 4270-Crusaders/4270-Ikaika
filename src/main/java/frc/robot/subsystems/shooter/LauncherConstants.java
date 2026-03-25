@@ -28,5 +28,7 @@ public class LauncherConstants {
 
   public final static double TrenchZoneStart = 4;
 
+  public final static double INCREASE = 0;
+
   private LauncherConstants() {}
 }

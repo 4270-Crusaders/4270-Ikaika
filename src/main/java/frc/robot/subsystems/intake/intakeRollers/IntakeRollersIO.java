@@ -21,4 +21,6 @@ public interface IntakeRollersIO {
   public default void updateInputs(IntakeRollersIOInputs inputs) {}
 
   public default void runSetVelocity(double velocity) {}
+
+  public default void runSetVoltage(double voltage) {}
 }

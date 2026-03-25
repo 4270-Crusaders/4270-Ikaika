@@ -52,7 +52,7 @@ public class IntakeWrist {
           "Intake/Wrist/MMExpokA", IntakeConstants.IntakeWristConstants.IntakeWristMotionMagickA);
 
   public enum IntakeWristGoal {
-    UP(new LoggedTunableNumber("Intake/Wrist/Goals/UP(", 5)),
+    UP(new LoggedTunableNumber("Intake/Wrist/Goals/UP(", 0.25)),
     DOWN(new LoggedTunableNumber("Intake/Wrist/Goals/DOWN", 88)),
     AGITATE(new LoggedTunableNumber("Intake/Wrist/Goals/AGITATE", 40)),
     CUSTOM(new LoggedTunableNumber("Intake/Wrist/Goals/CUSTOM", 0));
