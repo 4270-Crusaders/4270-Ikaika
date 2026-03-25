@@ -1,6 +1,7 @@
 package frc.robot.subsystems.intake;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.subsystems.intake.intakeRollers.IntakeRollers;
 import frc.robot.subsystems.intake.intakeRollers.IntakeRollers.IntakeRollersGoal;
@@ -74,17 +75,6 @@ public class Intake extends SubsystemBase {
   }
 
   public static Command getSetStateCommand(INTAKE_STATE state, Intake intake) {
-    return new Command() {
-      @Override
-      public void initialize() {
-        addRequirements(intake);
-        intake.setIntakeState(state);
-      }
-
-      @Override
-      public boolean isFinished() {
-        return intake.currentIntakeState == state;
-      }
-    };
+    return Commands.runOnce(() -> intake.setIntakeState(state), intake);
   }
 }

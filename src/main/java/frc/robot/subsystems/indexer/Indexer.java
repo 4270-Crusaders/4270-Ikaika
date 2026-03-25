@@ -1,6 +1,7 @@
 package frc.robot.subsystems.indexer;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.subsystems.indexer.agitator.Agitator;
 import frc.robot.subsystems.indexer.agitator.Agitator.AgitatorGoal;
@@ -75,11 +76,16 @@ public class Indexer extends SubsystemBase {
         Rollers.Setpoint(RollersGoal.SPIT);
         break;
       case SHOOT:
-        if(readyToShoot) {
+        if (readyToShoot) {
           agitator.Setpoint(AgitatorGoal.SHOOT);
           kicker.Setpoint(KickerGoal.SHOOT);
           conveyor.Setpoint(ConveyorGoal.SHOOT);
           Rollers.Setpoint(RollersGoal.SHOOT);
+        } else {
+          agitator.Setpoint(AgitatorGoal.ZERO);
+          kicker.Setpoint(KickerGoal.ZERO);
+          conveyor.Setpoint(ConveyorGoal.ZERO);
+          Rollers.Setpoint(RollersGoal.ZERO);
         }
         break;
       case AUTOSHOOT:
@@ -109,17 +115,6 @@ public class Indexer extends SubsystemBase {
   }
 
   public static Command getSetStateCommand(INDEXER_STATE state, Indexer indexer) {
-    return new Command() {
-      @Override
-      public void initialize() {
-        addRequirements(indexer);
-        indexer.setIndexerState(state);
-      }
-
-      @Override
-      public boolean isFinished() {
-        return indexer.currentIndexerState == state;
-      }
-    };
+    return Commands.runOnce(() -> indexer.setIndexerState(state), indexer);
   }
 }

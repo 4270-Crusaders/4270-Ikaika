@@ -12,25 +12,25 @@ public class Conveyor {
   private final ConveyorIOInputsAutoLogged inputs = new ConveyorIOInputsAutoLogged();
 
   private static final LoggedTunableNumber kP =
-      new LoggedTunableNumber("Indexer/Conveyor/kP", IndexerConstants.ConveyorConstants.kP);
+      new LoggedTunableNumber("Indexer/Conveyor/Gains/kP", IndexerConstants.ConveyorConstants.kP);
   private static final LoggedTunableNumber kI =
-      new LoggedTunableNumber("Indexer/Conveyor/kI", IndexerConstants.ConveyorConstants.kI);
+      new LoggedTunableNumber("Indexer/Conveyor/Gains/kI", IndexerConstants.ConveyorConstants.kI);
   private static final LoggedTunableNumber kD =
-      new LoggedTunableNumber("Indexer/Conveyor/kD", IndexerConstants.ConveyorConstants.kD);
+      new LoggedTunableNumber("Indexer/Conveyor/Gains/kD", IndexerConstants.ConveyorConstants.kD);
   private static final LoggedTunableNumber kA =
-      new LoggedTunableNumber("Indexer/Conveyor/kA", IndexerConstants.ConveyorConstants.kA);
+      new LoggedTunableNumber("Indexer/Conveyor/Gains/kA", IndexerConstants.ConveyorConstants.kA);
   private static final LoggedTunableNumber kV =
-      new LoggedTunableNumber("Indexer/Conveyor/kV", IndexerConstants.ConveyorConstants.kV);
+      new LoggedTunableNumber("Indexer/Conveyor/Gains/kV", IndexerConstants.ConveyorConstants.kV);
   private static final LoggedTunableNumber kS =
-      new LoggedTunableNumber("Indexer/Conveyor/kS", IndexerConstants.ConveyorConstants.kS);
+      new LoggedTunableNumber("Indexer/Conveyor/Gains/kS", IndexerConstants.ConveyorConstants.kS);
 
   public enum ConveyorGoal {
-    ZERO(new LoggedTunableNumber("Indexer/Conveyor/Goals/ZERO", 0)),
-    INTAKE(new LoggedTunableNumber("Indexer/Conveyor/Goals/AGITATE", 100)),
-    SHOOT(new LoggedTunableNumber("Indexer/Conveyor/Goals/SHOOT", 5000)),
-    OUTTAKE(new LoggedTunableNumber("Indexer/Conveyor/Goals/OUTTAKE", 0)),
-    SPIT(new LoggedTunableNumber("Indexer/Conveyor/Goals/SPIT", -5000)),
-    CUSTOM(new LoggedTunableNumber("Indexer/Conveyor/Goals/CUSTOM", 100));
+    ZERO(new LoggedTunableNumber("Indexer/Conveyor/Goals/Zero", 0)),
+    INTAKE(new LoggedTunableNumber("Indexer/Conveyor/Goals/Intake", 100)),
+    SHOOT(new LoggedTunableNumber("Indexer/Conveyor/Goals/Shoot", 5000)),
+    OUTTAKE(new LoggedTunableNumber("Indexer/Conveyor/Goals/Outtake", 0)),
+    SPIT(new LoggedTunableNumber("Indexer/Conveyor/Goals/Spit", -5000)),
+    CUSTOM(new LoggedTunableNumber("Indexer/Conveyor/Goals/Custom", 100));
 
     private final DoubleSupplier ConveyorSetpointSupplier;
 

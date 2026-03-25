@@ -12,25 +12,25 @@ public class Kicker {
   private final KickerIOInputsAutoLogged inputs = new KickerIOInputsAutoLogged();
 
   private static final LoggedTunableNumber kP =
-      new LoggedTunableNumber("Indexer/Kicker/kP", IndexerConstants.KickerConstants.kP);
+      new LoggedTunableNumber("Indexer/Kicker/Gains/kP", IndexerConstants.KickerConstants.kP);
   private static final LoggedTunableNumber kI =
-      new LoggedTunableNumber("Indexer/Kicker/kI", IndexerConstants.KickerConstants.kI);
+      new LoggedTunableNumber("Indexer/Kicker/Gains/kI", IndexerConstants.KickerConstants.kI);
   private static final LoggedTunableNumber kD =
-      new LoggedTunableNumber("Indexer/Kicker/kD", IndexerConstants.KickerConstants.kD);
+      new LoggedTunableNumber("Indexer/Kicker/Gains/kD", IndexerConstants.KickerConstants.kD);
   private static final LoggedTunableNumber kA =
-      new LoggedTunableNumber("Indexer/Kicker/kA", IndexerConstants.KickerConstants.kA);
+      new LoggedTunableNumber("Indexer/Kicker/Gains/kA", IndexerConstants.KickerConstants.kA);
   private static final LoggedTunableNumber kV =
-      new LoggedTunableNumber("Indexer/Kicker/kV", IndexerConstants.KickerConstants.kV);
+      new LoggedTunableNumber("Indexer/Kicker/Gains/kV", IndexerConstants.KickerConstants.kV);
   private static final LoggedTunableNumber kS =
-      new LoggedTunableNumber("Indexer/Kicker/kS", IndexerConstants.KickerConstants.kS);
+      new LoggedTunableNumber("Indexer/Kicker/Gains/kS", IndexerConstants.KickerConstants.kS);
 
   public enum KickerGoal {
-    ZERO(new LoggedTunableNumber("Indexer/Kicker/Goals/ZERO", 0)),
-    INTAKE(new LoggedTunableNumber("Indexer/Kicker/Goals/AGITATE", 100)),
-    SHOOT(new LoggedTunableNumber("Indexer/Kicker/Goals/SHOOT", 4000)),
-    OUTTAKE(new LoggedTunableNumber("Indexer/Kicker/Goals/OUTTAKE", -3000)),
-    SPIT(new LoggedTunableNumber("Indexer/Kicker/Goals/SPIT", -4000)),
-    CUSTOM(new LoggedTunableNumber("Indexer/Kicker/Goals/CUSTOM", 100));
+    ZERO(new LoggedTunableNumber("Indexer/Kicker/Goals/Zero", 0)),
+    INTAKE(new LoggedTunableNumber("Indexer/Kicker/Goals/Intake", 100)),
+    SHOOT(new LoggedTunableNumber("Indexer/Kicker/Goals/Shoot", 4000)),
+    OUTTAKE(new LoggedTunableNumber("Indexer/Kicker/Goals/Outtake", -3000)),
+    SPIT(new LoggedTunableNumber("Indexer/Kicker/Goals/Spit", -4000)),
+    CUSTOM(new LoggedTunableNumber("Indexer/Kicker/Goals/Custom", 100));
 
     private final DoubleSupplier KickerSetpointSupplier;
 

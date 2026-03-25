@@ -20,6 +20,7 @@ import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import java.util.Set;
 import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.commands.DriveCommands;
@@ -170,6 +171,13 @@ public class RobotContainer {
     autoSelector = new LoggedDashboardChooser<>("Auto Selection", AutoBuilder.buildAutoChooser());
   }
 
+  /** Runs after the command scheduler; keeps shooter/indexer aligned with drive. */
+  public void periodic() {
+    shooter.setRobotEstimatedPose(drive.getPose());
+    shooter.setRobotSpeed(drive.getChassisSpeeds());
+    indexer.setReadyToShoot(shooter.readyToShoot());
+  }
+
   /**
    * Use this method to define your button->command mappings. Buttons can be created by
    * instantiating a {@link GenericHID} or one of its subclasses ({@link
@@ -186,34 +194,75 @@ public class RobotContainer {
             () -> -driverController.getRightX()));
 
     // Tare
-    driverController.povDown().onTrue(
-      Commands.runOnce(
-        ()->{
-          drive.setPose(new Pose2d(drive.getPose().getX(),drive.getPose().getY(),new Rotation2d()));
-        },
-        drive
-      ).ignoringDisable(true)
-    );
+    driverController
+        .povDown()
+        .onTrue(
+            Commands.runOnce(
+                    () ->
+                        drive.setPose(
+                            new Pose2d(drive.getPose().getTranslation(), Rotation2d.kZero)),
+                    drive)
+                .ignoringDisable(true));
 
-    driverController.leftTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.INTAKE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.STOP_INTAKE));
-    driverController.rightTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.SHOOT)).onFalse(new SetRobotStateCommand(ROBOT_STATE.STOP_SHOOT));
-    driverController.povRight().onTrue(new SetRobotStateCommand(ROBOT_STATE.OUTTAKE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.STOP_INTAKE));
-    
-    driverController.a().onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
-    operatorController.button(3).onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
-    operatorController.button(4).onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
-    operatorController.button(5).onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
-    operatorController.button(1).onTrue(new SetRobotStateCommand(ROBOT_STATE.CUSTOM)).onFalse(new SetRobotStateCommand(ROBOT_STATE.STOP_SHOOT));
+    // Command groups must be freshly built each schedule; reusing a finished group breaks the scheduler.
+    driverController
+        .leftTrigger()
+        .onTrue(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.INTAKE), Set.of()))
+        .onFalse(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.STOP_INTAKE), Set.of()));
+    driverController
+        .rightTrigger()
+        .onTrue(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.SHOOT), Set.of()))
+        .onFalse(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.STOP_SHOOT), Set.of()));
+    driverController
+        .povRight()
+        .onTrue(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.OUTTAKE), Set.of()))
+        .onFalse(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.STOP_INTAKE), Set.of()));
+
+    driverController
+        .a()
+        .onTrue(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.AGITATE), Set.of()))
+        .onFalse(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE), Set.of()));
+    operatorController
+        .button(3)
+        .onTrue(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.AGITATE), Set.of()))
+        .onFalse(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE), Set.of()));
+    operatorController
+        .button(4)
+        .onTrue(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.AGITATE), Set.of()))
+        .onFalse(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE), Set.of()));
+    operatorController
+        .button(5)
+        .onTrue(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.AGITATE), Set.of()))
+        .onFalse(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE), Set.of()));
+    operatorController
+        .button(1)
+        .onTrue(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.CUSTOM), Set.of()))
+        .onFalse(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.STOP_SHOOT), Set.of()));
   }
 
-  void registerNamedCommand(){
-    NamedCommands.registerCommand("TRENCH", new SetRobotStateCommand(ROBOT_STATE.TRENCH));
-    NamedCommands.registerCommand("INTAKE", new SetRobotStateCommand(ROBOT_STATE.INTAKE));
-    NamedCommands.registerCommand("DEFAULT", new SetRobotStateCommand(ROBOT_STATE.AUTODEFAULT));
-    NamedCommands.registerCommand("HUB_FOCUS", new SetRobotStateCommand(ROBOT_STATE.AUTO_AIM_HUB));
-    NamedCommands.registerCommand("HUB_SHOOT", new SetRobotStateCommand(ROBOT_STATE.AUTO_SHOOT_HUB));
-    NamedCommands.registerCommand("PASS_FOCUS", new SetRobotStateCommand(ROBOT_STATE.AUTO_SHOOT_PASS));
-    NamedCommands.registerCommand("PASS_SHOOT", new SetRobotStateCommand(ROBOT_STATE.AUTO_SHOOT_PASS));
+  void registerNamedCommand() {
+    // Defer builds a fresh CommandGroup each schedule; reusing a finished group causes scheduler bugs.
+    NamedCommands.registerCommand(
+        "TRENCH",
+        Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.TRENCH), Set.of()));
+    NamedCommands.registerCommand(
+        "INTAKE",
+        Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.INTAKE), Set.of()));
+    NamedCommands.registerCommand(
+        "DEFAULT",
+        Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.AUTODEFAULT), Set.of()));
+    NamedCommands.registerCommand(
+        "HUB_FOCUS",
+        Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.AUTO_AIM_HUB), Set.of()));
+    NamedCommands.registerCommand(
+        "HUB_SHOOT",
+        Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.AUTO_SHOOT_HUB), Set.of()));
+    NamedCommands.registerCommand(
+        "PASS_FOCUS",
+        Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.AUTO_AIM_PASS), Set.of()));
+    NamedCommands.registerCommand(
+        "PASS_SHOOT",
+        Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.AUTO_SHOOT_PASS), Set.of()));
   }
 
   /**

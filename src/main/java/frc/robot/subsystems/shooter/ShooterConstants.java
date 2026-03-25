@@ -4,6 +4,7 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.util.Units;
 
 public class ShooterConstants {
   // FlyWheel
@@ -57,13 +58,25 @@ public class ShooterConstants {
     public static final int HOOD_CAN_ID = 22;
 
     public static final double MAX_DEGREE = 24;
+
+    /**
+     * Extra vertical rise (m) in the ballistic hood solve only, so the commanded arc is ~2–3 ft
+     * higher than the geometric hub line.
+     */
+    public static final double BALLISTIC_EXTRA_HEIGHT_METERS = Units.feetToMeters(2.5);
+
+    /**
+     * Mechanical hood: {@code 0°} = exit toward the sky, {@code 90°} = exit horizontal forward.
+     * Commanded angle is {@code 90° − θ + offset} where θ is launch angle above horizontal (deg).
+     */
+    public static final double MECHANICAL_ANGLE_OFFSET_DEG = -14;
     public static final int HOOD_ENCODER_CAN_ID = 23;
     public static double HoodSensorToMechanismRatio = -21.1428571; // 296/14
     public static double HoodRotorToSensorRatio = -5.25000001; // 42/8
     public static SensorDirectionValue hoodEncoderDirection =
         SensorDirectionValue.Clockwise_Positive;
     public static double HoodEncoderAbsoluteSensorDiscontinuityPoint = 0.5;
-    public static double HoodEncoderMagnetOffset = -0.056884765625; // TUNE ALOT!!
+    public static double HoodEncoderMagnetOffset = -0.267333984375; // TUNE ALOT!!
     public static double HoodCurrentLimit = 60.0;
     public static InvertedValue HoodInvertedValue = InvertedValue.CounterClockwise_Positive;
     public static boolean HoodSupplyCurrentLimitEnable = true;
@@ -120,6 +133,16 @@ public class ShooterConstants {
   public static final double GOAL_HEIGHT = 1.8288; // Same as above
   public static final double DELTA_HEIGHT = GOAL_HEIGHT - TURRET_HEIGHT;
 
+  /**
+   * Default (initial) RPM band for flywheel {@code nearGoal} / {@link Shooter#readyToShoot()}.
+   * Overridden at runtime by {@code NearGoalRpmTolerance} × {@code PhysicsLaunchEfficiencyScale}
+   * (from ideal-min/empirical-map RPM while aiming).
+   */
+  public static final double READY_TO_SHOOT_FLYWHEEL_RPM_TOLERANCE = 600;
+
+  public static final double READY_TO_SHOOT_TURRET_DEG_TOLERANCE = 22;
+  /** Max |turret slew rate| (deg/s) to still count as “settled” during slow aim tracking. */
+  public static final double READY_TO_SHOOT_TURRET_MAX_DEG_PER_SEC = 25;
 
   public static final double ShooterXOffset = 0.2032;
   public static final double ShooterYOffset = -0.1905;

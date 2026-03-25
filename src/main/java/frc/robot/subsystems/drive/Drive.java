@@ -20,12 +20,14 @@ import edu.wpi.first.hal.FRCNetComm.tInstances;
 import edu.wpi.first.hal.FRCNetComm.tResourceType;
 import edu.wpi.first.hal.HAL;
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
@@ -96,8 +98,27 @@ public class Drive extends SubsystemBase {
         new SwerveModulePosition(),
         new SwerveModulePosition()
       };
+
+  /**
+   * Pose estimator process standard deviations (m, m, rad). WPILib default is 0.1 for each;
+   * slightly lower here trusts wheel+gyro integration between vision updates when modules are
+   * calibrated.
+   */
+  private static final Matrix<N3, N1> poseEstimatorStateStdDevs =
+      VecBuilder.fill(0.05, 0.05, 0.07);
+
+  /** Fallback vision std devs (m, m, rad); per-frame values from Vision usually override. */
+  private static final Matrix<N3, N1> poseEstimatorVisionStdDevs =
+      VecBuilder.fill(0.02, 0.02, Units.degreesToRadians(1.5));
+
   private SwerveDrivePoseEstimator poseEstimator =
-      new SwerveDrivePoseEstimator(kinematics, rawGyroRotation, lastModulePositions, Pose2d.kZero);
+      new SwerveDrivePoseEstimator(
+          kinematics,
+          rawGyroRotation,
+          lastModulePositions,
+          Pose2d.kZero,
+          poseEstimatorStateStdDevs,
+          poseEstimatorVisionStdDevs);
 
   public Drive(
       GyroIO gyroIO,
@@ -171,7 +192,6 @@ public class Drive extends SubsystemBase {
     // Log empty setpoint states when disabled
     if (DriverStation.isDisabled()) {
       Logger.recordOutput("SwerveStates/Setpoints", new SwerveModuleState[] {});
-      Logger.recordOutput("SwerveStates/SetpointsOptimized", new SwerveModuleState[] {});
     }
 
     // TODO -> Look into odometry prioritization of camera pos estimation and pidgeon 
@@ -222,17 +242,14 @@ public class Drive extends SubsystemBase {
     SwerveModuleState[] setpointStates = kinematics.toSwerveModuleStates(discreteSpeeds);
     SwerveDriveKinematics.desaturateWheelSpeeds(setpointStates, TunerConstants.kSpeedAt12Volts);
 
-    // Log unoptimized setpoints and setpoint speeds
-    Logger.recordOutput("SwerveStates/Setpoints", setpointStates);
     Logger.recordOutput("SwerveChassisSpeeds/Setpoints", discreteSpeeds);
 
-    // Send setpoints to modules
+    // Send setpoints to modules (may optimize wheel angles / speeds in place)
     for (int i = 0; i < 4; i++) {
       modules[i].runSetpoint(setpointStates[i]);
     }
 
-    // Log optimized setpoints (runSetpoint mutates each state)
-    Logger.recordOutput("SwerveStates/SetpointsOptimized", setpointStates);
+    Logger.recordOutput("SwerveStates/Setpoints", setpointStates);
   }
 
   /** Runs the drive in a straight line with the specified drive output. */

@@ -12,25 +12,25 @@ public class Agitator {
   private final AgitatorIOInputsAutoLogged inputs = new AgitatorIOInputsAutoLogged();
 
   private static final LoggedTunableNumber kP =
-      new LoggedTunableNumber("Indexer/Agitator/kP", IndexerConstants.AgitatorConstants.kP);
+      new LoggedTunableNumber("Indexer/Agitator/Gains/kP", IndexerConstants.AgitatorConstants.kP);
   private static final LoggedTunableNumber kI =
-      new LoggedTunableNumber("Indexer/Agitator/kI", IndexerConstants.AgitatorConstants.kI);
+      new LoggedTunableNumber("Indexer/Agitator/Gains/kI", IndexerConstants.AgitatorConstants.kI);
   private static final LoggedTunableNumber kD =
-      new LoggedTunableNumber("Indexer/Agitator/kD", IndexerConstants.AgitatorConstants.kD);
+      new LoggedTunableNumber("Indexer/Agitator/Gains/kD", IndexerConstants.AgitatorConstants.kD);
   private static final LoggedTunableNumber kA =
-      new LoggedTunableNumber("Indexer/Agitator/kA", IndexerConstants.AgitatorConstants.kA);
+      new LoggedTunableNumber("Indexer/Agitator/Gains/kA", IndexerConstants.AgitatorConstants.kA);
   private static final LoggedTunableNumber kV =
-      new LoggedTunableNumber("Indexer/Agitator/kV", IndexerConstants.AgitatorConstants.kV);
+      new LoggedTunableNumber("Indexer/Agitator/Gains/kV", IndexerConstants.AgitatorConstants.kV);
   private static final LoggedTunableNumber kS =
-      new LoggedTunableNumber("Indexer/Agitator/kS", IndexerConstants.AgitatorConstants.kS);
+      new LoggedTunableNumber("Indexer/Agitator/Gains/kS", IndexerConstants.AgitatorConstants.kS);
 
   public enum AgitatorGoal {
-    ZERO(new LoggedTunableNumber("Indexer/Agitator/Goals/ZERO", 0)),
-    INTAKE(new LoggedTunableNumber("Indexer/Agitator/Goals/AGITATE", 100)),
-    SHOOT(new LoggedTunableNumber("Indexer/Agitator/Goals/SHOOT", 3000)),
-    OUTTAKE(new LoggedTunableNumber("Indexer/Agitator/Goals/OUTTAKE", 0)),
-    SPIT(new LoggedTunableNumber("Indexer/Agitator/Goals/SPIT", 0)),
-    CUSTOM(new LoggedTunableNumber("Indexer/Agitator/Goals/CUSTOM", 100));
+    ZERO(new LoggedTunableNumber("Indexer/Agitator/Goals/Zero", 0)),
+    INTAKE(new LoggedTunableNumber("Indexer/Agitator/Goals/Intake", 100)),
+    SHOOT(new LoggedTunableNumber("Indexer/Agitator/Goals/Shoot", 3000)),
+    OUTTAKE(new LoggedTunableNumber("Indexer/Agitator/Goals/Outtake", 0)),
+    SPIT(new LoggedTunableNumber("Indexer/Agitator/Goals/Spit", 0)),
+    CUSTOM(new LoggedTunableNumber("Indexer/Agitator/Goals/Custom", 100));
 
     private final DoubleSupplier AgitatorSetpointSupplier;
 

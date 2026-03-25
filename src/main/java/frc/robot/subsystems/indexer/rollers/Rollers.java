@@ -12,25 +12,25 @@ public class Rollers {
   private final RollersIOInputsAutoLogged inputs = new RollersIOInputsAutoLogged();
 
   private static final LoggedTunableNumber kP =
-      new LoggedTunableNumber("Indexer/Rollers/kP", IndexerConstants.RollersConstants.kP);
+      new LoggedTunableNumber("Indexer/Rollers/Gains/kP", IndexerConstants.RollersConstants.kP);
   private static final LoggedTunableNumber kI =
-      new LoggedTunableNumber("Indexer/Rollers/kI", IndexerConstants.RollersConstants.kI);
+      new LoggedTunableNumber("Indexer/Rollers/Gains/kI", IndexerConstants.RollersConstants.kI);
   private static final LoggedTunableNumber kD =
-      new LoggedTunableNumber("Indexer/Rollers/kD", IndexerConstants.RollersConstants.kD);
+      new LoggedTunableNumber("Indexer/Rollers/Gains/kD", IndexerConstants.RollersConstants.kD);
   private static final LoggedTunableNumber kA =
-      new LoggedTunableNumber("Indexer/Rollers/kA", IndexerConstants.RollersConstants.kA);
+      new LoggedTunableNumber("Indexer/Rollers/Gains/kA", IndexerConstants.RollersConstants.kA);
   private static final LoggedTunableNumber kV =
-      new LoggedTunableNumber("Indexer/Rollers/kV", IndexerConstants.RollersConstants.kV);
+      new LoggedTunableNumber("Indexer/Rollers/Gains/kV", IndexerConstants.RollersConstants.kV);
   private static final LoggedTunableNumber kS =
-      new LoggedTunableNumber("Indexer/Rollers/kS", IndexerConstants.RollersConstants.kS);
+      new LoggedTunableNumber("Indexer/Rollers/Gains/kS", IndexerConstants.RollersConstants.kS);
 
   public enum RollersGoal {
-    ZERO(new LoggedTunableNumber("Indexer/Rollers/Goals/ZERO", 0)),
-    INTAKE(new LoggedTunableNumber("Indexer/Rollers/Goals/AGITATE", 1500)),
-    SHOOT(new LoggedTunableNumber("Indexer/Rollers/Goals/SHOOT", 5000)),
-    OUTTAKE(new LoggedTunableNumber("Indexer/Rollers/Goals/OUTTAKE", -1500)),
-    SPIT(new LoggedTunableNumber("Indexer/Rollers/Goals/SPIT", 2000)),
-    CUSTOM(new LoggedTunableNumber("Indexer/Rollers/Goals/CUSTOM", 100));
+    ZERO(new LoggedTunableNumber("Indexer/Rollers/Goals/Zero", 0)),
+    INTAKE(new LoggedTunableNumber("Indexer/Rollers/Goals/Intake", 1500)),
+    SHOOT(new LoggedTunableNumber("Indexer/Rollers/Goals/Shoot", 5000)),
+    OUTTAKE(new LoggedTunableNumber("Indexer/Rollers/Goals/Outtake", -1500)),
+    SPIT(new LoggedTunableNumber("Indexer/Rollers/Goals/Spit", 2000)),
+    CUSTOM(new LoggedTunableNumber("Indexer/Rollers/Goals/Custom", 100));
 
     private final DoubleSupplier RollersSetpointSupplier;
 

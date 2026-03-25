@@ -28,36 +28,36 @@ public class Hood {
   private final HoodIOInputsAutoLogged inputs = new HoodIOInputsAutoLogged();
 
   private static final LoggedTunableNumber kP =
-      new LoggedTunableNumber("Shooter/Hood/kP", ShooterConstants.HoodConstants.HoodkP);
+      new LoggedTunableNumber("Shooter/Hood/Gains/kP", ShooterConstants.HoodConstants.HoodkP);
   private static final LoggedTunableNumber kI =
-      new LoggedTunableNumber("Shooter/Hood/kI", ShooterConstants.HoodConstants.HoodkI);
+      new LoggedTunableNumber("Shooter/Hood/Gains/kI", ShooterConstants.HoodConstants.HoodkI);
   private static final LoggedTunableNumber kD =
-      new LoggedTunableNumber("Shooter/Hood/kD", ShooterConstants.HoodConstants.HoodkD);
+      new LoggedTunableNumber("Shooter/Hood/Gains/kD", ShooterConstants.HoodConstants.HoodkD);
   private static final LoggedTunableNumber kA =
-      new LoggedTunableNumber("Shooter/Hood/kA", ShooterConstants.HoodConstants.HoodkA);
+      new LoggedTunableNumber("Shooter/Hood/Gains/kA", ShooterConstants.HoodConstants.HoodkA);
   private static final LoggedTunableNumber kV =
-      new LoggedTunableNumber("Shooter/Hood/kV", ShooterConstants.HoodConstants.HoodkV);
+      new LoggedTunableNumber("Shooter/Hood/Gains/kV", ShooterConstants.HoodConstants.HoodkV);
   private static final LoggedTunableNumber kS =
-      new LoggedTunableNumber("Shooter/Hood/kS", ShooterConstants.HoodConstants.HoodkS);
+      new LoggedTunableNumber("Shooter/Hood/Gains/kS", ShooterConstants.HoodConstants.HoodkS);
   private static final LoggedTunableNumber kG =
-      new LoggedTunableNumber("Shooter/Hood/kG", ShooterConstants.HoodConstants.HoodkG);
+      new LoggedTunableNumber("Shooter/Hood/Gains/kG", ShooterConstants.HoodConstants.HoodkG);
 
   private static final LoggedTunableNumber MOTION_MAGIC_JERK =
       new LoggedTunableNumber(
-          "Shooter/Hood/MMJerk", ShooterConstants.HoodConstants.HoodMotionMagicJerk);
+          "Shooter/Hood/MotionMagic/Jerk", ShooterConstants.HoodConstants.HoodMotionMagicJerk);
   private static final LoggedTunableNumber MOTION_MAGIC_ACCELERATION =
       new LoggedTunableNumber(
-          "Shooter/Hood/MMAcceleration",
+          "Shooter/Hood/MotionMagic/Acceleration",
           ShooterConstants.HoodConstants.HoodMotionMagicAcceleration);
   private static final LoggedTunableNumber MOTION_MAGIC_VELOCITY =
       new LoggedTunableNumber(
-          "Shooter/Hood/MMVelocity", ShooterConstants.HoodConstants.HoodMotionMagicVelocity);
+          "Shooter/Hood/MotionMagic/Velocity", ShooterConstants.HoodConstants.HoodMotionMagicVelocity);
   private static final LoggedTunableNumber MOTION_MAGIC_EXPO_kV =
       new LoggedTunableNumber(
-          "Shooter/Hood/MMExpokV", ShooterConstants.HoodConstants.HoodMotionMagickV);
+          "Shooter/Hood/MotionMagic/ExpoKv", ShooterConstants.HoodConstants.HoodMotionMagickV);
   private static final LoggedTunableNumber MOTION_MAGIC_EXPO_kA =
       new LoggedTunableNumber(
-          "Shooter/Hood/MMExpokA", ShooterConstants.HoodConstants.HoodMotionMagickA);
+          "Shooter/Hood/MotionMagic/ExpoKa", ShooterConstants.HoodConstants.HoodMotionMagickA);
 
   public Hood(HoodIO io) {
     this.io = io;
@@ -65,8 +65,8 @@ public class Hood {
 
   public enum HoodGoal {
     ZERO(new LoggedTunableNumber("Shooter/Hood/Goals/Zero", 0)),
-    TEST(new LoggedTunableNumber("Shooter/Hood/Goals/TEST", 15)),
-    CUSTOM(new LoggedTunableNumber("Shooter/Hood/Goals/CUSTOM", 9.25));
+    TEST(new LoggedTunableNumber("Shooter/Hood/Goals/Test", 15)),
+    CUSTOM(new LoggedTunableNumber("Shooter/Hood/Goals/Custom", 9.25));
 
     private final DoubleSupplier HOOD_SET_POINT_SUPPLIER;
 

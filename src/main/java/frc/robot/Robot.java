@@ -9,6 +9,7 @@ package frc.robot;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.robot.util.ImperialMarchChime;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
@@ -74,6 +75,11 @@ public class Robot extends LoggedRobot {
     started = true;
   }
 
+  @Override
+  public void robotInit() {
+    ImperialMarchChime.playAsyncIfRegistered();
+  }
+
   /** This function is called periodically during all modes. */
   @Override
   public void robotPeriodic() {
@@ -91,17 +97,9 @@ public class Robot extends LoggedRobot {
     // Return to non-RT thread priority (do not modify the first argument)
     // Threads.setCurrentThreadPriority(false, 10);
 
-    if(started){
-      periodicAfterFAKINGSTART();
+    if (started) {
+      robotContainer.periodic();
     }
-  }
-
-
-  @SuppressWarnings("static-access")
-  public void periodicAfterFAKINGSTART(){
-    robotContainer.shooter.setRobotEstimatedPose(robotContainer.drive.getPose());
-    robotContainer.shooter.setRobotSpeed(robotContainer.drive.getChassisSpeeds());
-    robotContainer.indexer.setReadyToShoot(robotContainer.shooter.readyToShoot());
   }
 
   /** This function is called once when the robot is disabled. */

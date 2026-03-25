@@ -1,5 +1,6 @@
 package frc.robot.subsystems.shooter.turret;
 
+import edu.wpi.first.math.util.Units;
 import frc.robot.subsystems.shooter.ShooterConstants;
 import frc.robot.util.EqualsUtil;
 import frc.robot.util.LoggedTunableNumber;
@@ -24,37 +25,37 @@ public class Turret {
 
   // Tunable PID/feedforward values (visible in the robot log/dashboard)
   private static final LoggedTunableNumber kP =
-      new LoggedTunableNumber("Shooter/Turret/kP", ShooterConstants.TurretConstants.TurretkP);
+      new LoggedTunableNumber("Shooter/Turret/Gains/kP", ShooterConstants.TurretConstants.TurretkP);
   private static final LoggedTunableNumber kI =
-      new LoggedTunableNumber("Shooter/Turret/kI", ShooterConstants.TurretConstants.TurretkI);
+      new LoggedTunableNumber("Shooter/Turret/Gains/kI", ShooterConstants.TurretConstants.TurretkI);
   private static final LoggedTunableNumber kD =
-      new LoggedTunableNumber("Shooter/Turret/kD", ShooterConstants.TurretConstants.TurretkD);
+      new LoggedTunableNumber("Shooter/Turret/Gains/kD", ShooterConstants.TurretConstants.TurretkD);
   private static final LoggedTunableNumber kA =
-      new LoggedTunableNumber("Shooter/Turret/kA", ShooterConstants.TurretConstants.TurretkA);
+      new LoggedTunableNumber("Shooter/Turret/Gains/kA", ShooterConstants.TurretConstants.TurretkA);
   private static final LoggedTunableNumber kV =
       new LoggedTunableNumber(
-          "Shooter/Turret/kV", ShooterConstants.TurretConstants.TurretMotionMagickV);
-  private static final LoggedTunableNumber kS = new LoggedTunableNumber("Shooter/Turret/kS", 0.0);
+          "Shooter/Turret/Gains/kV", ShooterConstants.TurretConstants.TurretMotionMagickV);
+  private static final LoggedTunableNumber kS = new LoggedTunableNumber("Shooter/Turret/Gains/kS", 0.0);
   private static final LoggedTunableNumber kG =
-      new LoggedTunableNumber("Shooter/Turret/kG", ShooterConstants.TurretConstants.TurretkG);
+      new LoggedTunableNumber("Shooter/Turret/Gains/kG", ShooterConstants.TurretConstants.TurretkG);
 
   // Motion-magic tunables
   private static final LoggedTunableNumber MOTION_MAGIC_JERK =
       new LoggedTunableNumber(
-          "Shooter/Turret/MMJerk", ShooterConstants.TurretConstants.TurretMotionMagicJerk);
+          "Shooter/Turret/MotionMagic/Jerk", ShooterConstants.TurretConstants.TurretMotionMagicJerk);
   private static final LoggedTunableNumber MOTION_MAGIC_ACCELERATION =
       new LoggedTunableNumber(
-          "Shooter/Turret/MMAcceleration",
+          "Shooter/Turret/MotionMagic/Acceleration",
           ShooterConstants.TurretConstants.TurretMotionMagicAcceleration);
   private static final LoggedTunableNumber MOTION_MAGIC_VELOCITY =
       new LoggedTunableNumber(
-          "Shooter/Turret/MMVelocity", ShooterConstants.TurretConstants.TurretMotionMagicVelocity);
+          "Shooter/Turret/MotionMagic/Velocity", ShooterConstants.TurretConstants.TurretMotionMagicVelocity);
   private static final LoggedTunableNumber MOTION_MAGIC_EXPO_kV =
       new LoggedTunableNumber(
-          "Shooter/Turret/MMExpokV", ShooterConstants.TurretConstants.TurretMotionMagickV);
+          "Shooter/Turret/MotionMagic/ExpoKv", ShooterConstants.TurretConstants.TurretMotionMagickV);
   private static final LoggedTunableNumber MOTION_MAGIC_EXPO_kA =
       new LoggedTunableNumber(
-          "Shooter/Turret/MMExpokA", ShooterConstants.TurretConstants.TurretMotionMagickA);
+          "Shooter/Turret/MotionMagic/ExpoKa", ShooterConstants.TurretConstants.TurretMotionMagickA);
 
   public Turret(TurretIO io) {
     this.io = io;
@@ -82,6 +83,9 @@ public class Turret {
   private double goalDeg = 0.0;
 
   public boolean nearGoal = false;
+
+  /** True when turret angular speed is low (not slewing / wrapping). */
+  public boolean settled = false;
 
   private double wrapDeg(double orginalDeg) {
     double overlapPoint =
@@ -154,13 +158,23 @@ public class Turret {
       goalDeg = goalSetpoint.getDegrees();
     }
 
-    io.runSetpointDegree(getLimitedDeg(wrapDeg(goalDeg)));
+    double commandedDeg = getLimitedDeg(wrapDeg(goalDeg));
+    io.runSetpointDegree(commandedDeg);
 
     // Diagnostics
     Logger.recordOutput("Shooter/Turret/GoalDegrees", goalDeg, Degrees);
-    nearGoal = EqualsUtil.epsilonEquals(inputs.measuredPostionDeg, goalDeg, 10);
+    Logger.recordOutput("Shooter/Turret/CommandedDegrees", commandedDeg, Degrees);
+    nearGoal =
+        EqualsUtil.epsilonEquals(
+            inputs.measuredPostionDeg,
+            commandedDeg,
+            ShooterConstants.READY_TO_SHOOT_TURRET_DEG_TOLERANCE);
 
+    double velDegPerSec = Math.abs(Units.radiansToDegrees(inputs.velocityRadPerSec));
+    settled = velDegPerSec < ShooterConstants.READY_TO_SHOOT_TURRET_MAX_DEG_PER_SEC;
+    Logger.recordOutput("Shooter/Turret/VelocityDegPerSec", velDegPerSec);
     Logger.recordOutput("Shooter/Turret/nearGoal", nearGoal);
+    Logger.recordOutput("Shooter/Turret/settled", settled);
   }
 
   public void setPID(double kP, double kI, double kD, double kS, double kV, double kA, double kG) {

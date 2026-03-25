@@ -13,6 +13,7 @@ import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.GravityTypeValue;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
+import static edu.wpi.first.units.Units.RadiansPerSecond;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
@@ -133,6 +134,7 @@ public class TurretIOTalonFX implements TurretIO {
     // Convert rotations to degrees for convenience in higher-level code
     inputs.measuredPostionDeg = Units.rotationsToDegrees(measuredPosRot.getValueAsDouble());
     inputs.setPostionDeg = Units.rotationsToDegrees(setPosRot.getValueAsDouble());
+    inputs.velocityRadPerSec = veloRPS.getValue().in(RadiansPerSecond);
     inputs.supplyCurrentAmps = supplyCurrentAmps.getValueAsDouble();
     inputs.torqueCurrentAmps = torqueCurrentAmps.getValueAsDouble();
     inputs.measuredEncoderPositionRot = measuredEncoderPosRot.getValueAsDouble();

@@ -13,19 +13,19 @@ public class IntakeRollers {
     private final IntakeRollersIO io;
     private final IntakeRollersIOInputsAutoLogged inputs = new IntakeRollersIOInputsAutoLogged();
 
-    private static final LoggedTunableNumber kP = new LoggedTunableNumber("Indexer/Rollers/kP", IndexerConstants.RollersConstants.kP);
-    private static final LoggedTunableNumber kI = new LoggedTunableNumber("Indexer/Rollers/kI", IndexerConstants.RollersConstants.kI);
-    private static final LoggedTunableNumber kD = new LoggedTunableNumber("Indexer/Rollers/kD", IndexerConstants.RollersConstants.kD);
-    private static final LoggedTunableNumber kA = new LoggedTunableNumber("Indexer/Rollers/kA", IndexerConstants.RollersConstants.kA);
-    private static final LoggedTunableNumber kV = new LoggedTunableNumber("Indexer/Rollers/kV", IndexerConstants.RollersConstants.kV);
-    private static final LoggedTunableNumber kS = new LoggedTunableNumber("Indexer/Rollers/kS", IndexerConstants.RollersConstants.kS);
+    private static final LoggedTunableNumber kP = new LoggedTunableNumber("Intake/Rollers/Gains/kP", IndexerConstants.RollersConstants.kP);
+    private static final LoggedTunableNumber kI = new LoggedTunableNumber("Intake/Rollers/Gains/kI", IndexerConstants.RollersConstants.kI);
+    private static final LoggedTunableNumber kD = new LoggedTunableNumber("Intake/Rollers/Gains/kD", IndexerConstants.RollersConstants.kD);
+    private static final LoggedTunableNumber kA = new LoggedTunableNumber("Intake/Rollers/Gains/kA", IndexerConstants.RollersConstants.kA);
+    private static final LoggedTunableNumber kV = new LoggedTunableNumber("Intake/Rollers/Gains/kV", IndexerConstants.RollersConstants.kV);
+    private static final LoggedTunableNumber kS = new LoggedTunableNumber("Intake/Rollers/Gains/kS", IndexerConstants.RollersConstants.kS);
 
     public enum IntakeRollersGoal {
-        ZERO(new LoggedTunableNumber("Intake/Roller/Goals/ZERO", 0.0)),
-        INTAKE(new LoggedTunableNumber("Intake/Roller/Goals/INTAKE", 10)),
-        OUTTAKE(new LoggedTunableNumber("Intake/Roller/Goals/OUTTAKE", -5)),
-        AGITATE(new LoggedTunableNumber("Intake/Roller/Goals/AGITATE", 2)),
-        CUSTOM(new LoggedTunableNumber("Intake/Roller/Goals/CUSTOM", 0));
+        ZERO(new LoggedTunableNumber("Intake/Rollers/Goals/Zero", 0.0)),
+        INTAKE(new LoggedTunableNumber("Intake/Rollers/Goals/Intake", 10)),
+        OUTTAKE(new LoggedTunableNumber("Intake/Rollers/Goals/Outtake", -5)),
+        AGITATE(new LoggedTunableNumber("Intake/Rollers/Goals/Agitate", 2)),
+        CUSTOM(new LoggedTunableNumber("Intake/Rollers/Goals/Custom", 0));
 
         private final DoubleSupplier intakeRollerSetpointSupplier;
 
@@ -57,7 +57,7 @@ public class IntakeRollers {
 
     public void periodic() {
         io.updateInputs(inputs);
-        Logger.processInputs("Intake/Roller", inputs);
+        Logger.processInputs("Intake/Rollers", inputs);
 
         if (closedLoop){
             goalVoltage = goalSetpoint.getVoltage();
@@ -65,7 +65,7 @@ public class IntakeRollers {
         }
 
         nearGoal = EqualsUtil.epsilonEquals(inputs.appliedVolts, goalVoltage,1);
-        Logger.recordOutput("Intake/Roller/nearGoal", nearGoal);
+        Logger.recordOutput("Intake/Rollers/nearGoal", nearGoal);
     }
 
     public void Setpoint(IntakeRollersGoal goalSetPoint) {

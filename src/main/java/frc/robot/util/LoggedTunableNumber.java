@@ -1,6 +1,5 @@
 package frc.robot.util;
 
-import frc.robot.Constants;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -9,8 +8,13 @@ import java.util.function.DoubleSupplier;
 import org.littletonrobotics.junction.networktables.LoggedNetworkNumber;
 
 /**
- * Class for a tunable number. Gets value from dashboard in tuning mode, returns default if not or
- * value not in dashboard.
+ * Tunable number backed by {@link LoggedNetworkNumber} (NetworkTables). Values appear under
+ * {@code TunableNumbers/<dashboardKey>} for dashboards and AdvantageScope; when offline, the default
+ * is used.
+ *
+ * <p><b>Key convention:</b> {@code Subsystem/Component[/Category]/Name} — e.g.
+ * {@code Shooter/Flywheel/Gains/kP}, {@code Indexer/Conveyor/Goals/Shoot},
+ * {@code Drive/DriveToPose/Translation/kP}. Use PascalCase for multi-word segments.
  */
 public class LoggedTunableNumber implements DoubleSupplier {
   private static final String tableKey = "TunableNumbers";
@@ -50,9 +54,7 @@ public class LoggedTunableNumber implements DoubleSupplier {
     if (!hasDefault) {
       hasDefault = true;
       this.defaultValue = defaultValue;
-      if (Constants.tuningMode) {
-        dashboardNumber = new LoggedNetworkNumber(key, defaultValue);
-      }
+      dashboardNumber = new LoggedNetworkNumber(key, defaultValue);
     }
   }
 
@@ -64,9 +66,8 @@ public class LoggedTunableNumber implements DoubleSupplier {
   public double get() {
     if (!hasDefault) {
       return 0.0;
-    } else {
-      return Constants.tuningMode ? dashboardNumber.get() : defaultValue;
     }
+    return dashboardNumber != null ? dashboardNumber.get() : defaultValue;
   }
 
   /**

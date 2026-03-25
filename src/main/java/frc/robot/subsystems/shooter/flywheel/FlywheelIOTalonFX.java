@@ -15,6 +15,7 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.subsystems.shooter.ShooterConstants;
+import frc.robot.util.ImperialMarchChime;
 import frc.robot.util.PhoenixUtil;
 import java.util.List;
 
@@ -68,6 +69,10 @@ public class FlywheelIOTalonFX implements FlywheelIO {
     config.MotionMagic.MotionMagicCruiseVelocity =
         ShooterConstants.FlywheelConstants.FlyWheelMotionMagicVelocity;
 
+    config.Audio.AllowMusicDurDisable = true;
+    config.Audio.BeepOnBoot = false;
+    config.Audio.BeepOnConfig = false;
+
     tryUntilOk(5, () -> LeadMotor.getConfigurator().apply(config, 0.25));
     tryUntilOk(5, () -> FollowMotor.getConfigurator().apply(config, 0.25));
     FollowMotor.setControl(followController);
@@ -88,6 +93,8 @@ public class FlywheelIOTalonFX implements FlywheelIO {
         torqueCurrentAmps.get(1),
         deviceTemperature.get(0),
         deviceTemperature.get(1));
+
+    ImperialMarchChime.registerChimeMotor(LeadMotor);
   }
 
   @Override
@@ -163,6 +170,9 @@ public class FlywheelIOTalonFX implements FlywheelIO {
 
   @Override
   public void runSetVelocity(double setpointVelocityRotPerSec) {
+    if (ImperialMarchChime.isPlaying()) {
+      return;
+    }
     LeadMotor.setControl(velocityRequest.withVelocity(setpointVelocityRotPerSec).withEnableFOC(true));
   }
 }
