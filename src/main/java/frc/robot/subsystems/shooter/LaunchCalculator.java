@@ -114,22 +114,27 @@ public class LaunchCalculator {
         // launchFlywheelSpeedMap.put(Units.inchesToMeters(205),   5500.0+1000);
         // launchFlywheelSpeedMap.put(Units.inchesToMeters(216.9),   5700.0+1000);
 
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(81),    2100.0+200);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(71),    2050.0+200);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(93),    2300.0+200);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(105),   2350.0+200);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(117),   2400.0+200);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(129),   2475.0+200);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(141),   2650.0+200);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(153),   2675.0+200);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(154.5), 2688.0+200);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(158),   2695.0+200);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(162),   2696.0+200);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(165),   (4700.0)/1.62433155+200);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(181.3), (4900.0)/1.62433155+200);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(193.6), (5150.0)/1.62433155+200);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(205),   (5500.0)/1.62433155+200);
-        launchFlywheelSpeedMap.put(Units.inchesToMeters(216.9),   (5700.0)/1.62433155+200);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(81),    2100.0+200-50);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(71),    2050.0+200-50);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(93),    2300.0+200-50);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(105),   2350.0+200-50);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(117),   2400.0+200-100);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(129),   2475.0+200-100);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(141),   2650.0+200-100);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(153),   2675.0+200-100);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(154.5), 2688.0+200-100);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(158),   2695.0+200-100);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(162),   2696.0+200-100);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(165),   (4700.0)/1.62433155);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(181.3), (4900.0)/1.62433155);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(193.6), (5150.0)/1.62433155);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(205),   (5500.0)/1.62433155);
+        launchFlywheelSpeedMap.put(Units.inchesToMeters(216.9),   (5700.0)/1.62433155);
+        // launchFlywheelSpeedMap.put(Units.inchesToMeters(165),   (4700.0)/1.62433155+200+80);
+        // launchFlywheelSpeedMap.put(Units.inchesToMeters(181.3), (4900.0)/1.62433155+200+100);
+        // launchFlywheelSpeedMap.put(Units.inchesToMeters(193.6), (5150.0)/1.62433155+200+100+50+100);
+        // launchFlywheelSpeedMap.put(Units.inchesToMeters(205),   (5500.0)/1.62433155+200+100+50+100);
+        // launchFlywheelSpeedMap.put(Units.inchesToMeters(216.9),   (5700.0)/1.62433155+200+100+50+100);
 
         //TODO -> Double check tof mapping values (if more is needed for better curve)
         // timeOfFlightMap.put(Units.inchesToMeters(85),  .873);

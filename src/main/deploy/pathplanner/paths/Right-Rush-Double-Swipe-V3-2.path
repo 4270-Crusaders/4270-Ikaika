@@ -178,12 +178,6 @@
       "waypointRelativePos": 5.129358830146231,
       "endWaypointRelativePos": null,
       "command": null
-    },
-    {
-      "name": "HUB_FOCUS",
-      "waypointRelativePos": 6.0,
-      "endWaypointRelativePos": null,
-      "command": null
     }
   ],
   "globalConstraints": {
@@ -195,7 +189,7 @@
     "unlimited": false
   },
   "goalEndState": {
-    "velocity": 0.0,
+    "velocity": 1.0,
     "rotation": 180.0
   },
   "reversed": false,

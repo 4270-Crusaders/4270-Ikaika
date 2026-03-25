@@ -27,7 +27,7 @@ public class Kicker {
   public enum KickerGoal {
     ZERO(new LoggedTunableNumber("Indexer/Kicker/Goals/ZERO", 0)),
     INTAKE(new LoggedTunableNumber("Indexer/Kicker/Goals/AGITATE", 100)),
-    SHOOT(new LoggedTunableNumber("Indexer/Kicker/Goals/SHOOT", 6000)),
+    SHOOT(new LoggedTunableNumber("Indexer/Kicker/Goals/SHOOT", 4000)),
     OUTTAKE(new LoggedTunableNumber("Indexer/Kicker/Goals/OUTTAKE", -3000)),
     SPIT(new LoggedTunableNumber("Indexer/Kicker/Goals/SPIT", -4000)),
     CUSTOM(new LoggedTunableNumber("Indexer/Kicker/Goals/CUSTOM", 100));

@@ -22,8 +22,8 @@ public class IntakeRollers {
 
     public enum IntakeRollersGoal {
         ZERO(new LoggedTunableNumber("Intake/Roller/Goals/ZERO", 0.0)),
-        INTAKE(new LoggedTunableNumber("Intake/Roller/Goals/INTAKE", 12)),
-        OUTTAKE(new LoggedTunableNumber("Intake/Roller/Goals/OUTTAKE", -12)),
+        INTAKE(new LoggedTunableNumber("Intake/Roller/Goals/INTAKE", 10)),
+        OUTTAKE(new LoggedTunableNumber("Intake/Roller/Goals/OUTTAKE", -5)),
         AGITATE(new LoggedTunableNumber("Intake/Roller/Goals/AGITATE", 2)),
         CUSTOM(new LoggedTunableNumber("Intake/Roller/Goals/CUSTOM", 0));
 

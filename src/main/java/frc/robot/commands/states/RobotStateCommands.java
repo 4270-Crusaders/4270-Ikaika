@@ -75,7 +75,7 @@ public class RobotStateCommands {
              * Climber: --
              */
             Shooter.getSetStateCommand(SHOOTER_STATE.HOME, RobotContainer.shooter)
-            // Shooter.getSetStateCommand(null, null)
+            // Indexer.getSetStateCommand(INDEXER_STATE.INTAKE, RobotContainer.indexer)
         );
     }
 

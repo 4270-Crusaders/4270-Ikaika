@@ -38,6 +38,10 @@ public class ShooterConstants {
     public static double TurretMotorToMainFlyWheelReduction = 0.952941176471;
     public static double TurretMotorToHoodFlyWheelReduction = 0.700692041522;  
 
+    // 2,912 rpm at 153in or 3.8862m
+
+    
+
     // diff old -> new 0.61563786007
 
     // 12->18  22->30  18->15 (new) 0.58666666666
@@ -51,13 +55,15 @@ public class ShooterConstants {
   // Hood
   public static final class HoodConstants {
     public static final int HOOD_CAN_ID = 22;
+
+    public static final double MAX_DEGREE = 24;
     public static final int HOOD_ENCODER_CAN_ID = 23;
     public static double HoodSensorToMechanismRatio = -21.1428571; // 296/14
     public static double HoodRotorToSensorRatio = -5.25000001; // 42/8
     public static SensorDirectionValue hoodEncoderDirection =
         SensorDirectionValue.Clockwise_Positive;
     public static double HoodEncoderAbsoluteSensorDiscontinuityPoint = 0.5;
-    public static double HoodEncoderMagnetOffset = -0.333740234375; // TUNE ALOT!!
+    public static double HoodEncoderMagnetOffset = -0.056884765625; // TUNE ALOT!!
     public static double HoodCurrentLimit = 60.0;
     public static InvertedValue HoodInvertedValue = InvertedValue.CounterClockwise_Positive;
     public static boolean HoodSupplyCurrentLimitEnable = true;

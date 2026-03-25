@@ -32,12 +32,12 @@
     },
     {
       "anchor": {
-        "x": 0.6524911032028475,
-        "y": 0.65
+        "x": 0.7708422301304869,
+        "y": 0.7695848161328582
       },
       "prevControl": {
-        "x": 1.3088018979833935,
-        "y": 0.8556583629893239
+        "x": 1.4271530249110331,
+        "y": 0.9752431791221821
       },
       "nextControl": null,
       "isLocked": false,
@@ -53,7 +53,7 @@
   "constraintZones": [
     {
       "name": "Constraints Zone",
-      "minWaypointRelativePos": 0.2,
+      "minWaypointRelativePos": 1.1068616422947062,
       "maxWaypointRelativePos": 2.0,
       "constraints": {
         "maxVelocity": 1.75,
@@ -69,7 +69,7 @@
   "eventMarkers": [
     {
       "name": "HUB_FOCUS",
-      "waypointRelativePos": 0.0,
+      "waypointRelativePos": 0.9223847019122617,
       "endWaypointRelativePos": null,
       "command": {
         "type": "named",
@@ -105,7 +105,7 @@
   "reversed": false,
   "folder": "Right-Rush-Double-Swipe",
   "idealStartingState": {
-    "velocity": 0.0,
+    "velocity": 1.0,
     "rotation": 180.0
   },
   "useDefaultConstraints": true

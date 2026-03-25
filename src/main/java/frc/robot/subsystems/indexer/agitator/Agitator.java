@@ -27,9 +27,9 @@ public class Agitator {
   public enum AgitatorGoal {
     ZERO(new LoggedTunableNumber("Indexer/Agitator/Goals/ZERO", 0)),
     INTAKE(new LoggedTunableNumber("Indexer/Agitator/Goals/AGITATE", 100)),
-    SHOOT(new LoggedTunableNumber("Indexer/Agitator/Goals/SHOOT", 6000)),
-    OUTTAKE(new LoggedTunableNumber("Indexer/Agitator/Goals/OUTTAKE", 3000)),
-    SPIT(new LoggedTunableNumber("Indexer/Agitator/Goals/SPIT", 4000)),
+    SHOOT(new LoggedTunableNumber("Indexer/Agitator/Goals/SHOOT", 3000)),
+    OUTTAKE(new LoggedTunableNumber("Indexer/Agitator/Goals/OUTTAKE", 0)),
+    SPIT(new LoggedTunableNumber("Indexer/Agitator/Goals/SPIT", 0)),
     CUSTOM(new LoggedTunableNumber("Indexer/Agitator/Goals/CUSTOM", 100));
 
     private final DoubleSupplier AgitatorSetpointSupplier;

@@ -98,12 +98,12 @@ public class Hood {
   }
 
   public void setGoalSetPoint(HoodGoal goal) {
-    if (goal.getDegrees() < 25) {
+    if (goal.getDegrees() < ShooterConstants.HoodConstants.MAX_DEGREE) {
       setpointMode = true;
       this.goalSetpoint = goal;
     } else {
       setpointMode = true;
-      this.goalDeg = 25;
+      this.goalDeg = ShooterConstants.HoodConstants.MAX_DEGREE;
     }
   }
 

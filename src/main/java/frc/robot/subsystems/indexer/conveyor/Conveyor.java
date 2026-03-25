@@ -27,7 +27,7 @@ public class Conveyor {
   public enum ConveyorGoal {
     ZERO(new LoggedTunableNumber("Indexer/Conveyor/Goals/ZERO", 0)),
     INTAKE(new LoggedTunableNumber("Indexer/Conveyor/Goals/AGITATE", 100)),
-    SHOOT(new LoggedTunableNumber("Indexer/Conveyor/Goals/SHOOT", 6000)),
+    SHOOT(new LoggedTunableNumber("Indexer/Conveyor/Goals/SHOOT", 5000)),
     OUTTAKE(new LoggedTunableNumber("Indexer/Conveyor/Goals/OUTTAKE", 0)),
     SPIT(new LoggedTunableNumber("Indexer/Conveyor/Goals/SPIT", -5000)),
     CUSTOM(new LoggedTunableNumber("Indexer/Conveyor/Goals/CUSTOM", 100));
