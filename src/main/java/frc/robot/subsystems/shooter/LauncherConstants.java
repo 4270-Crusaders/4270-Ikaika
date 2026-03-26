@@ -9,7 +9,7 @@ package frc.robot.subsystems.shooter;
 
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
-import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -24,6 +24,14 @@ public class LauncherConstants {
   /** Phase delay (s) for pose prediction along robot velocity. */
   public static final double LAUNCH_PHASE_DELAY_S = 0.03;
 
+  /**
+   * Scales how much of the turret exit velocity (field frame) along the horizontal shot vector is
+   * treated as additive to ball speed. The RPM table is tuned stationary; subtracting {@code gain ×
+   * v_along} from the commanded surface speed before converting back to RPM reduces overshoot when
+   * driving toward the target. Tune 0.6–1.0 if still long/short on the move.
+   */
+  public static final double MOVING_SHOT_ALONG_V_CORRECTION_GAIN = 0.85;
+
   public static final double TURRET_HEIGHT = Units.inchesToMeters(20.5); // inches multiplied by meter conversion
 
   //TODO -> Double Check Values of offsets
@@ -32,14 +40,17 @@ public class LauncherConstants {
 
   public static Transform3d robotToTurret = new Transform3d(SHOOTER_X_OFFSET, SHOOTER_Y_OFFSET, TURRET_HEIGHT, Rotation3d.kZero);
 
-  public static Translation2d passPointLeft = new Translation2d(3.67,6);
-  public static Translation2d passPointRight = new Translation2d(3.67,2.043);
+  public static final Translation3d pass3dTargetLeft = new Translation3d(3.67, 6.0, 0.0);
+  public static final Translation3d pass3dTargetRight = new Translation3d(3.67, 2.043, 0.0);
 
   public static double passPoint = 4.425;
 
   public final static double TrenchZoneStart = 4;
 
   public final static double INCREASE = 0;
+
+  /** Target Z for "pass" shots (ground / floor). */
+  public static final double PASS_TARGET_Z_METERS = 0.0;
 
   /**
    * Effective radius (m) at the exit for ball leaving wheels: {@code v = rpm * 2π r / 60}.

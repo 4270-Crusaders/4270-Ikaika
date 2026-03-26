@@ -55,7 +55,7 @@ public class Flywheel {
    * raises the commanded RPM so effective speed through the shot matches the ballistic model.
    */
   private static final LoggedTunableNumber ballThroughRpmMultiplier =
-      new LoggedTunableNumber("Shooter/Flywheel/BallThrough/RpmMultiplier", 1.1);
+      new LoggedTunableNumber("Shooter/Flywheel/BallThrough/RpmMultiplier", 1.05);
 
   public Flywheel(FlywheelIO io) {
     this.io = io;

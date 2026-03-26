@@ -25,7 +25,7 @@ import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.commands.DriveCommands;
 import frc.robot.commands.states.SetRobotStateCommand;
-import frc.robot.commands.states.SetRobotStateCommand.ROBOT_STATE;
+import frc.robot.commands.states.RobotStateCommands.RobotState;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.GyroIO;
@@ -207,62 +207,62 @@ public class RobotContainer {
     // Command groups must be freshly built each schedule; reusing a finished group breaks the scheduler.
     driverController
         .leftTrigger()
-        .onTrue(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.INTAKE), Set.of()))
-        .onFalse(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.STOP_INTAKE), Set.of()));
+        .onTrue(Commands.defer(() -> new SetRobotStateCommand(RobotState.INTAKE), Set.of()))
+        .onFalse(Commands.defer(() -> new SetRobotStateCommand(RobotState.DEFAULT), Set.of()));
     driverController
         .rightTrigger()
-        .onTrue(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.SHOOT), Set.of()))
-        .onFalse(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.STOP_SHOOT), Set.of()));
+        .onTrue(Commands.defer(() -> new SetRobotStateCommand(RobotState.TELE_SHOOT), Set.of()))
+        .onFalse(Commands.defer(() -> new SetRobotStateCommand(RobotState.DEFAULT), Set.of()));
     driverController
         .povRight()
-        .onTrue(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.OUTTAKE), Set.of()))
-        .onFalse(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.STOP_INTAKE), Set.of()));
+        .onTrue(Commands.defer(() -> new SetRobotStateCommand(RobotState.OUTTAKE), Set.of()))
+        .onFalse(Commands.defer(() -> new SetRobotStateCommand(RobotState.DEFAULT), Set.of()));
 
     driverController
         .a()
-        .onTrue(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.AGITATE), Set.of()))
-        .onFalse(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE), Set.of()));
+        .onTrue(Commands.defer(() -> new SetRobotStateCommand(RobotState.AGITATE), Set.of()))
+        .onFalse(Commands.defer(() -> new SetRobotStateCommand(RobotState.UN_AGITATE), Set.of()));
     operatorController
         .button(3)
-        .onTrue(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.AGITATE), Set.of()))
-        .onFalse(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE), Set.of()));
+        .onTrue(Commands.defer(() -> new SetRobotStateCommand(RobotState.AGITATE), Set.of()))
+        .onFalse(Commands.defer(() -> new SetRobotStateCommand(RobotState.UN_AGITATE), Set.of()));
     operatorController
         .button(4)
-        .onTrue(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.AGITATE), Set.of()))
-        .onFalse(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE), Set.of()));
+        .onTrue(Commands.defer(() -> new SetRobotStateCommand(RobotState.AGITATE), Set.of()))
+        .onFalse(Commands.defer(() -> new SetRobotStateCommand(RobotState.UN_AGITATE), Set.of()));
     operatorController
         .button(5)
-        .onTrue(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.AGITATE), Set.of()))
-        .onFalse(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE), Set.of()));
+        .onTrue(Commands.defer(() -> new SetRobotStateCommand(RobotState.AGITATE), Set.of()))
+        .onFalse(Commands.defer(() -> new SetRobotStateCommand(RobotState.UN_AGITATE), Set.of()));
     operatorController
         .button(1)
-        .onTrue(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.CUSTOM), Set.of()))
-        .onFalse(Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.STOP_SHOOT), Set.of()));
+        .onTrue(Commands.defer(() -> new SetRobotStateCommand(RobotState.CUSTOM), Set.of()))
+        .onFalse(Commands.defer(() -> new SetRobotStateCommand(RobotState.DEFAULT), Set.of()));
   }
 
   void registerNamedCommand() {
     // Defer builds a fresh CommandGroup each schedule; reusing a finished group causes scheduler bugs.
     NamedCommands.registerCommand(
         "TRENCH",
-        Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.TRENCH), Set.of()));
+        Commands.defer(() -> new SetRobotStateCommand(RobotState.TRENCH), Set.of()));
     NamedCommands.registerCommand(
         "INTAKE",
-        Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.INTAKE), Set.of()));
+        Commands.defer(() -> new SetRobotStateCommand(RobotState.INTAKE), Set.of()));
     NamedCommands.registerCommand(
         "DEFAULT",
-        Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.AUTODEFAULT), Set.of()));
+        Commands.defer(() -> new SetRobotStateCommand(RobotState.AUTODEFAULT), Set.of()));
     NamedCommands.registerCommand(
         "HUB_FOCUS",
-        Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.AUTO_AIM_HUB), Set.of()));
+        Commands.defer(() -> new SetRobotStateCommand(RobotState.HUB_FOCUS), Set.of()));
     NamedCommands.registerCommand(
         "HUB_SHOOT",
-        Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.AUTO_SHOOT_HUB), Set.of()));
+        Commands.defer(() -> new SetRobotStateCommand(RobotState.AUTOSTARTSHOOT), Set.of()));
     NamedCommands.registerCommand(
         "PASS_FOCUS",
-        Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.AUTO_AIM_PASS), Set.of()));
+        Commands.defer(() -> new SetRobotStateCommand(RobotState.PASS_FOCUS), Set.of()));
     NamedCommands.registerCommand(
         "PASS_SHOOT",
-        Commands.defer(() -> new SetRobotStateCommand(ROBOT_STATE.AUTO_SHOOT_PASS), Set.of()));
+        Commands.defer(() -> new SetRobotStateCommand(RobotState.AUTO_SHOOT_PASS), Set.of()));
   }
 
   /**
