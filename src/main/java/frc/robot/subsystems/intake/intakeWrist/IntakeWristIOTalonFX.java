@@ -16,7 +16,6 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.subsystems.intake.IntakeConstants;
-import frc.robot.util.ImperialMarchChime;
 import org.littletonrobotics.junction.Logger;
 
 public class IntakeWristIOTalonFX implements IntakeWristIO {
@@ -83,8 +82,6 @@ public class IntakeWristIOTalonFX implements IntakeWristIO {
         supplyCurrentAmps,
         torqueCurrentAmps,
         deviceTemperature);
-
-    ImperialMarchChime.registerChimeMotor(WristMotor);
   }
 
   @Override
@@ -130,9 +127,6 @@ public class IntakeWristIOTalonFX implements IntakeWristIO {
 
   @Override
   public void runSetpointDegree(double setpointDeg) {
-    if (ImperialMarchChime.isPlaying()) {
-      return;
-    }
     Logger.recordOutput("Intake/Wrist/SetpointDegree", setpointDeg);
     WristMotor.setControl(
         positionRequest.withPosition(Units.degreesToRotations(setpointDeg)).withEnableFOC(true));
@@ -140,9 +134,6 @@ public class IntakeWristIOTalonFX implements IntakeWristIO {
 
   @Override
   public void runSetVoltage(double voltage) {
-    if (ImperialMarchChime.isPlaying()) {
-      return;
-    }
     WristMotor.setControl(voltageRequest.withEnableFOC(true).withOutput(voltage));
   }
 }

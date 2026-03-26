@@ -15,7 +15,6 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.subsystems.shooter.ShooterConstants;
-import frc.robot.util.ImperialMarchChime;
 import frc.robot.util.PhoenixUtil;
 import java.util.List;
 
@@ -93,9 +92,6 @@ public class FlywheelIOTalonFX implements FlywheelIO {
         torqueCurrentAmps.get(1),
         deviceTemperature.get(0),
         deviceTemperature.get(1));
-
-    ImperialMarchChime.registerChimeMotor(LeadMotor);
-    ImperialMarchChime.registerChimeMotor(FollowMotor);
   }
 
   @Override
@@ -171,9 +167,6 @@ public class FlywheelIOTalonFX implements FlywheelIO {
 
   @Override
   public void runSetVelocity(double setpointVelocityRotPerSec) {
-    if (ImperialMarchChime.isPlaying()) {
-      return;
-    }
     LeadMotor.setControl(velocityRequest.withVelocity(setpointVelocityRotPerSec).withEnableFOC(true));
   }
 }

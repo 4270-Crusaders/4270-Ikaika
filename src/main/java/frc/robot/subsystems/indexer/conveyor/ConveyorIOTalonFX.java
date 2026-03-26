@@ -14,7 +14,6 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.subsystems.indexer.IndexerConstants;
-import frc.robot.util.ImperialMarchChime;
 
 public class ConveyorIOTalonFX implements ConveyorIO {
   private final TalonFX LeadMotor = new TalonFX(IndexerConstants.ConveyorConstants.CONVEYOR_CAN_ID);
@@ -94,17 +93,11 @@ public class ConveyorIOTalonFX implements ConveyorIO {
 
   @Override
   public void runSetVoltage(double voltage) {
-    if (ImperialMarchChime.isPlaying()) {
-      return;
-    }
     LeadMotor.setControl(voltageRequest.withEnableFOC(true).withOutput(voltage));
   }
 
   @Override
   public void runVelocityRPM(double RPM) {
-    if (ImperialMarchChime.isPlaying()) {
-      return;
-    }
     LeadMotor.setControl(velocityRequest.withVelocity(RPM / 60).withEnableFOC(true));
   }
 }

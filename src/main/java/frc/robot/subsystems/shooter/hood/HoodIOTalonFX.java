@@ -18,7 +18,6 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.subsystems.shooter.ShooterConstants;
-import frc.robot.util.ImperialMarchChime;
 import org.littletonrobotics.junction.Logger;
 
 public class HoodIOTalonFX implements HoodIO {
@@ -94,8 +93,6 @@ public class HoodIOTalonFX implements HoodIO {
         torqueCurrentAmps,
         deviceTemperature,
         measuredEncoderPosRot);
-
-    ImperialMarchChime.registerChimeMotor(Motor);
   }
 
   @Override
@@ -151,9 +148,6 @@ public class HoodIOTalonFX implements HoodIO {
 
   @Override
   public void runSetpointDegree(double setpointDeg) {
-    if (ImperialMarchChime.isPlaying()) {
-      return;
-    }
     Logger.recordOutput("Shooter/Hood/SetpostionDegree", setpointDeg);
     Motor.setControl(positionRequest.withPosition(Units.degreesToRotations(setpointDeg)));
   }

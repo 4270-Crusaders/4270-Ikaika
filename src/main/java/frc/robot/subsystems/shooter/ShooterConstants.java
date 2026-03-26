@@ -134,6 +134,38 @@ public class ShooterConstants {
   public static final double DELTA_HEIGHT = GOAL_HEIGHT - TURRET_HEIGHT;
 
   /**
+   * Approximate radius of the ball/game piece used by the aerodynamic model (meters).
+   *
+   * <p>Tuned for the drag/lift approximation in {@link frc.robot.subsystems.shooter.LaunchCalculator}.
+   */
+  public static final double BALL_RADIUS_METERS = Units.inchesToMeters(1.375); // ~2.75" diameter
+
+  /**
+   * Linear air drag coefficient (1/s) for a simplified drag model used during flight.
+   *
+   * <p>Quadratic drag is more realistic but more expensive to solve; this linear model is tuned
+   * to match observed velocity/arc loss.
+   */
+  public static final double AIR_DRAG_LINEAR_COEFF_1_PER_S = 0.35;
+
+  /**
+   * Backspin Magnus/lift coefficient for the simplified model.
+   *
+   * <p>Used as: {@code a_lift = MAGNUS_COEFF * omega_ball * v}. Tune so the ball "bites" / arc
+   * feels right.
+   */
+  public static final double BACKSPIN_MAGNUS_LIFT_COEFF = 0.00027;
+
+  /** Spin rate ratio between ball angular speed and wheel surface speed (unitless). */
+  public static final double BACKSPIN_SPIN_RATE_RATIO = 1.0;
+
+  /**
+   * Extra scale applied to the vacuum minimum-exit velocity to account for losses not fully
+   * captured by the simplified flight model.
+   */
+  public static final double AIR_DRAG_EXIT_VELOCITY_MULTIPLIER = 1.08;
+
+  /**
    * Default (initial) RPM band for flywheel {@code nearGoal} / {@link Shooter#readyToShoot()}.
    * Overridden at runtime by {@code NearGoalRpmTolerance} × {@code PhysicsLaunchEfficiencyScale}
    * (from ideal-min/empirical-map RPM while aiming).

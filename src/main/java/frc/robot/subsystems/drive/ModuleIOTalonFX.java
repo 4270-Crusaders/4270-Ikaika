@@ -35,7 +35,6 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.generated.TunerConstants;
-import frc.robot.util.ImperialMarchChime;
 import java.util.Queue;
 
 /**
@@ -186,9 +185,6 @@ public class ModuleIOTalonFX implements ModuleIO {
         turnAppliedVolts,
         turnCurrent);
     ParentDevice.optimizeBusUtilizationForAll(driveTalon, turnTalon);
-
-    ImperialMarchChime.registerChimeMotor(driveTalon);
-    ImperialMarchChime.registerChimeMotor(turnTalon);
   }
 
   @Override
@@ -243,9 +239,6 @@ public class ModuleIOTalonFX implements ModuleIO {
 
   @Override
   public void setTurnOpenLoop(double output) {
-    if (ImperialMarchChime.isPlaying()) {
-      return;
-    }
     turnTalon.setControl(
         switch (constants.SteerMotorClosedLoopOutput) {
           case Voltage -> voltageRequest.withOutput(output);
@@ -255,9 +248,6 @@ public class ModuleIOTalonFX implements ModuleIO {
 
   @Override
   public void setDriveVelocity(double velocityRadPerSec) {
-    if (ImperialMarchChime.isPlaying()) {
-      return;
-    }
     double velocityRotPerSec = Units.radiansToRotations(velocityRadPerSec);
     driveTalon.setControl(
         switch (constants.DriveMotorClosedLoopOutput) {
@@ -268,9 +258,6 @@ public class ModuleIOTalonFX implements ModuleIO {
 
   @Override
   public void setTurnPosition(Rotation2d rotation) {
-    if (ImperialMarchChime.isPlaying()) {
-      return;
-    }
     turnTalon.setControl(
         switch (constants.SteerMotorClosedLoopOutput) {
           case Voltage -> positionVoltageRequest.withPosition(rotation.getRotations());

@@ -15,7 +15,6 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.subsystems.intake.IntakeConstants;
-import frc.robot.util.ImperialMarchChime;
 
 public class IntakeRollerIOTalonFX implements IntakeRollersIO {
   private final TalonFX LeadMotor =
@@ -104,17 +103,11 @@ public class IntakeRollerIOTalonFX implements IntakeRollersIO {
 
   @Override
   public void runSetVelocity(double velocity) {
-    if (ImperialMarchChime.isPlaying()) {
-      return;
-    }
     LeadMotor.setControl(velocityRequest.withVelocity(velocity / 60).withEnableFOC(true));
   }
 
   @Override
   public void runSetVoltage(double voltage) {
-    if (ImperialMarchChime.isPlaying()) {
-      return;
-    }
     LeadMotor.setControl(voltageRequest.withOutput(voltage).withEnableFOC(true));
   }
 }
