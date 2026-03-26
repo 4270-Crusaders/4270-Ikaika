@@ -30,7 +30,7 @@ public class LauncherConstants {
    * v_along} from the commanded surface speed before converting back to RPM reduces overshoot when
    * driving toward the target. Tune 0.6–1.0 if still long/short on the move.
    */
-  public static final double MOVING_SHOT_ALONG_V_CORRECTION_GAIN = 0.85;
+  public static final double MOVING_SHOT_ALONG_V_CORRECTION_GAIN = 0.72;
 
   public static final double TURRET_HEIGHT = Units.inchesToMeters(20.5); // inches multiplied by meter conversion
 

@@ -14,6 +14,7 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.subsystems.indexer.IndexerConstants;
+import frc.robot.util.ImperialMarchChime;
 
 public class KickerIOTalonFX implements KickerIO {
   private final TalonFX LeadMotor = new TalonFX(IndexerConstants.KickerConstants.KICKER_CAN_ID);
@@ -56,6 +57,8 @@ public class KickerIOTalonFX implements KickerIO {
         supplyCurrentAmps,
         torqueCurrentAmps,
         deviceTemperature);
+
+    ImperialMarchChime.registerChimeMotor(LeadMotor);
   }
 
   @Override
@@ -92,11 +95,17 @@ public class KickerIOTalonFX implements KickerIO {
 
   @Override
   public void runSetVoltage(double voltage) {
+    if (ImperialMarchChime.isPlaying()) {
+      return;
+    }
     LeadMotor.setControl(voltageRequest.withEnableFOC(true).withOutput(voltage));
   }
 
   @Override
   public void runVelocityRPM(double RPM) {
+    if (ImperialMarchChime.isPlaying()) {
+      return;
+    }
     LeadMotor.setControl(velocityRequest.withVelocity(RPM / 60).withEnableFOC(true));
   }
 }

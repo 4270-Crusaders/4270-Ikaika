@@ -95,6 +95,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
         deviceTemperature.get(1));
 
     ImperialMarchChime.registerChimeMotor(LeadMotor);
+    ImperialMarchChime.registerChimeMotor(FollowMotor);
   }
 
   @Override

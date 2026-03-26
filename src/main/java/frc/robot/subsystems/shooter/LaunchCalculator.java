@@ -33,6 +33,10 @@ public class LaunchCalculator {
   private final LinearFilter hoodAngleFilter =
       LinearFilter.movingAverage((int) (0.1 / Constants.loopPeriodSecs));
 
+  /** Smooths field velocity along the shot so moving-RPM correction does not step (stream overshoot). */
+  private final LinearFilter shotAlongVelocityFilter =
+      LinearFilter.movingAverage((int) (0.12 / Constants.loopPeriodSecs));
+
   private Rotation2d lastTurretAngle;
   private double lastHoodAngle;
   private Rotation2d turretAngle;
@@ -259,8 +263,9 @@ public class LaunchCalculator {
     Translation2d toTarget = target.minus(turretPosition.getTranslation());
     double distToTarget = toTarget.getNorm();
     if (distToTarget > 1e-6) {
-      double vAlong =
+      double vAlongRaw =
           (turretVelocityX * toTarget.getX() + turretVelocityY * toTarget.getY()) / distToTarget;
+      double vAlong = shotAlongVelocityFilter.calculate(vAlongRaw);
       double vSurface = surfaceVelocityFromRpm(flywheelRpm);
       double vAdjusted =
           Math.max(
@@ -423,8 +428,9 @@ public class LaunchCalculator {
     Translation2d toTarget = target.minus(turretPosition.getTranslation());
     double distToTarget = toTarget.getNorm();
     if (distToTarget > 1e-6) {
-      double vAlong =
+      double vAlongRaw =
           (turretVelocityX * toTarget.getX() + turretVelocityY * toTarget.getY()) / distToTarget;
+      double vAlong = shotAlongVelocityFilter.calculate(vAlongRaw);
       double vSurface = surfaceVelocityFromRpm(flywheelRpm);
       double vAdjusted =
           Math.max(

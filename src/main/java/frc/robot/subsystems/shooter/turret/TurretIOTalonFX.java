@@ -19,6 +19,7 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.subsystems.shooter.ShooterConstants;
+import frc.robot.util.ImperialMarchChime;
 
 /**
  * TalonFX-based Turret hardware implementation.
@@ -114,6 +115,8 @@ public class TurretIOTalonFX implements TurretIO {
         torqueCurrentAmps,
         deviceTemperature,
         measuredEncoderPosRot);
+
+    ImperialMarchChime.registerChimeMotor(Motor);
   }
 
   @Override
@@ -165,6 +168,9 @@ public class TurretIOTalonFX implements TurretIO {
 
   @Override
   public void runSetpointDegree(double setpointDeg) {
+    if (ImperialMarchChime.isPlaying()) {
+      return;
+    }
     Motor.setControl(positionRequest.withPosition(Units.degreesToRotations(setpointDeg)));
   }
 

@@ -60,10 +60,10 @@ public class ShooterConstants {
     public static final double MAX_DEGREE = 24;
 
     /**
-     * Extra vertical rise (m) in the ballistic hood solve only, so the commanded arc is ~2–3 ft
-     * higher than the geometric hub line.
+     * Extra vertical rise (m) in the ballistic hood solve only (above geometric target height).
+     * Was 2.5 ft; reduced by ~1 ft for a lower arc (~1.5 ft margin).
      */
-    public static final double BALLISTIC_EXTRA_HEIGHT_METERS = Units.feetToMeters(2.5);
+    public static final double BALLISTIC_EXTRA_HEIGHT_METERS = Units.feetToMeters(1.5);
 
     /**
      * Mechanical hood: {@code 0°} = exit toward the sky, {@code 90°} = exit horizontal forward.
