@@ -14,6 +14,8 @@ import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.util.Units;
 
 public class VisionConstants {
+  public static final boolean logDetailedPoses = false;
+
   // AprilTag layout
   public static AprilTagFieldLayout aprilTagLayout =
       AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField);
@@ -24,8 +26,6 @@ public class VisionConstants {
   public static String cameraRightName = "limelight-right";
 
 
-  // Robot to camera transforms
-  // (Not used by Limelight, configure in web UI instead)
   // Robot to camera transforms
   // (Not used by Limelight, configure in web UI instead)
     public static Transform3d robotToFrontCam =

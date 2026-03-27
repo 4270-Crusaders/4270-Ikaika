@@ -3,6 +3,7 @@ package frc.robot.subsystems.indexer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.RobotState;
 import frc.robot.subsystems.indexer.agitator.Agitator;
 import frc.robot.subsystems.indexer.agitator.Agitator.AgitatorGoal;
 import frc.robot.subsystems.indexer.agitator.AgitatorIO;
@@ -34,7 +35,6 @@ public class Indexer extends SubsystemBase {
   private Kicker kicker;
   private Conveyor conveyor;
   private Rollers Rollers;
-  private boolean readyToShoot = false;
 
   public Indexer(
       AgitatorIO agitatorIO, KickerIO kickerIO, ConveyorIO conveyorIO, RollersIO RollersIO) {
@@ -48,14 +48,9 @@ public class Indexer extends SubsystemBase {
     currentIndexerState = state;
   }
 
-  public void setReadyToShoot(boolean value){
-    readyToShoot = value;
-  }
-
-
-
   @Override
   public void periodic() {
+    boolean readyToShoot = RobotState.getInstance().isShooterReadyToShoot();
     switch (currentIndexerState) {
       case INTAKE:
         agitator.Setpoint(AgitatorGoal.ZERO);

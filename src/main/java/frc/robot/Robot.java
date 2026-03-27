@@ -8,8 +8,10 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.Threads;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.robot.util.FullSubsystem;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
@@ -28,6 +30,8 @@ public class Robot extends LoggedRobot {
   private RobotContainer robotContainer;
 
   private boolean started = false;
+  private double lastLoopTimestampSec = Double.NaN;
+  private double maxLoopDtSec = 0.0;
 
   public Robot() {
     // Record metadata
@@ -82,6 +86,21 @@ public class Robot extends LoggedRobot {
   /** This function is called periodically during all modes. */
   @Override
   public void robotPeriodic() {
+    double nowSec = Timer.getFPGATimestamp();
+    if (Double.isFinite(lastLoopTimestampSec)) {
+      double loopDtSec = nowSec - lastLoopTimestampSec;
+      maxLoopDtSec = Math.max(maxLoopDtSec, loopDtSec);
+      Logger.recordOutput("Robot/Loop/ConfiguredPeriodSec", Constants.loopPeriodSecs);
+      Logger.recordOutput(
+          "Robot/Loop/Overrun", loopDtSec > Constants.loopPeriodSecs * Constants.loopOverrunThresholdScale);
+      if (Constants.logLoopTimingVerbose) {
+        Logger.recordOutput("Robot/Loop/MeasuredDtSec", loopDtSec);
+        Logger.recordOutput("Robot/Loop/MeasuredHz", 1.0 / Math.max(loopDtSec, 1e-6));
+        Logger.recordOutput("Robot/Loop/MaxDtSec", maxLoopDtSec);
+      }
+    }
+    lastLoopTimestampSec = nowSec;
+
     // High priority improves main loop timing vs other JVM threads (reduces CommandScheduler overrun).
     Threads.setCurrentThreadPriority(true, 99);
 
@@ -91,6 +110,8 @@ public class Robot extends LoggedRobot {
     // This must be called from the robot's periodic block in order for anything in
     // the Command-based framework to work.
     CommandScheduler.getInstance().run();
+
+    FullSubsystem.runAllPeriodicAfterScheduler();
 
     Threads.setCurrentThreadPriority(false, 10);
 

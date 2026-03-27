@@ -9,22 +9,19 @@ package frc.robot.subsystems.vision;
 
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
-import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.numbers.N1;
-import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.RobotState;
 import frc.robot.subsystems.vision.VisionIO.PoseObservationType;
 import java.util.ArrayList;
+import java.util.Comparator;
 import org.littletonrobotics.junction.Logger;
 
 public class Vision extends SubsystemBase {
-  private final VisionConsumer consumer;
   private final VisionIO[] io;
   private final VisionIOInputsAutoLogged[] inputs;
   private final Alert[] disconnectedAlerts;
@@ -38,9 +35,10 @@ public class Vision extends SubsystemBase {
   private final ArrayList<Pose3d> robotPoses = new ArrayList<>(32);
   private final ArrayList<Pose3d> robotPosesAccepted = new ArrayList<>(32);
   private final ArrayList<Pose3d> robotPosesRejected = new ArrayList<>(32);
+  private final ArrayList<RobotState.VisionObservation> robotStateVisionObservations =
+      new ArrayList<>(64);
 
-  public Vision(VisionConsumer consumer, VisionIO... io) {
-    this.consumer = consumer;
+  public Vision(VisionIO... io) {
     this.io = io;
 
     // Initialize inputs
@@ -78,6 +76,7 @@ public class Vision extends SubsystemBase {
     allRobotPoses.clear();
     allRobotPosesAccepted.clear();
     allRobotPosesRejected.clear();
+    robotStateVisionObservations.clear();
 
     // Loop over cameras
     for (int cameraIndex = 0; cameraIndex < io.length; cameraIndex++) {
@@ -145,38 +144,40 @@ public class Vision extends SubsystemBase {
         angularStdDev =
             Math.min(angularStdDevMaxRadians, Math.max(angularStdDevMinRadians, angularStdDev));
 
-        // Send vision observation
-        consumer.accept(
-            observation.pose().toPose2d(),
-            observation.timestamp(),
-            VecBuilder.fill(linearStdDev, linearStdDev, angularStdDev));
+        // Send validated observation to RobotState (sorted globally by timestamp after loop).
+        robotStateVisionObservations.add(
+            new RobotState.VisionObservation(
+                observation.timestamp(),
+                observation.pose(),
+                VecBuilder.fill(linearStdDev, linearStdDev, angularStdDev)));
       }
 
-      String camPrefix = "Vision/Camera" + cameraIndex;
-      Logger.recordOutput(camPrefix + "/TagPoses", tagPoses.toArray(new Pose3d[0]));
-      Logger.recordOutput(camPrefix + "/RobotPoses", robotPoses.toArray(new Pose3d[0]));
-      Logger.recordOutput(camPrefix + "/RobotPosesAccepted", robotPosesAccepted.toArray(new Pose3d[0]));
-      Logger.recordOutput(camPrefix + "/RobotPosesRejected", robotPosesRejected.toArray(new Pose3d[0]));
+      if (VisionConstants.logDetailedPoses) {
+        String camPrefix = "Vision/Camera" + cameraIndex;
+        Logger.recordOutput(camPrefix + "/TagPoses", tagPoses.toArray(new Pose3d[0]));
+        Logger.recordOutput(camPrefix + "/RobotPoses", robotPoses.toArray(new Pose3d[0]));
+        Logger.recordOutput(camPrefix + "/RobotPosesAccepted", robotPosesAccepted.toArray(new Pose3d[0]));
+        Logger.recordOutput(camPrefix + "/RobotPosesRejected", robotPosesRejected.toArray(new Pose3d[0]));
+      }
       allTagPoses.addAll(tagPoses);
       allRobotPoses.addAll(robotPoses);
       allRobotPosesAccepted.addAll(robotPosesAccepted);
       allRobotPosesRejected.addAll(robotPosesRejected);
     }
 
-    // Log summary data
-    Logger.recordOutput("Vision/Summary/TagPoses", allTagPoses.toArray(new Pose3d[0]));
-    Logger.recordOutput("Vision/Summary/RobotPoses", allRobotPoses.toArray(new Pose3d[0]));
-    Logger.recordOutput(
-        "Vision/Summary/RobotPosesAccepted", allRobotPosesAccepted.toArray(new Pose3d[0]));
-    Logger.recordOutput(
-        "Vision/Summary/RobotPosesRejected", allRobotPosesRejected.toArray(new Pose3d[0]));
-  }
+    if (VisionConstants.logDetailedPoses) {
+      Logger.recordOutput("Vision/Summary/TagPoses", allTagPoses.toArray(new Pose3d[0]));
+      Logger.recordOutput("Vision/Summary/RobotPoses", allRobotPoses.toArray(new Pose3d[0]));
+      Logger.recordOutput(
+          "Vision/Summary/RobotPosesAccepted", allRobotPosesAccepted.toArray(new Pose3d[0]));
+      Logger.recordOutput(
+          "Vision/Summary/RobotPosesRejected", allRobotPosesRejected.toArray(new Pose3d[0]));
+    }
 
-  @FunctionalInterface
-  public static interface VisionConsumer {
-    public void accept(
-        Pose2d visionRobotPoseMeters,
-        double timestampSeconds,
-        Matrix<N3, N1> visionMeasurementStdDevs);
+    // Apply observations in timestamp order so fusion is deterministic across cameras.
+    robotStateVisionObservations.sort(Comparator.comparingDouble(RobotState.VisionObservation::timestamp));
+    for (RobotState.VisionObservation observation : robotStateVisionObservations) {
+      RobotState.getInstance().addVisionObservation(observation);
+    }
   }
 }

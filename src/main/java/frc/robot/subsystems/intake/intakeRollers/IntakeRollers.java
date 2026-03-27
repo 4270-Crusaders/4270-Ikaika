@@ -5,20 +5,12 @@ import java.util.function.DoubleSupplier;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
-import frc.robot.subsystems.indexer.IndexerConstants;
 import frc.robot.util.EqualsUtil;
 import frc.robot.util.LoggedTunableNumber;
 
 public class IntakeRollers { 
     private final IntakeRollersIO io;
     private final IntakeRollersIOInputsAutoLogged inputs = new IntakeRollersIOInputsAutoLogged();
-
-    private static final LoggedTunableNumber kP = new LoggedTunableNumber("Intake/Rollers/Gains/kP", IndexerConstants.RollersConstants.kP);
-    private static final LoggedTunableNumber kI = new LoggedTunableNumber("Intake/Rollers/Gains/kI", IndexerConstants.RollersConstants.kI);
-    private static final LoggedTunableNumber kD = new LoggedTunableNumber("Intake/Rollers/Gains/kD", IndexerConstants.RollersConstants.kD);
-    private static final LoggedTunableNumber kA = new LoggedTunableNumber("Intake/Rollers/Gains/kA", IndexerConstants.RollersConstants.kA);
-    private static final LoggedTunableNumber kV = new LoggedTunableNumber("Intake/Rollers/Gains/kV", IndexerConstants.RollersConstants.kV);
-    private static final LoggedTunableNumber kS = new LoggedTunableNumber("Intake/Rollers/Gains/kS", IndexerConstants.RollersConstants.kS);
 
     public enum IntakeRollersGoal {
         ZERO(new LoggedTunableNumber("Intake/Rollers/Goals/Zero", 0.0)),

@@ -21,17 +21,21 @@ import frc.robot.subsystems.shooter.ShooterConstants;
 import org.littletonrobotics.junction.Logger;
 
 public class HoodIOTalonFX implements HoodIO {
-  private final TalonFX Motor = new TalonFX(ShooterConstants.HoodConstants.HOOD_CAN_ID);
-  private final CANcoder Encoder = new CANcoder(ShooterConstants.HoodConstants.HOOD_ENCODER_CAN_ID);
+  private static final int CONFIG_RETRY_COUNT = 5;
+  private static final double CONFIG_TIMEOUT_SEC = 0.25;
+  private static final double STATUS_UPDATE_HZ = 50.0;
+  private final TalonFX motor = new TalonFX(ShooterConstants.ComponentsConstants.Hood.HOOD_CAN_ID);
+  private final CANcoder encoder =
+      new CANcoder(ShooterConstants.ComponentsConstants.Hood.HOOD_ENCODER_CAN_ID);
 
-  private final StatusSignal<AngularVelocity> veloRPS = Motor.getVelocity();
-  private final StatusSignal<Double> setPosRot = Motor.getClosedLoopReference();
-  private final StatusSignal<Angle> measuredPosRot = Motor.getPosition();
-  private final StatusSignal<Angle> measuredEncoderPosRot = Encoder.getAbsolutePosition();
-  private final StatusSignal<Voltage> appliedVoltage = Motor.getMotorVoltage();
-  private final StatusSignal<Current> supplyCurrentAmps = Motor.getSupplyCurrent();
-  private final StatusSignal<Current> torqueCurrentAmps = Motor.getTorqueCurrent();
-  private final StatusSignal<Temperature> deviceTemperature = Motor.getDeviceTemp();
+  private final StatusSignal<AngularVelocity> velocityRps = motor.getVelocity();
+  private final StatusSignal<Double> setpointPositionRotations = motor.getClosedLoopReference();
+  private final StatusSignal<Angle> measuredPositionRotations = motor.getPosition();
+  private final StatusSignal<Angle> measuredEncoderPositionRotations = encoder.getAbsolutePosition();
+  private final StatusSignal<Voltage> appliedVoltage = motor.getMotorVoltage();
+  private final StatusSignal<Current> supplyCurrentAmps = motor.getSupplyCurrent();
+  private final StatusSignal<Current> torqueCurrentAmps = motor.getTorqueCurrent();
+  private final StatusSignal<Temperature> deviceTemperature = motor.getDeviceTemp();
 
   private final MotionMagicExpoTorqueCurrentFOC positionRequest =
       new MotionMagicExpoTorqueCurrentFOC(0.0).withOverrideCoastDurNeutral(false);
@@ -45,67 +49,70 @@ public class HoodIOTalonFX implements HoodIO {
     // tryUntilOk is a helper that retries configuration calls if the
     // initial attempt fails (robustness for CAN bus startup timing).
     encoderConfig.MagnetSensor.AbsoluteSensorDiscontinuityPoint =
-        ShooterConstants.HoodConstants.HoodEncoderAbsoluteSensorDiscontinuityPoint;
+        ShooterConstants.ComponentsConstants.Hood.HoodEncoderAbsoluteSensorDiscontinuityPoint;
     encoderConfig.MagnetSensor.MagnetOffset =
-        ShooterConstants.HoodConstants.HoodEncoderMagnetOffset;
+        ShooterConstants.ComponentsConstants.Hood.HoodEncoderMagnetOffset;
     encoderConfig.MagnetSensor.SensorDirection =
-        ShooterConstants.HoodConstants.hoodEncoderDirection;
+        ShooterConstants.ComponentsConstants.Hood.hoodEncoderDirection;
 
-    tryUntilOk(5, () -> Encoder.getConfigurator().apply(encoderConfig, 0.25));
+    tryUntilOk(CONFIG_RETRY_COUNT, () -> encoder.getConfigurator().apply(encoderConfig, CONFIG_TIMEOUT_SEC));
 
-    motorConfig.CurrentLimits.SupplyCurrentLimit = ShooterConstants.HoodConstants.HoodCurrentLimit;
+    motorConfig.CurrentLimits.SupplyCurrentLimit =
+        ShooterConstants.ComponentsConstants.Hood.HoodCurrentLimit;
     motorConfig.CurrentLimits.SupplyCurrentLimitEnable =
-        ShooterConstants.HoodConstants.HoodSupplyCurrentLimitEnable;
-    motorConfig.MotorOutput.NeutralMode = ShooterConstants.HoodConstants.HoodNeutralModeValue;
-    motorConfig.MotorOutput.Inverted = ShooterConstants.HoodConstants.HoodInvertedValue;
-    motorConfig.Slot0.kP = ShooterConstants.HoodConstants.HoodkP;
-    motorConfig.Slot0.kI = ShooterConstants.HoodConstants.HoodkI;
-    motorConfig.Slot0.kD = ShooterConstants.HoodConstants.HoodkD;
-    motorConfig.Slot0.kA = ShooterConstants.HoodConstants.HoodkA;
-    motorConfig.Slot0.kV = ShooterConstants.HoodConstants.HoodkV;
-    motorConfig.Slot0.kS = ShooterConstants.HoodConstants.HoodkS;
-    motorConfig.Slot0.kG = ShooterConstants.HoodConstants.HoodkG;
+        ShooterConstants.ComponentsConstants.Hood.HoodSupplyCurrentLimitEnable;
+    motorConfig.MotorOutput.NeutralMode = ShooterConstants.ComponentsConstants.Hood.HoodNeutralModeValue;
+    motorConfig.MotorOutput.Inverted = ShooterConstants.ComponentsConstants.Hood.HoodInvertedValue;
+    motorConfig.Slot0.kP = ShooterConstants.ComponentsConstants.Hood.Gains.kP;
+    motorConfig.Slot0.kI = ShooterConstants.ComponentsConstants.Hood.Gains.kI;
+    motorConfig.Slot0.kD = ShooterConstants.ComponentsConstants.Hood.Gains.kD;
+    motorConfig.Slot0.kA = ShooterConstants.ComponentsConstants.Hood.Gains.kA;
+    motorConfig.Slot0.kV = ShooterConstants.ComponentsConstants.Hood.Gains.kV;
+    motorConfig.Slot0.kS = ShooterConstants.ComponentsConstants.Hood.Gains.kS;
+    motorConfig.Slot0.kG = ShooterConstants.ComponentsConstants.Hood.Gains.kG;
     motorConfig.Slot0.GravityType = GravityTypeValue.Arm_Cosine;
     motorConfig.MotionMagic.MotionMagicCruiseVelocity =
-        ShooterConstants.HoodConstants.HoodMotionMagicVelocity; // Target cruise velocity in rps
+        ShooterConstants.ComponentsConstants.Hood.Gains.MotionMagic.velocity; // Target cruise velocity in rps
     motorConfig.MotionMagic.MotionMagicAcceleration =
-        ShooterConstants.HoodConstants
-            .HoodMotionMagicAcceleration; // Target acceleration in rps/s (0.5 seconds)
+        ShooterConstants.ComponentsConstants.Hood.Gains.MotionMagic.acceleration; // Target acceleration in rps/s (0.5 seconds)
     motorConfig.MotionMagic.MotionMagicJerk =
-        ShooterConstants.HoodConstants.HoodMotionMagicJerk; // Target jerk in rps/s/s (0.1 seconds)
-    motorConfig.MotionMagic.MotionMagicExpo_kA = ShooterConstants.HoodConstants.HoodMotionMagickA;
-    motorConfig.MotionMagic.MotionMagicExpo_kV = ShooterConstants.HoodConstants.HoodMotionMagickV;
+        ShooterConstants.ComponentsConstants.Hood.Gains.MotionMagic.jerk; // Target jerk in rps/s/s (0.1 seconds)
+    motorConfig.MotionMagic.MotionMagicExpo_kA =
+        ShooterConstants.ComponentsConstants.Hood.Gains.MotionMagic.expo_kA;
+    motorConfig.MotionMagic.MotionMagicExpo_kV =
+        ShooterConstants.ComponentsConstants.Hood.Gains.MotionMagic.expo_kV;
 
-    motorConfig.Feedback.FeedbackRemoteSensorID = Encoder.getDeviceID();
+    motorConfig.Feedback.FeedbackRemoteSensorID = encoder.getDeviceID();
     motorConfig.Feedback.FeedbackSensorSource = FeedbackSensorSourceValue.FusedCANcoder;
     motorConfig.Feedback.SensorToMechanismRatio =
-        ShooterConstants.HoodConstants.HoodSensorToMechanismRatio;
-    motorConfig.Feedback.RotorToSensorRatio = ShooterConstants.HoodConstants.HoodRotorToSensorRatio;
-    tryUntilOk(5, () -> Motor.getConfigurator().apply(motorConfig, 0.25));
+        ShooterConstants.ComponentsConstants.Hood.sensorToMechanismRatio;
+    motorConfig.Feedback.RotorToSensorRatio =
+        ShooterConstants.ComponentsConstants.Hood.rotorToSensorRatio;
+    tryUntilOk(CONFIG_RETRY_COUNT, () -> motor.getConfigurator().apply(motorConfig, CONFIG_TIMEOUT_SEC));
 
     BaseStatusSignal.setUpdateFrequencyForAll(
-        50.0,
-        veloRPS,
-        setPosRot,
-        measuredPosRot,
+        STATUS_UPDATE_HZ,
+        velocityRps,
+        setpointPositionRotations,
+        measuredPositionRotations,
         appliedVoltage,
         supplyCurrentAmps,
         torqueCurrentAmps,
         deviceTemperature,
-        measuredEncoderPosRot);
+        measuredEncoderPositionRotations);
   }
 
   @Override
   public void updateInputs(HoodIOInputs inputs) {
     BaseStatusSignal.refreshAll(
-        veloRPS,
-        setPosRot,
-        measuredPosRot,
+        velocityRps,
+        setpointPositionRotations,
+        measuredPositionRotations,
         appliedVoltage,
         supplyCurrentAmps,
         torqueCurrentAmps,
         deviceTemperature,
-        measuredEncoderPosRot);
+        measuredEncoderPositionRotations);
 
     // Read values from signals and populate the input struct. The
     // StatusSignal getters convert hardware units to the specified
@@ -113,13 +120,13 @@ public class HoodIOTalonFX implements HoodIO {
     inputs.appliedVolts = appliedVoltage.getValueAsDouble();
     inputs.deviceTemperature = deviceTemperature.getValueAsDouble();
     // Motor reports rotational position as an Angle; convert to degrees
-    inputs.measuredPostionDeg = Units.rotationsToDegrees(measuredPosRot.getValueAsDouble());
+    inputs.measuredPostionDeg = Units.rotationsToDegrees(measuredPositionRotations.getValueAsDouble());
     // Closed-loop setpoint as reported by the motor controller
-    inputs.setPostionDeg = Units.rotationsToDegrees(setPosRot.getValueAsDouble());
+    inputs.setPostionDeg = Units.rotationsToDegrees(setpointPositionRotations.getValueAsDouble());
     inputs.supplyCurrentAmps = supplyCurrentAmps.getValueAsDouble();
     inputs.torqueCurrentAmps = torqueCurrentAmps.getValueAsDouble();
     // Raw absolute encoder rotations (useful for diagnostics/offsets)
-    inputs.measuredEncoderPositionRot = measuredEncoderPosRot.getValueAsDouble();
+    inputs.measuredEncoderPositionRot = measuredEncoderPositionRotations.getValueAsDouble();
   }
 
   @Override
@@ -133,7 +140,7 @@ public class HoodIOTalonFX implements HoodIO {
     motorConfig.Slot0.kG = kG;
     // Apply the new PID/gains to the motor controller. tryUntilOk will
     // retry a few times to tolerate temporary CAN bus hiccups.
-    tryUntilOk(5, () -> Motor.getConfigurator().apply(motorConfig));
+    tryUntilOk(CONFIG_RETRY_COUNT, () -> motor.getConfigurator().apply(motorConfig));
   }
 
   @Override
@@ -141,14 +148,15 @@ public class HoodIOTalonFX implements HoodIO {
       double jerk, double acceleration, double velocity, double expokA, double expokV) {
     motorConfig.MotionMagic.MotionMagicJerk = jerk;
     motorConfig.MotionMagic.MotionMagicAcceleration = acceleration;
+    motorConfig.MotionMagic.MotionMagicCruiseVelocity = velocity;
     motorConfig.MotionMagic.MotionMagicExpo_kA = expokA;
     motorConfig.MotionMagic.MotionMagicExpo_kV = expokV;
-    tryUntilOk(5, () -> Motor.getConfigurator().apply(motorConfig));
+    tryUntilOk(CONFIG_RETRY_COUNT, () -> motor.getConfigurator().apply(motorConfig));
   }
 
   @Override
   public void runSetpointDegree(double setpointDeg) {
     Logger.recordOutput("Shooter/Hood/SetpostionDegree", setpointDeg);
-    Motor.setControl(positionRequest.withPosition(Units.degreesToRotations(setpointDeg)));
+    motor.setControl(positionRequest.withPosition(Units.degreesToRotations(setpointDeg)));
   }
 }

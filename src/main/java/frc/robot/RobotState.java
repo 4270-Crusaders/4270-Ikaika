@@ -22,6 +22,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.ExtensionMethod;
 import frc.robot.generated.TunerConstants;
+import frc.robot.util.geometry.AllianceFlipUtil;
 import frc.robot.util.geometry.GeomUtil;
 import org.littletonrobotics.junction.AutoLogOutput;
 
@@ -56,6 +57,72 @@ public class RobotState {
   private Rotation2d gyroOffset = Rotation2d.kZero;
 
   @Getter @Setter private ChassisSpeeds robotVelocity = new ChassisSpeeds();
+  @Getter @Setter @AutoLogOutput private boolean shooterReadyToShoot = false;
+
+  /**
+   * High-level launcher / aim mode. {@link #IDLE} holds hood and turret at zero and flywheel at teleop
+   * idle RPM; not a tracking mode.
+   */
+  public enum LauncherMode {
+    IDLE,
+    HUB,
+    PASS,
+    CUSTOM,
+    POINT_3D
+  }
+
+  @Getter @Setter private LauncherMode launcherMode = LauncherMode.IDLE;
+
+  /**
+   * Field-consistent 3D aim point for {@link LauncherMode#POINT_3D} (updated from blue perspective via
+   * {@link #applyLauncherPoint3dTargetBlue}).
+   */
+  @Getter @Setter private Translation3d launcherPoint3dTarget =
+      AllianceFlipUtil.apply(FieldConstants.Hub.topCenterPoint);
+
+  public boolean isLauncherTracking() {
+    return launcherMode == LauncherMode.HUB
+        || launcherMode == LauncherMode.PASS
+        || launcherMode == LauncherMode.POINT_3D;
+  }
+
+  /**
+   * Blue-field target in meters; alliance flip applied so it matches estimated pose, then switches to
+   * {@link LauncherMode#POINT_3D}.
+   */
+  public void applyLauncherPoint3dTargetBlue(Translation3d targetFieldBluePerspective) {
+    this.launcherPoint3dTarget = AllianceFlipUtil.apply(targetFieldBluePerspective);
+    this.launcherMode = LauncherMode.POINT_3D;
+  }
+
+  /**
+   * Measured average flywheel surface speed (m/s); updated from {@link
+   * frc.robot.subsystems.shooter.flywheel.Flywheel#periodic}.
+   */
+  @Getter @AutoLogOutput private double launcherFlywheelSurfaceSpeedMps = 0.0;
+
+  /** Measured hood angle (rad above hinge zero); updated from {@link frc.robot.subsystems.shooter.hood.Hood#periodic}. */
+  @Getter @AutoLogOutput private double launcherHoodMeasuredAngleRad = 0.0;
+
+  /**
+   * Ballistic solve inputs for {@link frc.robot.subsystems.shooter.LaunchCalculator}; set by {@link
+   * frc.robot.commands.launcher.LaunchCoordinatorSubsystem} while tracking, cleared with the calculator
+   * cache.
+   */
+  @Getter private boolean launcherSolveInputsValid = false;
+
+  @Getter private Pose3d launcherSolveShooterLaunchPose3d = Pose3d.kZero;
+  @Getter private Translation3d launcherSolveShooterVelocity3d = Translation3d.kZero;
+  @Getter private Translation3d launcherSolveTarget3d = Translation3d.kZero;
+
+  /** {@code true} means {@link frc.robot.subsystems.shooter.LaunchCalculator.ArcSelection#LOW}. */
+  @Getter private boolean launcherSolveUseLowArc = false;
+
+  @Getter @AutoLogOutput private boolean launcherFlywheelNearGoal = false;
+  @Getter @AutoLogOutput private boolean launcherHoodNearGoal = false;
+  @Getter @AutoLogOutput private boolean launcherTurretNearGoal = false;
+  @Getter @AutoLogOutput private boolean launcherTurretConstrained = false;
+  @Getter @AutoLogOutput private boolean launcherTrenchProtectionActive = false;
 
   // MARK: - Initialization
 
@@ -123,9 +190,50 @@ public class RobotState {
     estimatedPose = estimatedPose.exp(finalTwist);
   }
 
-  /** Adds a turret pose observation from the turret subsystem */
+  /**
+   * Adds a turret angle sample (robot-centric azimuth); timestamps use FPGA time for interpolation with
+   * vision and odometry buffers.
+   */
   public void addTurretObservation(TurretObservation observation) {
     turretAngleBuffer.addSample(observation.timestamp(), observation.turretAngle);
+  }
+
+  public void recordLauncherFlywheelSurfaceSpeedMps(double flywheelSurfaceSpeedMps) {
+    this.launcherFlywheelSurfaceSpeedMps = flywheelSurfaceSpeedMps;
+  }
+
+  public void recordLauncherHoodMeasuredAngleRad(double hoodAngleRad) {
+    this.launcherHoodMeasuredAngleRad = hoodAngleRad;
+  }
+
+  public void setLauncherSolveInputs(
+      Pose3d shooterLaunchPose3d,
+      Translation3d shooterVelocity3d,
+      Translation3d target3d,
+      boolean useLowArc) {
+    this.launcherSolveShooterLaunchPose3d = shooterLaunchPose3d;
+    this.launcherSolveShooterVelocity3d = shooterVelocity3d;
+    this.launcherSolveTarget3d = target3d;
+    this.launcherSolveUseLowArc = useLowArc;
+    this.launcherSolveInputsValid = true;
+  }
+
+  public void clearLauncherSolveInputs() {
+    launcherSolveInputsValid = false;
+  }
+
+  /** Publishes launcher readiness flags (mechanism measurements live on this class separately). */
+  public void recordLauncherMechanismProcess(
+      boolean flywheelNearGoal,
+      boolean hoodNearGoal,
+      boolean turretNearGoal,
+      boolean turretConstrained,
+      boolean trenchProtectionActive) {
+    this.launcherFlywheelNearGoal = flywheelNearGoal;
+    this.launcherHoodNearGoal = hoodNearGoal;
+    this.launcherTurretNearGoal = turretNearGoal;
+    this.launcherTurretConstrained = turretConstrained;
+    this.launcherTrenchProtectionActive = trenchProtectionActive;
   }
 
   /** Adds a new vision pose observation from the vision subsystem. */

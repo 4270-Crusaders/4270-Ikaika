@@ -41,7 +41,6 @@ public interface TurretIO {
       double jerk, double acceleration, double velocity, double expokA, double expokV) {}
 
   public default void updateInputs(TurretIOInputs inputs) {}
-  ;
 
   /** Run open loop at the specified velocity. */
   public default void runSetpointDegree(double setpointDeg) {}

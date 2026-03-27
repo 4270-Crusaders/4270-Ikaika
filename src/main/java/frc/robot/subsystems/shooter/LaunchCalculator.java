@@ -1,48 +1,96 @@
-// Copyright (c) 2025-2026 Littleton Robotics
-// http://github.com/Mechanical-Advantage
-//
-// Use of this source code is governed by an MIT-style
-// license that can be found in the LICENSE file at
-// the root directory of this project.
-
 package frc.robot.subsystems.shooter;
-
-import static frc.robot.subsystems.shooter.LauncherConstants.BALLISTIC_WHEEL_RADIUS_METERS;
-import static frc.robot.subsystems.shooter.LauncherConstants.robotToTurret;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.LinearFilter;
-import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
-import edu.wpi.first.math.geometry.Twist2d;
-import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
-import lombok.experimental.ExtensionMethod;
 import frc.robot.Constants;
-import frc.robot.util.geometry.GeomUtil;
+import frc.robot.RobotState;
 import org.littletonrobotics.junction.Logger;
 
-@ExtensionMethod({GeomUtil.class})
 public class LaunchCalculator {
   private static LaunchCalculator instance;
 
+  /** Cached wheel kinematics (rad/solve); avoids repeated composite math on the hot path. */
+  private static final double EFFECTIVE_METERS_PER_MOTOR_REV;
+
+  private static final double SURFACE_MPS_TO_RPM;
+  private static final double RPM_TO_SURFACE_MPS;
+
+  private static final double HOOD_THETA_CLAMP_MIN_RAD;
+  private static final double HOOD_THETA_CLAMP_MAX_RAD;
+
+  static {
+    double eps = ShooterConstants.LaunchCalculatorConstants.EPSILON_DENOMINATOR;
+    double mainMetersPerMotorRev =
+        (Math.PI * ShooterConstants.ComponentsConstants.Flywheel.MAIN_WHEEL_DIAMETER_METERS)
+            / Math.max(
+                ShooterConstants.ComponentsConstants.Flywheel.TurretMotorToMainFlyWheelReduction,
+                eps);
+    double hoodMetersPerMotorRev =
+        (Math.PI * ShooterConstants.ComponentsConstants.Flywheel.HOOD_WHEEL_DIAMETER_METERS)
+            / Math.max(
+                ShooterConstants.ComponentsConstants.Flywheel.TurretMotorToHoodFlyWheelReduction,
+                eps);
+    double avgMetersPerMotorRev =
+        ShooterConstants.LaunchCalculatorConstants.DUAL_WHEEL_SURFACE_BLEND
+            * (mainMetersPerMotorRev + hoodMetersPerMotorRev);
+    EFFECTIVE_METERS_PER_MOTOR_REV =
+        avgMetersPerMotorRev * ShooterConstants.ComponentsConstants.Flywheel.BALL_EXIT_TRANSFER_EFFICIENCY;
+    double spm = ShooterConstants.LaunchCalculatorConstants.SECONDS_PER_MINUTE;
+    SURFACE_MPS_TO_RPM = spm / Math.max(EFFECTIVE_METERS_PER_MOTOR_REV, eps);
+    RPM_TO_SURFACE_MPS = EFFECTIVE_METERS_PER_MOTOR_REV / spm;
+
+    double thetaMinDeg =
+        ShooterConstants.LaunchCalculatorConstants.MECHANICAL_RIGHT_ANGLE_DEG
+            + ShooterConstants.ComponentsConstants.Hood.MECHANICAL_ANGLE_OFFSET_DEG
+            - ShooterConstants.ComponentsConstants.Hood.MAX_DEGREE;
+    double thetaMaxDeg =
+        ShooterConstants.LaunchCalculatorConstants.MECHANICAL_RIGHT_ANGLE_DEG
+            + ShooterConstants.ComponentsConstants.Hood.MECHANICAL_ANGLE_OFFSET_DEG;
+    double thetaMin = Units.degreesToRadians(thetaMinDeg);
+    double thetaMax = Units.degreesToRadians(thetaMaxDeg);
+    if (!Double.isFinite(thetaMin) || !Double.isFinite(thetaMax) || thetaMax <= thetaMin) {
+      thetaMin =
+          Units.degreesToRadians(ShooterConstants.LaunchCalculatorConstants.FALLBACK_THETA_MIN_DEG);
+      thetaMax =
+          Units.degreesToRadians(ShooterConstants.LaunchCalculatorConstants.FALLBACK_THETA_MAX_DEG);
+    }
+    HOOD_THETA_CLAMP_MIN_RAD = thetaMin;
+    HOOD_THETA_CLAMP_MAX_RAD = thetaMax;
+  }
+
   private final LinearFilter turretAngleFilter =
-      LinearFilter.movingAverage((int) (0.1 / Constants.loopPeriodSecs));
+      LinearFilter.movingAverage(
+          (int)
+              (ShooterConstants.LaunchCalculatorConstants.ANGLE_VELOCITY_FILTER_WINDOW_SEC
+                  / Constants.loopPeriodSecs));
   private final LinearFilter hoodAngleFilter =
-      LinearFilter.movingAverage((int) (0.1 / Constants.loopPeriodSecs));
+      LinearFilter.movingAverage(
+          (int)
+              (ShooterConstants.LaunchCalculatorConstants.ANGLE_VELOCITY_FILTER_WINDOW_SEC
+                  / Constants.loopPeriodSecs));
 
   private Rotation2d lastTurretAngle;
   private double lastHoodAngle;
-  private Rotation2d turretAngle;
-  private double hoodAngle = Double.NaN;
-  private double turretVelocity;
-  private double hoodVelocity;
+  private double lastPhysicsMinToEmpiricalRpmRatio =
+      ShooterConstants.LaunchCalculatorConstants.NEUTRAL_UNIT_RATIO;
+  private double measuredToCommandRpmRatio =
+      ShooterConstants.LaunchCalculatorConstants.NEUTRAL_UNIT_RATIO;
+  private double filteredMeasuredFlywheelSurfaceSpeedMps = Double.NaN;
 
-  public static LaunchCalculator getInstance() {
-    if (instance == null) instance = new LaunchCalculator();
-    return instance;
+  /** Latest ballistic solve written by {@link #solveBallisticsInPlace}; no heap allocation. */
+  private double scratchLaunchSpeedMps;
+
+  private double scratchThetaRad;
+  private double scratchTofSec;
+  private double scratchRpmWheel;
+
+  public enum ArcSelection {
+    HIGH,
+    LOW
   }
 
   public record LaunchingParameters(
@@ -51,517 +99,300 @@ public class LaunchCalculator {
       double turretVelocity,
       double hoodAngle,
       double hoodVelocity,
-      double flywheelSpeed) {}
+      double flywheelSpeed,
+      double timeOfFlightSec) {}
 
   private LaunchingParameters latestParameters = null;
 
-  private static final int PHYSICS_EFFICIENCY_GRAPH_SAMPLES = 51;
+  private static final LaunchingParameters EMPTY_PARAMETERS =
+      new LaunchingParameters(false, Rotation2d.kZero, 0.0, 0.0, 0.0, 0.0, 0.0);
 
-  /** Precomputed linear graph: physics minimum RPM / empirical map RPM vs distance (launch band). */
-  private static final double[] PHYSICS_EFFICIENCY_GRAPH_DISTANCE_M =
-      new double[PHYSICS_EFFICIENCY_GRAPH_SAMPLES];
-
-  private static final double[] PHYSICS_EFFICIENCY_GRAPH_MIN_RPM_OVER_EMP_RPM =
-      new double[PHYSICS_EFFICIENCY_GRAPH_SAMPLES];
-
-  static {
-    double d0 = LauncherConstants.LAUNCH_MIN_DISTANCE_M;
-    double d1 = LauncherConstants.LAUNCH_MAX_DISTANCE_M;
-    for (int i = 0; i < PHYSICS_EFFICIENCY_GRAPH_SAMPLES; i++) {
-      double d = d0 + (d1 - d0) * i / (PHYSICS_EFFICIENCY_GRAPH_SAMPLES - 1);
-      PHYSICS_EFFICIENCY_GRAPH_DISTANCE_M[i] = d;
-      // Fully-physics solve: no empirical table usage (and no interpolation).
-      // Keep this graph as a stable 1.0 baseline for dashboards.
-      PHYSICS_EFFICIENCY_GRAPH_MIN_RPM_OVER_EMP_RPM[i] = 1.0;
-    }
-  }
-
-  /**
-   * Ideal-minimum RPM (vacuum ballistic to geometric hub height) / empirical map RPM at current
-   * lookahead. {@code ~1} means empirical matches ideal scale; lower means extra wheel speed vs
-   * ideal (drag, compression, etc.).
-   */
-  private double lastPhysicsMinToEmpiricalRpmRatio = 1.0;
-
-  /** Static curve — log once (was every getParameters call, ~100 doubles/frame). */
-  private static boolean loggedPhysicsEfficiencyGraph;
-
-  /**
-   * Minimum exit speed (m/s) needed to reach horizontal distance {@code d} with vertical rise {@code
-   * h} (hub opening above shooter exit), ignoring drag. Used as the basis for RPM vs distance.
-   */
-  public static double minimumExitVelocity(double horizontalDistanceM, double heightDeltaM) {
-    double g = ShooterConstants.GRAVITY;
-    double d = horizontalDistanceM;
-    double h = heightDeltaM;
-    if (d < 1e-6) {
-      return 0;
-    }
-    // Closed-form vacuum minimum-exit speed, scaled to better match losses.
-    return Math.sqrt(g * (h + Math.hypot(d, h)))
-        * ShooterConstants.AIR_DRAG_EXIT_VELOCITY_MULTIPLIER;
+  public static LaunchCalculator getInstance() {
+    if (instance == null) instance = new LaunchCalculator();
+    return instance;
   }
 
   public static double rpmFromSurfaceVelocity(double surfaceVelocityMetersPerSec) {
-    double r = BALLISTIC_WHEEL_RADIUS_METERS;
-    if (r < 1e-9) {
-      return 0;
+    if (EFFECTIVE_METERS_PER_MOTOR_REV < ShooterConstants.LaunchCalculatorConstants.EPSILON_DENOMINATOR) {
+      return 0.0;
     }
-    return surfaceVelocityMetersPerSec * 60.0 / (2.0 * Math.PI * r);
+    return surfaceVelocityMetersPerSec * SURFACE_MPS_TO_RPM;
   }
 
   public static double surfaceVelocityFromRpm(double rpm) {
-    return (rpm / 60.0) * (2.0 * Math.PI * BALLISTIC_WHEEL_RADIUS_METERS);
+    return rpm * RPM_TO_SURFACE_MPS;
   }
 
-  /**
-   * Launch angle θ above horizontal (radians) for ballistics. When two solutions exist, uses the
-   * higher arc. {@code heightDeltaM} may include {@link
-   * ShooterConstants.HoodConstants#BALLISTIC_EXTRA_HEIGHT_METERS} for a higher trajectory.
-   */
-  public static double ballisticThetaAboveHorizontalRad(
-      double surfaceVelocityMetersPerSec, double horizontalDistanceM, double heightDeltaM) {
-    double v = surfaceVelocityMetersPerSec;
+  public static double minimumExitVelocity(double horizontalDistanceM, double heightDeltaM) {
+    double g = ShooterConstants.GRAVITY;
+    double d = Math.max(horizontalDistanceM, 0.0);
+    double h = heightDeltaM;
+    return Math.sqrt(Math.max(0.0, g * (h + Math.hypot(d, h))));
+  }
+
+  private static double solveThetaForSpeed(
+      double launchSpeedMps, double horizontalDistanceM, double heightDeltaM, ArcSelection arc) {
+    double g = ShooterConstants.GRAVITY;
     double d = horizontalDistanceM;
     double h = heightDeltaM;
-    if (d < 1e-6 || v < 1e-6) {
-      return 0.0;
-    }
+    double v2 = launchSpeedMps * launchSpeedMps;
+    double epsD = ShooterConstants.LaunchCalculatorConstants.EPSILON_METERS;
+    double epsV = ShooterConstants.LaunchCalculatorConstants.EPSILON_SURFACE_SPEED_MPS;
+    if (d < epsD || launchSpeedMps < epsV) return Double.NaN;
 
-    // When targeting something below the shooter, prefer the lower arc.
-    // heightDeltaM may include BALLISTIC_EXTRA_HEIGHT_METERS, so subtract it back out to decide.
-    boolean preferLowerArc = h - ShooterConstants.HoodConstants.BALLISTIC_EXTRA_HEIGHT_METERS < 0.0;
+    double disc = v2 * v2 - g * (g * d * d + 2.0 * h * v2);
+    if (disc < 0.0) return Double.NaN;
+    double sqrtDisc = Math.sqrt(disc);
+    double denom = g * d;
+    if (Math.abs(denom) < ShooterConstants.LaunchCalculatorConstants.EPSILON_DENOMINATOR)
+      return Double.NaN;
 
-    // Theta bounds derived from hood mechanical limits.
-    double thetaMinDeg =
-        90.0
-            + ShooterConstants.HoodConstants.MECHANICAL_ANGLE_OFFSET_DEG
-            - ShooterConstants.HoodConstants.MAX_DEGREE;
-    double thetaMaxDeg = 90.0 + ShooterConstants.HoodConstants.MECHANICAL_ANGLE_OFFSET_DEG;
-    double thetaMin = Units.degreesToRadians(thetaMinDeg);
-    double thetaMax = Units.degreesToRadians(thetaMaxDeg);
-
-    // Fallback bounds.
-    if (!Double.isFinite(thetaMin) || !Double.isFinite(thetaMax) || thetaMax <= thetaMin) {
-      thetaMin = Units.degreesToRadians(5.0);
-      thetaMax = Units.degreesToRadians(85.0);
-    }
-
-    // Sample + bisection over y(d)-h error to find roots.
-    final int samples = 12;
-    final int bisectionIters = 20;
-    double thetaPrev = thetaMin;
-    double errPrev = yErrorAtDistanceWithAirDragAndBackspin(v, thetaPrev, d, h);
-
-    double bestTheta = thetaPrev;
-    double bestAbsErr =
-        Double.isFinite(errPrev) ? Math.abs(errPrev) : Double.POSITIVE_INFINITY;
-
-    double chosenA = Double.NaN;
-    double chosenB = Double.NaN;
-
-    for (int i = 1; i <= samples; i++) {
-      double t = i / (double) samples;
-      double theta = thetaMin + (thetaMax - thetaMin) * t;
-      double err = yErrorAtDistanceWithAirDragAndBackspin(v, theta, d, h);
-
-      if (Double.isFinite(err)) {
-        double absErr = Math.abs(err);
-        if (absErr < bestAbsErr) {
-          bestAbsErr = absErr;
-          bestTheta = theta;
-        }
-      }
-
-      if (Double.isFinite(errPrev) && Double.isFinite(err) && errPrev * err < 0.0) {
-        if (Double.isNaN(chosenA)) {
-          chosenA = thetaPrev;
-          chosenB = theta;
-        } else if (!preferLowerArc) {
-          // Update so we end up with the higher-arc root interval.
-          chosenA = thetaPrev;
-          chosenB = theta;
-        }
-      }
-
-      thetaPrev = theta;
-      errPrev = err;
-    }
-
-    if (Double.isNaN(chosenA) || Double.isNaN(chosenB)) {
-      return bestTheta;
-    }
-
-    double a = chosenA;
-    double b = chosenB;
-    double errA = yErrorAtDistanceWithAirDragAndBackspin(v, a, d, h);
-    for (int iter = 0; iter < bisectionIters; iter++) {
-      double mid = 0.5 * (a + b);
-      double errMid = yErrorAtDistanceWithAirDragAndBackspin(v, mid, d, h);
-      if (!Double.isFinite(errMid)) {
-        b = mid;
-        continue;
-      }
-      if (errA * errMid > 0.0) {
-        a = mid;
-        errA = errMid;
-      } else {
-        b = mid;
-      }
-    }
-
-    return 0.5 * (a + b);
+    double tanLow = (v2 - sqrtDisc) / denom;
+    double tanHigh = (v2 + sqrtDisc) / denom;
+    double thetaLow = Math.atan(tanLow);
+    double thetaHigh = Math.atan(tanHigh);
+    return arc == ArcSelection.HIGH ? Math.max(thetaLow, thetaHigh) : Math.min(thetaLow, thetaHigh);
   }
 
-  private static double timeToReachDistanceSecondsWithAirDragAndBackspin(
-      double surfaceVelocityMetersPerSec,
-      double launchAngleRad,
-      double horizontalDistanceM) {
-    double v = surfaceVelocityMetersPerSec;
-    double d = horizontalDistanceM;
-    if (d < 1e-6 || v < 1e-6) {
-      return 0.0;
-    }
-    double k = ShooterConstants.AIR_DRAG_LINEAR_COEFF_1_PER_S;
-    if (k <= 1e-9) {
-      // No drag: t = d / (v*cos(theta))
-      double denom = v * Math.cos(launchAngleRad);
-      return denom < 1e-6 ? 0.0 : d / denom;
-    }
-    double vx0 = v * Math.cos(launchAngleRad);
-    if (vx0 <= 1e-6) {
-      return Double.NaN;
-    }
-    // x(t) = vx0/k * (1 - exp(-k t))  =>  exp(-k t) = 1 - k x / vx0
-    double rem = 1.0 - (k * d) / vx0;
-    if (rem <= 0.0) {
-      return Double.NaN;
-    }
-    return -Math.log(rem) / k;
+  private static double clampThetaToHoodLimits(double thetaAboveHorizontalRad) {
+    return MathUtil.clamp(thetaAboveHorizontalRad, HOOD_THETA_CLAMP_MIN_RAD, HOOD_THETA_CLAMP_MAX_RAD);
   }
 
-  private static double yErrorAtDistanceWithAirDragAndBackspin(
-      double surfaceVelocityMetersPerSec,
-      double launchAngleRad,
-      double horizontalDistanceM,
-      double hTarget) {
-    double v = surfaceVelocityMetersPerSec;
-    double d = horizontalDistanceM;
-    if (d < 1e-6) {
-      return -hTarget;
-    }
-
-    double k = ShooterConstants.AIR_DRAG_LINEAR_COEFF_1_PER_S;
-    double vx0 = v * Math.cos(launchAngleRad);
-    double vy0 = v * Math.sin(launchAngleRad);
-    if (vx0 <= 1e-6) {
-      return Double.NaN;
-    }
-
-    if (k <= 1e-9) {
-      // Vacuum y(d) for comparison/fallback.
-      double t = d / vx0;
-      double y = vy0 * t - 0.5 * ShooterConstants.GRAVITY * t * t;
-      return y - hTarget;
-    }
-
-    double rem = 1.0 - (k * d) / vx0; // exp(-k t)
-    if (rem <= 0.0) {
-      return Double.NaN;
-    }
-    double t = -Math.log(rem) / k;
-
-    // Backspin lift (Magnus) as a simplified upward acceleration term.
-    double omegaBall =
-        ShooterConstants.BACKSPIN_SPIN_RATE_RATIO * (v / ShooterConstants.BALL_RADIUS_METERS);
-    double aLift = ShooterConstants.BACKSPIN_MAGNUS_LIFT_COEFF * omegaBall * v;
-    double gEff = ShooterConstants.GRAVITY - aLift;
-    gEff = Math.max(0.0, gEff);
-
-    // With linear drag and effective gravity: y(t) =
-    // (vy0 + gEff/k) * (1 - exp(-k t))/k - gEff * t / k
-    double expTerm = rem; // exp(-k t)
-    double oneMinus = 1.0 - expTerm;
-    double y = (vy0 + gEff / k) * (oneMinus / k) - (gEff * t / k);
-    return y - hTarget;
-  }
-
-  /**
-   * Mechanical hood angle (radians) from physics launch angle θ (above horizontal). Convention:
-   * {@code 0°} = toward sky, {@code 90°} = forward horizontal; only {@code [0, MAX_DEGREE]} is
-   * used. {@code hoodDeg = 90° − θ_deg + MECHANICAL_ANGLE_OFFSET_DEG}.
-   */
   public static double mechanicalHoodAngleRadFromPhysicsTheta(double thetaAboveHorizontalRad) {
     double thetaDeg = Units.radiansToDegrees(thetaAboveHorizontalRad);
     double hoodDeg =
-        90.0
+        ShooterConstants.LaunchCalculatorConstants.MECHANICAL_RIGHT_ANGLE_DEG
             - thetaDeg
-            + ShooterConstants.HoodConstants.MECHANICAL_ANGLE_OFFSET_DEG;
+            + ShooterConstants.ComponentsConstants.Hood.MECHANICAL_ANGLE_OFFSET_DEG;
     hoodDeg =
-        MathUtil.clamp(
-            hoodDeg, 0.0, ShooterConstants.HoodConstants.MAX_DEGREE);
+        MathUtil.clamp(hoodDeg, 0.0, ShooterConstants.ComponentsConstants.Hood.MAX_DEGREE);
     return Units.degreesToRadians(hoodDeg);
   }
 
-  public LaunchingParameters getParameters(
-      Pose2d robotEstimatedPose2d,
-      ChassisSpeeds robotRelativeVelocityChassisSpeed,
-      Translation2d targeTranslation2d,
-      double IncreaseValue,
-      double multiplier) {
+  private static double timeOfFlightFromPhysics(
+      double horizontalDistanceM, double launchSpeedMps, double thetaAboveHorizontalRad) {
+    double vx = launchSpeedMps * Math.cos(thetaAboveHorizontalRad);
+    if (vx < ShooterConstants.LaunchCalculatorConstants.EPSILON_SURFACE_SPEED_MPS)
+      return Double.NaN;
+    return horizontalDistanceM / vx;
+  }
 
-    Pose2d estimatedPose = robotEstimatedPose2d;
-    ChassisSpeeds robotRelativeVelocity = robotRelativeVelocityChassisSpeed;
+  private void solveBallisticsInPlace(double horizontalDistanceM, double heightDeltaM, ArcSelection arc) {
+    ArcSelection effectiveArc = heightDeltaM < 0.0 ? ArcSelection.LOW : arc;
+    double vMin = minimumExitVelocity(horizontalDistanceM, heightDeltaM);
+    double launchEfficiency =
+        Math.max(
+            ShooterConstants.LaunchCalculatorConstants.INITIAL_SPEED_EFFICIENCY,
+            ShooterConstants.LaunchCalculatorConstants.EPSILON_DENOMINATOR);
+    double compensatedMinSpeed =
+        (vMin * ShooterConstants.LaunchCalculatorConstants.MIN_SPEED_MARGIN) / launchEfficiency;
+    double rpmWheelCmd = Math.max(0.0, rpmFromSurfaceVelocity(compensatedMinSpeed));
+    double vCmd = surfaceVelocityFromRpm(rpmWheelCmd);
 
-    estimatedPose =
-        estimatedPose.exp(
-            new Twist2d(
-                robotRelativeVelocity.vxMetersPerSecond * LauncherConstants.LAUNCH_PHASE_DELAY_S,
-                robotRelativeVelocity.vyMetersPerSecond * LauncherConstants.LAUNCH_PHASE_DELAY_S,
-                robotRelativeVelocity.omegaRadiansPerSecond * LauncherConstants.LAUNCH_PHASE_DELAY_S));
-
-    Translation2d target = targeTranslation2d;
-
-    Pose2d turretPosition = estimatedPose.transformBy(robotToTurret.toTransform2d());
-    double turretToTargetDistance = target.getDistance(turretPosition.getTranslation());
-
-    ChassisSpeeds robotVelocity =
-        ChassisSpeeds.fromRobotRelativeSpeeds(
-            robotRelativeVelocityChassisSpeed, robotEstimatedPose2d.getRotation());
-    double robotAngle = estimatedPose.getRotation().getRadians();
-    double turretVelocityX =
-        robotVelocity.vxMetersPerSecond
-            + robotVelocity.omegaRadiansPerSecond
-                * (robotToTurret.getY() * Math.cos(robotAngle)
-                    - robotToTurret.getX() * Math.sin(robotAngle));
-    double turretVelocityY =
-        robotVelocity.vyMetersPerSecond
-            + robotVelocity.omegaRadiansPerSecond
-                * (robotToTurret.getX() * Math.cos(robotAngle)
-                    - robotToTurret.getY() * Math.sin(robotAngle));
-
-    double h = ShooterConstants.DELTA_HEIGHT;
-    double hHoodArc =
-        h + ShooterConstants.HoodConstants.BALLISTIC_EXTRA_HEIGHT_METERS;
-    Pose2d lookaheadPose = turretPosition;
-    double lookaheadTurretToTargetDistance = turretToTargetDistance;
-    double timeOfFlight = 0;
-    double flywheelRpm = 0;
-    double thetaPhysicsRad = 0;
-
-    // Fixed-point solve for moving-shot lead. Kept small since theta solving is numeric.
-    for (int i = 0; i < 10; i++) {
-      double d = lookaheadTurretToTargetDistance;
-      double vCmd = minimumExitVelocity(d, h);
-      thetaPhysicsRad = ballisticThetaAboveHorizontalRad(vCmd, d, hHoodArc);
-
-      hoodAngle = mechanicalHoodAngleRadFromPhysicsTheta(thetaPhysicsRad);
-      flywheelRpm = (rpmFromSurfaceVelocity(vCmd) + IncreaseValue) * multiplier;
-      flywheelRpm =
-          MathUtil.clamp(
-              flywheelRpm, 0, ShooterConstants.FlywheelConstants.FLYWHEEL_MAX_RPM);
-
-      timeOfFlight =
-          timeToReachDistanceSecondsWithAirDragAndBackspin(vCmd, thetaPhysicsRad, d);
-      if (!Double.isFinite(timeOfFlight) || timeOfFlight <= 0.0) {
-        // Fallback to vacuum lead time to avoid NaNs.
-        double denom = vCmd * Math.cos(thetaPhysicsRad);
-        timeOfFlight = denom < 0.15 ? d / 0.15 : d / denom;
+    double theta = solveThetaForSpeed(vCmd, horizontalDistanceM, heightDeltaM, effectiveArc);
+    if (!Double.isFinite(theta)) {
+      for (int i = 0;
+          i < ShooterConstants.LaunchCalculatorConstants.BALLISTIC_RPM_BOOST_MAX_ITERATIONS
+              && !Double.isFinite(theta);
+          i++) {
+        rpmWheelCmd *= ShooterConstants.LaunchCalculatorConstants.BALLISTIC_RPM_BOOST_FACTOR;
+        vCmd = surfaceVelocityFromRpm(rpmWheelCmd);
+        theta = solveThetaForSpeed(vCmd, horizontalDistanceM, heightDeltaM, effectiveArc);
       }
-
-      lastPhysicsMinToEmpiricalRpmRatio = 1.0;
-      double offsetX = turretVelocityX * timeOfFlight;
-      double offsetY = turretVelocityY * timeOfFlight;
-      lookaheadPose =
-          new Pose2d(
-              turretPosition.getTranslation().plus(new Translation2d(offsetX, offsetY)),
-              turretPosition.getRotation());
-      lookaheadTurretToTargetDistance = target.getDistance(lookaheadPose.getTranslation());
+    }
+    if (!Double.isFinite(theta)) {
+      scratchLaunchSpeedMps = vCmd;
+      scratchThetaRad =
+          Units.degreesToRadians(ShooterConstants.LaunchCalculatorConstants.DEFAULT_SOLVE_THETA_DEG);
+      scratchTofSec = Double.NaN;
+      scratchRpmWheel = rpmWheelCmd;
+      return;
     }
 
-    turretAngle = target.minus(lookaheadPose.getTranslation()).getAngle();
-    if (lastTurretAngle == null) lastTurretAngle = turretAngle;
-    if (Double.isNaN(lastHoodAngle)) lastHoodAngle = hoodAngle;
-    turretVelocity =
-        turretAngleFilter.calculate(
-            turretAngle.minus(lastTurretAngle).getRadians() / Constants.loopPeriodSecs);
-    hoodVelocity =
-        hoodAngleFilter.calculate((hoodAngle - lastHoodAngle) / Constants.loopPeriodSecs);
-    lastTurretAngle = turretAngle;
-    lastHoodAngle = hoodAngle;
-    latestParameters =
-        new LaunchingParameters(
-            lookaheadTurretToTargetDistance >= LauncherConstants.LAUNCH_MIN_DISTANCE_M
-                && lookaheadTurretToTargetDistance <= LauncherConstants.LAUNCH_MAX_DISTANCE_M,
-            turretAngle,
-            turretVelocity,
-            hoodAngle,
-            hoodVelocity,
-            flywheelRpm);
-
-    // Avoid per-frame Logger.recordOutput here — this runs inside a 20-iter solve and was a major
-    // contributor to CommandScheduler loop overrun on the RIO.
-    if (!loggedPhysicsEfficiencyGraph) {
-      loggedPhysicsEfficiencyGraph = true;
-      Logger.recordOutput(
-          "Shooter/LaunchCalculator/PhysicsEfficiencyGraphDistanceM", PHYSICS_EFFICIENCY_GRAPH_DISTANCE_M);
-      Logger.recordOutput(
-          "Shooter/LaunchCalculator/PhysicsEfficiencyGraphMinRpmOverEmpRpm",
-          PHYSICS_EFFICIENCY_GRAPH_MIN_RPM_OVER_EMP_RPM);
-    }
-
-    return latestParameters;
+    theta = clampThetaToHoodLimits(theta);
+    scratchLaunchSpeedMps = vCmd;
+    scratchThetaRad = theta;
+    scratchTofSec = timeOfFlightFromPhysics(horizontalDistanceM, vCmd, theta);
+    scratchRpmWheel = rpmWheelCmd;
   }
 
   /**
-   * Same solve as {@link #getParameters(Pose2d, ChassisSpeeds, Translation2d, double, double)},
-   * but uses the target Z to compute vertical rise/drop. This lets you aim at any point in 3D.
-   *
-   * <p>Target Z is in the field coordinate system where {@code 0.0} is the floor.
+   * Latest solve from {@link #refreshCachedParameters}; safe to call from mechanism commands after the
+   * launcher has refreshed the cache for this cycle.
    */
-  public LaunchingParameters getParameters(
-      Pose2d robotEstimatedPose2d,
-      ChassisSpeeds robotRelativeVelocityChassisSpeed,
-      Translation3d targetField,
-      double IncreaseValue,
-      double multiplier) {
+  public LaunchingParameters getParameters() {
+    return latestParameters != null ? latestParameters : EMPTY_PARAMETERS;
+  }
 
-    Pose2d estimatedPose = robotEstimatedPose2d;
-    ChassisSpeeds robotRelativeVelocity = robotRelativeVelocityChassisSpeed;
+  /**
+   * Recomputes and stores {@link #getParameters()} from {@link RobotState} solve inputs and measured
+   * flywheel surface speed. {@link frc.robot.commands.launcher.LaunchCoordinatorSubsystem} must set
+   * solve inputs via {@link RobotState#setLauncherSolveInputs} each loop while tracking.
+   */
+  public void refreshCachedParameters() {
+    RobotState rs = RobotState.getInstance();
+    if (!rs.isLauncherSolveInputsValid()) {
+      return;
+    }
+    Pose3d shooterLaunchPose3d = rs.getLauncherSolveShooterLaunchPose3d();
+    Translation3d shooterVelocity3d = rs.getLauncherSolveShooterVelocity3d();
+    Translation3d targetTranslation3d = rs.getLauncherSolveTarget3d();
+    ArcSelection arcSelection = rs.isLauncherSolveUseLowArc() ? ArcSelection.LOW : ArcSelection.HIGH;
+    double measuredFlywheelSurfaceSpeedMps = rs.getLauncherFlywheelSurfaceSpeedMps();
 
-    estimatedPose =
-        estimatedPose.exp(
-            new Twist2d(
-                robotRelativeVelocity.vxMetersPerSecond * LauncherConstants.LAUNCH_PHASE_DELAY_S,
-                robotRelativeVelocity.vyMetersPerSecond * LauncherConstants.LAUNCH_PHASE_DELAY_S,
-                robotRelativeVelocity.omegaRadiansPerSecond * LauncherConstants.LAUNCH_PHASE_DELAY_S));
+    Translation3d shooterWorld = shooterLaunchPose3d.getTranslation();
+    double sx = shooterWorld.getX();
+    double sy = shooterWorld.getY();
+    double sz = shooterWorld.getZ();
+    double tx = targetTranslation3d.getX();
+    double ty = targetTranslation3d.getY();
+    double tz = targetTranslation3d.getZ();
+    double vx = shooterVelocity3d.getX();
+    double vy = shooterVelocity3d.getY();
+    double vz = shooterVelocity3d.getZ();
 
-    Translation2d target = targetField.toTranslation2d();
+    double lx = sx;
+    double ly = sy;
+    double lz = sz;
+    for (int i = 0;
+        i < ShooterConstants.LaunchCalculatorConstants.MOVING_TARGET_LEAD_ITERATIONS;
+        i++) {
+      double rdx = tx - lx;
+      double rdy = ty - ly;
+      double rdz = tz - lz;
+      double d = Math.hypot(rdx, rdy);
+      solveBallisticsInPlace(d, rdz, arcSelection);
 
-    Pose2d turretPosition = estimatedPose.transformBy(robotToTurret.toTransform2d());
-    double turretToTargetDistance = target.getDistance(turretPosition.getTranslation());
-
-    ChassisSpeeds robotVelocity =
-        ChassisSpeeds.fromRobotRelativeSpeeds(
-            robotRelativeVelocityChassisSpeed, robotEstimatedPose2d.getRotation());
-    double robotAngle = estimatedPose.getRotation().getRadians();
-    double turretVelocityX =
-        robotVelocity.vxMetersPerSecond
-            + robotVelocity.omegaRadiansPerSecond
-                * (robotToTurret.getY() * Math.cos(robotAngle)
-                    - robotToTurret.getX() * Math.sin(robotAngle));
-    double turretVelocityY =
-        robotVelocity.vyMetersPerSecond
-            + robotVelocity.omegaRadiansPerSecond
-                * (robotToTurret.getX() * Math.cos(robotAngle)
-                    - robotToTurret.getY() * Math.sin(robotAngle));
-
-    // Vertical rise/drop from the shooter exit to the target. (Hub uses a precomputed constant.)
-    double h = targetField.getZ() - ShooterConstants.TURRET_HEIGHT;
-    // BALLISTIC_EXTRA_HEIGHT_METERS is tuned for hub shots. For passing-to-floor targets
-    // (z ~= PASS_TARGET_Z_METERS), we do not add this term to avoid biasing the trajectory
-    // toward a higher arc.
-    boolean passingToFloor =
-        targetField.getZ() <= LauncherConstants.PASS_TARGET_Z_METERS + 1e-6;
-    double hHoodArc =
-        h +
-            (passingToFloor
-                ? 0.0
-                : ShooterConstants.HoodConstants.BALLISTIC_EXTRA_HEIGHT_METERS);
-
-    Pose2d lookaheadPose = turretPosition;
-    double lookaheadTurretToTargetDistance = turretToTargetDistance;
-    double timeOfFlight = 0;
-    double flywheelRpm = 0;
-    double thetaPhysicsRad = 0;
-
-    for (int i = 0; i < 10; i++) {
-      double d = lookaheadTurretToTargetDistance;
-      double vCmd = minimumExitVelocity(d, h);
-      thetaPhysicsRad = ballisticThetaAboveHorizontalRad(vCmd, d, hHoodArc);
-      hoodAngle = mechanicalHoodAngleRadFromPhysicsTheta(thetaPhysicsRad);
-
-      flywheelRpm = (rpmFromSurfaceVelocity(vCmd) + IncreaseValue) * multiplier;
-      flywheelRpm =
-          MathUtil.clamp(
-              flywheelRpm, 0, ShooterConstants.FlywheelConstants.FLYWHEEL_MAX_RPM);
-
-      timeOfFlight =
-          timeToReachDistanceSecondsWithAirDragAndBackspin(vCmd, thetaPhysicsRad, d);
-      if (!Double.isFinite(timeOfFlight) || timeOfFlight <= 0.0) {
-        // Fallback to vacuum lead time to avoid NaNs.
-        double denom = vCmd * Math.cos(thetaPhysicsRad);
-        timeOfFlight = denom < 0.15 ? d / 0.15 : d / denom;
-      }
-
-      lastPhysicsMinToEmpiricalRpmRatio = 1.0;
-
-      double offsetX = turretVelocityX * timeOfFlight;
-      double offsetY = turretVelocityY * timeOfFlight;
-
-      lookaheadPose =
-          new Pose2d(
-              turretPosition.getTranslation().plus(new Translation2d(offsetX, offsetY)),
-              turretPosition.getRotation());
-      lookaheadTurretToTargetDistance = target.getDistance(lookaheadPose.getTranslation());
+      double tof = Double.isFinite(scratchTofSec) ? scratchTofSec : 0.0;
+      lx = sx + vx * tof;
+      ly = sy + vy * tof;
+      lz = sz + vz * tof;
     }
 
-    turretAngle = target.minus(lookaheadPose.getTranslation()).getAngle();
+    double relFx = tx - lx;
+    double relFy = ty - ly;
+    double relFz = tz - lz;
+    double dFinal = Math.hypot(relFx, relFy);
+    Rotation2d turretAngle = new Rotation2d(Math.atan2(relFy, relFx));
+
+    // Hood follows actual wheel speed with filtered correction only (simpler, less oscillation).
+    ArcSelection effectiveArc = relFz < 0.0 ? ArcSelection.LOW : arcSelection;
+    double tau = ShooterConstants.HoodCompensationConstants.RPM_FILTER_TIME_CONSTANT_SEC;
+    // TODO(PHYSICS_TUNE): review alpha behavior if loop rate changes from 20ms.
+    double alpha =
+        Constants.loopPeriodSecs
+            / Math.max(
+                Constants.loopPeriodSecs + tau,
+                ShooterConstants.LaunchCalculatorConstants.EPSILON_TIME_AND_RATIO);
+    if (!Double.isFinite(filteredMeasuredFlywheelSurfaceSpeedMps)) {
+      filteredMeasuredFlywheelSurfaceSpeedMps = measuredFlywheelSurfaceSpeedMps;
+    }
+    filteredMeasuredFlywheelSurfaceSpeedMps +=
+        alpha * (measuredFlywheelSurfaceSpeedMps - filteredMeasuredFlywheelSurfaceSpeedMps);
+
+    double measuredSpeed = filteredMeasuredFlywheelSurfaceSpeedMps;
+    double thetaNominal = scratchThetaRad;
+    double thetaFromMeasured = solveThetaForSpeed(measuredSpeed, dFinal, relFz, effectiveArc);
+    double thetaError = 0.0;
+    if (Double.isFinite(thetaFromMeasured)
+        && measuredSpeed > ShooterConstants.LaunchCalculatorConstants.MIN_VALID_SHOT_SPEED_MPS) {
+      thetaError = clampThetaToHoodLimits(thetaFromMeasured) - thetaNominal;
+    }
+    double gain = ShooterConstants.HoodCompensationConstants.NORMAL_GAIN;
+    double maxCorrRad =
+        Units.degreesToRadians(ShooterConstants.HoodCompensationConstants.MAX_CORRECTION_DEG);
+    double thetaCorrected = thetaNominal + MathUtil.clamp(thetaError * gain, -maxCorrRad, maxCorrRad);
+    double thetaUsedRad = clampThetaToHoodLimits(thetaCorrected);
+
+    double hoodAngle = mechanicalHoodAngleRadFromPhysicsTheta(thetaUsedRad);
+    if (!Double.isNaN(lastHoodAngle)) {
+      double maxDelta =
+          Units.degreesToRadians(
+                  ShooterConstants.HoodCompensationConstants.MAX_CORRECTION_RATE_DEG_PER_SEC)
+              * Constants.loopPeriodSecs;
+      hoodAngle = MathUtil.clamp(hoodAngle, lastHoodAngle - maxDelta, lastHoodAngle + maxDelta);
+    }
+    double tofUsed = timeOfFlightFromPhysics(dFinal, scratchLaunchSpeedMps, scratchThetaRad);
+
     if (lastTurretAngle == null) lastTurretAngle = turretAngle;
     if (Double.isNaN(lastHoodAngle)) lastHoodAngle = hoodAngle;
-
-    turretVelocity =
+    double turretVelocity =
         turretAngleFilter.calculate(
             turretAngle.minus(lastTurretAngle).getRadians() / Constants.loopPeriodSecs);
-    hoodVelocity =
+    double hoodVelocity =
         hoodAngleFilter.calculate((hoodAngle - lastHoodAngle) / Constants.loopPeriodSecs);
     lastTurretAngle = turretAngle;
     lastHoodAngle = hoodAngle;
 
+    double vMinIdeal = minimumExitVelocity(dFinal, relFz);
+    double minRpmIdeal = rpmFromSurfaceVelocity(vMinIdeal);
+    double ratioEps = ShooterConstants.LaunchCalculatorConstants.EPSILON_TIME_AND_RATIO;
+    lastPhysicsMinToEmpiricalRpmRatio =
+        scratchRpmWheel > ratioEps
+            ? minRpmIdeal / scratchRpmWheel
+            : ShooterConstants.LaunchCalculatorConstants.NEUTRAL_UNIT_RATIO;
+    // TODO(PHYSICS_TUNE): revisit clamp limits if drivetrain brownout causes deeper RPM dips.
+    measuredToCommandRpmRatio =
+        scratchRpmWheel > ratioEps
+            ? MathUtil.clamp(
+                rpmFromSurfaceVelocity(measuredSpeed) / scratchRpmWheel,
+                0.0,
+                ShooterConstants.LaunchCalculatorConstants.MEASURED_TO_COMMAND_RPM_RATIO_MAX)
+            : ShooterConstants.LaunchCalculatorConstants.NEUTRAL_UNIT_RATIO;
+
     latestParameters =
         new LaunchingParameters(
-            lookaheadTurretToTargetDistance >= LauncherConstants.LAUNCH_MIN_DISTANCE_M
-                && lookaheadTurretToTargetDistance <= LauncherConstants.LAUNCH_MAX_DISTANCE_M,
+            true,
             turretAngle,
             turretVelocity,
             hoodAngle,
             hoodVelocity,
-            flywheelRpm);
-
-    // Avoid per-frame Logger.recordOutput here — this runs inside a 20-iter solve and was a major
-    // contributor to CommandScheduler loop overrun on the RIO.
-    if (!loggedPhysicsEfficiencyGraph) {
-      loggedPhysicsEfficiencyGraph = true;
+            scratchRpmWheel,
+            tofUsed);
+    if (ShooterConstants.Logging.LOG_LAUNCH_CALC_HOOD_COMP) {
       Logger.recordOutput(
-          "Shooter/LaunchCalculator/PhysicsEfficiencyGraphDistanceM",
-          PHYSICS_EFFICIENCY_GRAPH_DISTANCE_M);
+          "Shooter/LaunchCalculator/HoodComp/MeasuredSurfaceSpeedMpsRaw",
+          measuredFlywheelSurfaceSpeedMps);
       Logger.recordOutput(
-          "Shooter/LaunchCalculator/PhysicsEfficiencyGraphMinRpmOverEmpRpm",
-          PHYSICS_EFFICIENCY_GRAPH_MIN_RPM_OVER_EMP_RPM);
+          "Shooter/LaunchCalculator/HoodComp/MeasuredSurfaceSpeedMpsFiltered",
+          filteredMeasuredFlywheelSurfaceSpeedMps);
+      Logger.recordOutput(
+          "Shooter/LaunchCalculator/HoodComp/ThetaNominalDeg", Units.radiansToDegrees(thetaNominal));
+      Logger.recordOutput("Shooter/LaunchCalculator/HoodComp/ThetaUsedDeg", Units.radiansToDegrees(thetaUsedRad));
+      Logger.recordOutput(
+          "Shooter/LaunchCalculator/HoodComp/ThetaErrorDeg",
+          Units.radiansToDegrees(thetaUsedRad - thetaNominal));
     }
-
-    return latestParameters;
   }
 
-  /**
-   * Scale for widening flywheel ready band when empirical RPM is well above ideal vacuum minimum
-   * (drag / losses). Applied in {@link frc.robot.subsystems.shooter.flywheel.Flywheel} with {@code
-   * NearGoalRpmTolerance}.
-   */
   public double getPhysicsLaunchEfficiencyScale() {
-    double r = lastPhysicsMinToEmpiricalRpmRatio;
-    if (!Double.isFinite(r)) {
-      return 1.0;
-    }
-    r = MathUtil.clamp(r, 0.0, 2.0);
-    return MathUtil.clamp(1.0 + (1.0 - Math.min(r, 1.0)), 0.8, 1.6);
+    // Use measured-vs-command ratio so tolerance adapts to real wheel sag, not only model ideality.
+    double measuredRatio = measuredToCommandRpmRatio;
+    if (!Double.isFinite(measuredRatio))
+      return ShooterConstants.FlywheelShotConstants.PHYSICS_LAUNCH_EFFICIENCY_SCALE_NEUTRAL;
+    measuredRatio =
+        MathUtil.clamp(
+            measuredRatio,
+            0.0,
+            ShooterConstants.LaunchCalculatorConstants.MEASURED_TO_COMMAND_RPM_RATIO_MAX);
+    double unity = ShooterConstants.FlywheelShotConstants.PHYSICS_LAUNCH_EFFICIENCY_SCALE_NEUTRAL;
+    return MathUtil.clamp(
+        unity + (unity - Math.min(measuredRatio, unity)),
+        ShooterConstants.LaunchCalculatorConstants.PHYSICS_LAUNCH_EFFICIENCY_SCALE_OUT_MIN,
+        ShooterConstants.LaunchCalculatorConstants.PHYSICS_LAUNCH_EFFICIENCY_SCALE_OUT_MAX);
   }
 
   public double getPhysicsMinToEmpiricalRpmRatio() {
     return lastPhysicsMinToEmpiricalRpmRatio;
   }
 
+  public double getMeasuredToCommandRpmRatio() {
+    return measuredToCommandRpmRatio;
+  }
+
   public void clearLaunchingParameters() {
     latestParameters = null;
+    filteredMeasuredFlywheelSurfaceSpeedMps = Double.NaN;
+    RobotState.getInstance().clearLauncherSolveInputs();
   }
 }

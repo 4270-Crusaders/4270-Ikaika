@@ -1,45 +1,43 @@
 package frc.robot.subsystems.shooter.flywheel;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.RobotState;
+import frc.robot.subsystems.shooter.LaunchCalculator;
 import frc.robot.subsystems.shooter.ShooterConstants;
 import frc.robot.util.EqualsUtil;
+import frc.robot.util.FullSubsystem;
 import frc.robot.util.LoggedTunableNumber;
 
-import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.RPM;
 
 import java.util.function.DoubleSupplier;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
-public class Flywheel {
-  //TODO Retune based on ratio change 
+public class Flywheel extends FullSubsystem {
+  // TODO Retune based on ratio change
   private final FlywheelIO io;
   private final FlywheelIOInputsAutoLogged inputs = new FlywheelIOInputsAutoLogged();
 
   private static final LoggedTunableNumber kP =
-      new LoggedTunableNumber("Shooter/Flywheel/Gains/kP", ShooterConstants.FlywheelConstants.FlyWheelkP);
+      new LoggedTunableNumber(
+          "Shooter/Flywheel/Gains/kP", ShooterConstants.ComponentsConstants.Flywheel.Gains.kP);
   private static final LoggedTunableNumber kI =
-      new LoggedTunableNumber("Shooter/Flywheel/Gains/kI", ShooterConstants.FlywheelConstants.FlyWheelkI);
+      new LoggedTunableNumber(
+          "Shooter/Flywheel/Gains/kI", ShooterConstants.ComponentsConstants.Flywheel.Gains.kI);
   private static final LoggedTunableNumber kD =
-      new LoggedTunableNumber("Shooter/Flywheel/Gains/kD", ShooterConstants.FlywheelConstants.FlyWheelkD);
+      new LoggedTunableNumber(
+          "Shooter/Flywheel/Gains/kD", ShooterConstants.ComponentsConstants.Flywheel.Gains.kD);
   private static final LoggedTunableNumber kA =
-      new LoggedTunableNumber("Shooter/Flywheel/Gains/kA", ShooterConstants.FlywheelConstants.FlyWheelkA);
+      new LoggedTunableNumber(
+          "Shooter/Flywheel/Gains/kA", ShooterConstants.ComponentsConstants.Flywheel.Gains.kA);
   private static final LoggedTunableNumber kV =
-      new LoggedTunableNumber("Shooter/Flywheel/Gains/kV", ShooterConstants.FlywheelConstants.FlyWheelkV);
+      new LoggedTunableNumber(
+          "Shooter/Flywheel/Gains/kV", ShooterConstants.ComponentsConstants.Flywheel.Gains.kV);
   private static final LoggedTunableNumber kS =
-      new LoggedTunableNumber("Shooter/Flywheel/Gains/kS", ShooterConstants.FlywheelConstants.FlyWheelkS);
-
-  private static final LoggedTunableNumber MOTION_MAGIC_JERK =
       new LoggedTunableNumber(
-          "Shooter/Flywheel/MotionMagic/Jerk", ShooterConstants.FlywheelConstants.FlyWheelMotionMagicJerk);
-  private static final LoggedTunableNumber MOTION_MAGIC_ACCELERATION =
-      new LoggedTunableNumber(
-          "Shooter/Flywheel/MotionMagic/Acceleration",
-          ShooterConstants.FlywheelConstants.FlyWheelMotionMagicAcceleration);
-  private static final LoggedTunableNumber MOTION_MAGIC_VELOCITY =
-      new LoggedTunableNumber(
-          "Shooter/Flywheel/MotionMagic/Velocity",
-          ShooterConstants.FlywheelConstants.FlyWheelMotionMagicVelocity);
+          "Shooter/Flywheel/Gains/kS", ShooterConstants.ComponentsConstants.Flywheel.Gains.kS);
 
   /**
    * Half-width of the RPM window around goal for {@link #nearGoal}. Effective tolerance is {@code
@@ -50,22 +48,24 @@ public class Flywheel {
           "Shooter/Flywheel/Ready/NearGoalRpmTolerance",
           ShooterConstants.READY_TO_SHOOT_FLYWHEEL_RPM_TOLERANCE);
 
-  /**
-   * Physics launch RPM assumes no load; when a ball passes through, wheels sag. This multiplier
-   * raises the commanded RPM so effective speed through the shot matches the ballistic model.
-   */
-  private static final LoggedTunableNumber ballThroughRpmMultiplier =
-      new LoggedTunableNumber("Shooter/Flywheel/BallThrough/RpmMultiplier", 1.02);
-
   public Flywheel(FlywheelIO io) {
     this.io = io;
   }
 
   public enum FlyWheelGoal {
     ZERO(new LoggedTunableNumber("Shooter/Flywheel/Goals/Zero", 0.0)),
-    AUTOIDLE(new LoggedTunableNumber("Shooter/Flywheel/Goals/AutoIdle", 3000)),
-    TELEIDLE(new LoggedTunableNumber("Shooter/Flywheel/Goals/TeleIdle", 2500)),
-    CUSTOM(new LoggedTunableNumber("Shooter/Flywheel/Goals/Custom", 2300)); // TODO: Tune this value
+    AUTOIDLE(
+        new LoggedTunableNumber(
+            "Shooter/Flywheel/Goals/AutoIdle",
+            ShooterConstants.FlywheelShotConstants.FLYWHEEL_GOAL_AUTOIDLE_RPM)),
+    TELEIDLE(
+        new LoggedTunableNumber(
+            "Shooter/Flywheel/Goals/TeleIdle",
+            ShooterConstants.FlywheelShotConstants.FLYWHEEL_GOAL_TELEIDLE_RPM)),
+    CUSTOM(
+        new LoggedTunableNumber(
+            "Shooter/Flywheel/Goals/Custom",
+            ShooterConstants.FlywheelShotConstants.FLYWHEEL_GOAL_CUSTOM_RPM));
 
     private final DoubleSupplier SHOOTER_SET_POINT_SUPPLIER;
 
@@ -78,12 +78,12 @@ public class Flywheel {
     }
   }
 
-  @AutoLogOutput(key = "Shooter/Flywheel/GoalSetpoint") private FlyWheelGoal goalSetpoint = FlyWheelGoal.ZERO;
+  @AutoLogOutput(key = "Shooter/Flywheel/GoalSetpoint")
+  private FlyWheelGoal goalSetpoint = FlyWheelGoal.ZERO;
 
   private boolean setpointMode = true;
 
   private double goalRPM = 0.0;
-
   public boolean nearGoal = false;
 
   /**
@@ -93,12 +93,17 @@ public class Flywheel {
   private double physicsLaunchEfficiencyScale = 1.0;
 
   public void setPhysicsLaunchEfficiencyScale(double scale) {
-    this.physicsLaunchEfficiencyScale = MathUtil.clamp(scale, 0.5, 2.5);
+    this.physicsLaunchEfficiencyScale =
+        MathUtil.clamp(
+            scale,
+            ShooterConstants.FlywheelShotConstants.PHYSICS_LAUNCH_EFFICIENCY_INPUT_MIN,
+            ShooterConstants.FlywheelShotConstants.PHYSICS_LAUNCH_EFFICIENCY_INPUT_MAX);
   }
 
   public void setGoalSetPoint(double goalRPM) {
     setpointMode = false;
-    this.goalRPM = goalRPM;
+    this.goalRPM =
+        MathUtil.clamp(goalRPM, 0.0, ShooterConstants.ComponentsConstants.Flywheel.FLYWHEEL_MAX_RPM);
   }
 
   public void setGoalSetPoint(FlyWheelGoal setpoint) {
@@ -106,19 +111,7 @@ public class Flywheel {
     this.goalSetpoint = setpoint;
   }
 
-  /** Tunable gain to offset RPM sag when a ball passes through the flywheels. */
-  public double getBallThroughRpmMultiplier() {
-    return ballThroughRpmMultiplier.get();
-  }
-
-  /** {@code launchRpm × ballThroughRpmMultiplier}, clamped to max flywheel RPM. */
-  public double compensateLaunchRpmForBallThrough(double launchRpmFromPhysics) {
-    return MathUtil.clamp(
-        launchRpmFromPhysics * ballThroughRpmMultiplier.get(),
-        0,
-        ShooterConstants.FlywheelConstants.FLYWHEEL_MAX_RPM);
-  }
-
+  @Override
   public void periodic() {
     io.updateInputs(inputs);
     Logger.processInputs("Shooter/Flywheel", inputs);
@@ -133,36 +126,56 @@ public class Flywheel {
         kS,
         kA);
 
-    LoggedTunableNumber.ifChanged(
-        hashCode(),
-        () ->
-            io.setMotionMagicConstraints(
-                MOTION_MAGIC_JERK.get(),
-                MOTION_MAGIC_ACCELERATION.get(),
-                MOTION_MAGIC_VELOCITY.get()),
-        MOTION_MAGIC_JERK,
-        MOTION_MAGIC_ACCELERATION,
-        MOTION_MAGIC_VELOCITY);
-
     if (setpointMode) {
-      goalRPM = goalSetpoint.getRPM()>ShooterConstants.FlywheelConstants.FLYWHEEL_MAX_RPM?ShooterConstants.FlywheelConstants.FLYWHEEL_MAX_RPM:goalSetpoint.getRPM();
+      goalRPM =
+          MathUtil.clamp(
+              goalSetpoint.getRPM(),
+              0.0,
+              ShooterConstants.ComponentsConstants.Flywheel.FLYWHEEL_MAX_RPM);
     }
 
-    io.runSetVelocity(goalRPM / 60);
-
-    Logger.recordOutput("Shooter/Flywheel/GoalRPM", goalRPM, RadiansPerSecond);
+    Logger.recordOutput("Shooter/Flywheel/GoalRPM", goalRPM, RPM);
     double toleranceBase = nearGoalRpmTolerance.get();
     double effectiveRpmTolerance = toleranceBase * physicsLaunchEfficiencyScale;
+    double measuredRpm =
+        ShooterConstants.LaunchCalculatorConstants.DUAL_WHEEL_SURFACE_BLEND
+            * (inputs.motorMeasuredVelocityRpm[0] + inputs.motorMeasuredVelocityRpm[1]);
+
     nearGoal =
         EqualsUtil.epsilonEquals(
-            (inputs.motorMeasuredVelocityRPM[0] + inputs.motorMeasuredVelocityRPM[1]) / 2,
+            measuredRpm,
             goalRPM,
             effectiveRpmTolerance);
-    Logger.recordOutput("Shooter/Flywheel/BallThrough/RpmMultiplier", ballThroughRpmMultiplier.get());
     Logger.recordOutput("Shooter/Flywheel/Ready/PhysicsLaunchEfficiencyScale", physicsLaunchEfficiencyScale);
     Logger.recordOutput("Shooter/Flywheel/Ready/NearGoalRpmTolerance", toleranceBase);
     Logger.recordOutput("Shooter/Flywheel/Ready/NearGoalRpmToleranceEffective", effectiveRpmTolerance);
     Logger.recordOutput("Shooter/Flywheel/NearGoal", nearGoal);
+    Logger.recordOutput("Shooter/Flywheel/MeasuredRpm", measuredRpm);
+    RobotState.getInstance()
+        .recordLauncherFlywheelSurfaceSpeedMps(getAverageWheelSurfaceVelocityMetersPerSec());
+  }
+
+  @Override
+  public void periodicAfterScheduler() {
+    io.runSetVelocity(goalRPM / ShooterConstants.LaunchCalculatorConstants.SECONDS_PER_MINUTE);
+  }
+
+  /**
+   * MA-style: each loop while the command runs, apply {@link LaunchCalculator#getParameters()} (after
+   * {@link frc.robot.commands.launcher.LaunchCoordinatorSubsystem} refreshes the calculator).
+   */
+  public Command runTrackTargetCommand() {
+    return runEnd(
+        () -> {
+          if (!RobotState.getInstance().isLauncherTracking()) {
+            return;
+          }
+          LaunchCalculator.LaunchingParameters p = LaunchCalculator.getInstance().getParameters();
+          if (p.isValid()) {
+            setGoalSetPoint(p.flywheelSpeed());
+          }
+        },
+        () -> setGoalSetPoint(FlyWheelGoal.ZERO));
   }
 
   public void setPID(double kP, double kI, double kD, double kS, double kV, double kA) {
@@ -170,14 +183,45 @@ public class Flywheel {
   }
 
   public double getMotorVelocityRPM() {
-    return (inputs.motorMeasuredVelocityRPM[0] + inputs.motorMeasuredVelocityRPM[1]) / 2;
+    return ShooterConstants.LaunchCalculatorConstants.DUAL_WHEEL_SURFACE_BLEND
+        * (inputs.motorMeasuredVelocityRpm[0] + inputs.motorMeasuredVelocityRpm[1]);
   }
 
   public double getMainFlyWheelVelocityRPM() {
-    return inputs.MainFlyWheelRPM;
+    return inputs.mainFlywheelRpm;
   }
 
   public double getHoodFlyWheelVelocityRPM() {
-    return inputs.HoodFlyWheelRPM;
+    return inputs.hoodFlywheelRpm;
+  }
+
+  /** Average top/bottom wheel RPM in wheel space (after reductions). */
+  public double getAverageWheelVelocityRPM() {
+    return ShooterConstants.LaunchCalculatorConstants.DUAL_WHEEL_SURFACE_BLEND
+        * (getMainFlyWheelVelocityRPM() + getHoodFlyWheelVelocityRPM());
+  }
+
+  /** Average top/bottom wheel surface speed in meters per second. */
+  public double getAverageWheelSurfaceVelocityMetersPerSec() {
+    double mainWheelSurfaceMps =
+        (getMainFlyWheelVelocityRPM() / ShooterConstants.LaunchCalculatorConstants.SECONDS_PER_MINUTE)
+            * Math.PI
+            * ShooterConstants.ComponentsConstants.Flywheel.MAIN_WHEEL_DIAMETER_METERS;
+    double hoodWheelSurfaceMps =
+        (getHoodFlyWheelVelocityRPM() / ShooterConstants.LaunchCalculatorConstants.SECONDS_PER_MINUTE)
+            * Math.PI
+            * ShooterConstants.ComponentsConstants.Flywheel.HOOD_WHEEL_DIAMETER_METERS;
+    return ShooterConstants.LaunchCalculatorConstants.DUAL_WHEEL_SURFACE_BLEND
+        * (mainWheelSurfaceMps + hoodWheelSurfaceMps);
+  }
+
+  /**
+   * Returns measured velocity as motor-equivalent RPM using top/bottom wheel velocities.
+   *
+   * <p>This averages wheel-surface speed from both wheels, then converts to the same RPM domain
+   * expected by {@link LaunchCalculator}.
+   */
+  public double getAverageWheelVelocityMotorEquivalentRPM() {
+    return LaunchCalculator.rpmFromSurfaceVelocity(getAverageWheelSurfaceVelocityMetersPerSec());
   }
 }

@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
+import org.littletonrobotics.junction.Logger;
 
 public class DriveCommands {
   private static final double DEADBAND = 0.1;
@@ -244,7 +245,7 @@ public class DriveCommands {
                 },
                 drive)
 
-            // When cancelled, calculate and print results
+            // When cancelled, calculate and log results
             .finallyDo(
                 () -> {
                   int n = velocitySamples.size();
@@ -262,9 +263,14 @@ public class DriveCommands {
                   double kV = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
 
                   NumberFormat formatter = new DecimalFormat("#0.00000");
-                  System.out.println("********** Drive FF Characterization Results **********");
-                  System.out.println("\tkS: " + formatter.format(kS));
-                  System.out.println("\tkV: " + formatter.format(kV));
+                  Logger.recordOutput("Drive/Characterization/Feedforward/kS", kS);
+                  Logger.recordOutput("Drive/Characterization/Feedforward/kV", kV);
+                  DriverStation.reportWarning(
+                      "Drive FF characterization complete: kS="
+                          + formatter.format(kS)
+                          + ", kV="
+                          + formatter.format(kV),
+                      false);
                 }));
   }
 
@@ -311,7 +317,7 @@ public class DriveCommands {
                       state.lastAngle = rotation;
                     })
 
-                // When cancelled, calculate and print results
+                // When cancelled, calculate and log results
                 .finallyDo(
                     () -> {
                       double[] positions = drive.getWheelRadiusCharacterizationPositions();
@@ -322,18 +328,23 @@ public class DriveCommands {
                       double wheelRadius = (state.gyroDelta * Drive.DRIVE_BASE_RADIUS) / wheelDelta;
 
                       NumberFormat formatter = new DecimalFormat("#0.000");
-                      System.out.println(
-                          "********** Wheel Radius Characterization Results **********");
-                      System.out.println(
-                          "\tWheel Delta: " + formatter.format(wheelDelta) + " radians");
-                      System.out.println(
-                          "\tGyro Delta: " + formatter.format(state.gyroDelta) + " radians");
-                      System.out.println(
-                          "\tWheel Radius: "
+                      Logger.recordOutput(
+                          "Drive/Characterization/WheelRadius/WheelDeltaRadians", wheelDelta);
+                      Logger.recordOutput(
+                          "Drive/Characterization/WheelRadius/GyroDeltaRadians", state.gyroDelta);
+                      Logger.recordOutput(
+                          "Drive/Characterization/WheelRadius/Meters", wheelRadius);
+                      DriverStation.reportWarning(
+                          "Wheel radius characterization complete: wheelDelta="
+                              + formatter.format(wheelDelta)
+                              + " rad, gyroDelta="
+                              + formatter.format(state.gyroDelta)
+                              + " rad, wheelRadius="
                               + formatter.format(wheelRadius)
-                              + " meters, "
+                              + " m ("
                               + formatter.format(Units.metersToInches(wheelRadius))
-                              + " inches");
+                              + " in)",
+                          false);
                     })));
   }
 

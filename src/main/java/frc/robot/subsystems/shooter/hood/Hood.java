@@ -1,63 +1,68 @@
 package frc.robot.subsystems.shooter.hood;
 
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.RobotState;
+import frc.robot.subsystems.shooter.LaunchCalculator;
 import frc.robot.subsystems.shooter.ShooterConstants;
 import frc.robot.util.EqualsUtil;
+import frc.robot.util.FullSubsystem;
 import frc.robot.util.LoggedTunableNumber;
 
 import static edu.wpi.first.units.Units.Degrees;
 
+import edu.wpi.first.math.util.Units;
 import java.util.function.DoubleSupplier;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
-public class Hood {
-  /**
-   * Hood subsystem
-   *
-   * <p>This class wraps a hardware-specific io implementation (HoodIO) and provides higher-level
-   * behaviors for commanding the hood angle. It: - Holds tunable PID and motion magic parameters
-   * (LoggedTunableNumber) - Tracks a desired goal angle (goalDeg) and whether the mechanism is near
-   * that goal (nearGoal) - Updates hardware each periodic loop and logs inputs/outputs via
-   * Littleton Robotics' Logger utilities.
-   *
-   * <p>The subsystem exposes commands (getSetpointCommand) which set the desired goal and finish
-   * when the hood reaches the target.
-   */
+public class Hood extends FullSubsystem {
   private final HoodIO io;
 
   private final HoodIOInputsAutoLogged inputs = new HoodIOInputsAutoLogged();
 
   private static final LoggedTunableNumber kP =
-      new LoggedTunableNumber("Shooter/Hood/Gains/kP", ShooterConstants.HoodConstants.HoodkP);
+      new LoggedTunableNumber(
+          "Shooter/Hood/Gains/kP", ShooterConstants.ComponentsConstants.Hood.Gains.kP);
   private static final LoggedTunableNumber kI =
-      new LoggedTunableNumber("Shooter/Hood/Gains/kI", ShooterConstants.HoodConstants.HoodkI);
+      new LoggedTunableNumber(
+          "Shooter/Hood/Gains/kI", ShooterConstants.ComponentsConstants.Hood.Gains.kI);
   private static final LoggedTunableNumber kD =
-      new LoggedTunableNumber("Shooter/Hood/Gains/kD", ShooterConstants.HoodConstants.HoodkD);
+      new LoggedTunableNumber(
+          "Shooter/Hood/Gains/kD", ShooterConstants.ComponentsConstants.Hood.Gains.kD);
   private static final LoggedTunableNumber kA =
-      new LoggedTunableNumber("Shooter/Hood/Gains/kA", ShooterConstants.HoodConstants.HoodkA);
+      new LoggedTunableNumber(
+          "Shooter/Hood/Gains/kA", ShooterConstants.ComponentsConstants.Hood.Gains.kA);
   private static final LoggedTunableNumber kV =
-      new LoggedTunableNumber("Shooter/Hood/Gains/kV", ShooterConstants.HoodConstants.HoodkV);
+      new LoggedTunableNumber(
+          "Shooter/Hood/Gains/kV", ShooterConstants.ComponentsConstants.Hood.Gains.kV);
   private static final LoggedTunableNumber kS =
-      new LoggedTunableNumber("Shooter/Hood/Gains/kS", ShooterConstants.HoodConstants.HoodkS);
+      new LoggedTunableNumber(
+          "Shooter/Hood/Gains/kS", ShooterConstants.ComponentsConstants.Hood.Gains.kS);
   private static final LoggedTunableNumber kG =
-      new LoggedTunableNumber("Shooter/Hood/Gains/kG", ShooterConstants.HoodConstants.HoodkG);
+      new LoggedTunableNumber(
+          "Shooter/Hood/Gains/kG", ShooterConstants.ComponentsConstants.Hood.Gains.kG);
 
   private static final LoggedTunableNumber MOTION_MAGIC_JERK =
       new LoggedTunableNumber(
-          "Shooter/Hood/MotionMagic/Jerk", ShooterConstants.HoodConstants.HoodMotionMagicJerk);
+          "Shooter/Hood/MotionMagic/Jerk",
+          ShooterConstants.ComponentsConstants.Hood.Gains.MotionMagic.jerk);
   private static final LoggedTunableNumber MOTION_MAGIC_ACCELERATION =
       new LoggedTunableNumber(
           "Shooter/Hood/MotionMagic/Acceleration",
-          ShooterConstants.HoodConstants.HoodMotionMagicAcceleration);
+          ShooterConstants.ComponentsConstants.Hood.Gains.MotionMagic.acceleration);
   private static final LoggedTunableNumber MOTION_MAGIC_VELOCITY =
       new LoggedTunableNumber(
-          "Shooter/Hood/MotionMagic/Velocity", ShooterConstants.HoodConstants.HoodMotionMagicVelocity);
+          "Shooter/Hood/MotionMagic/Velocity",
+          ShooterConstants.ComponentsConstants.Hood.Gains.MotionMagic.velocity);
   private static final LoggedTunableNumber MOTION_MAGIC_EXPO_kV =
       new LoggedTunableNumber(
-          "Shooter/Hood/MotionMagic/ExpoKv", ShooterConstants.HoodConstants.HoodMotionMagickV);
+          "Shooter/Hood/MotionMagic/ExpoKv",
+          ShooterConstants.ComponentsConstants.Hood.Gains.MotionMagic.expo_kV);
   private static final LoggedTunableNumber MOTION_MAGIC_EXPO_kA =
       new LoggedTunableNumber(
-          "Shooter/Hood/MotionMagic/ExpoKa", ShooterConstants.HoodConstants.HoodMotionMagickA);
+          "Shooter/Hood/MotionMagic/ExpoKa",
+          ShooterConstants.ComponentsConstants.Hood.Gains.MotionMagic.expo_kA);
 
   public Hood(HoodIO io) {
     this.io = io;
@@ -79,34 +84,38 @@ public class Hood {
     }
   }
 
-  @AutoLogOutput(key = "Shooter/Hood/GoalSetpoint") private HoodGoal goalSetpoint = HoodGoal.ZERO;
+  @AutoLogOutput(key = "Shooter/Hood/GoalSetpoint")
+  private HoodGoal goalSetpoint = HoodGoal.ZERO;
 
   private boolean setpointMode = true;
 
   private double goalDeg = 0.0;
 
   public boolean nearGoal = false;
+  public boolean settled = false;
+  private double lastMeasuredDeg = Double.NaN;
 
   public void setGoalSetPoint(double goal) {
-    if (goal < 25) {
-      setpointMode = false;
-      this.goalDeg = goal;
-    } else {
-      setpointMode = false;
-      this.goalDeg = 25;
-    }
+    setpointMode = false;
+    this.goalDeg =
+        Math.max(0.0, Math.min(goal, ShooterConstants.ComponentsConstants.Hood.MAX_DEGREE));
   }
 
   public void setGoalSetPoint(HoodGoal goal) {
-    if (goal.getDegrees() < ShooterConstants.HoodConstants.MAX_DEGREE) {
+    double clamped =
+        Math.max(
+            0.0,
+            Math.min(goal.getDegrees(), ShooterConstants.ComponentsConstants.Hood.MAX_DEGREE));
+    if (clamped == goal.getDegrees()) {
       setpointMode = true;
       this.goalSetpoint = goal;
     } else {
-      setpointMode = true;
-      this.goalDeg = ShooterConstants.HoodConstants.MAX_DEGREE;
+      setpointMode = false;
+      this.goalDeg = clamped;
     }
   }
 
+  @Override
   public void periodic() {
     io.updateInputs(inputs);
     Logger.processInputs("Shooter/Hood", inputs);
@@ -140,18 +149,51 @@ public class Hood {
     if (setpointMode) {
       goalDeg = goalSetpoint.getDegrees();
     }
+    goalDeg = MathUtil.clamp(goalDeg, 0.0, ShooterConstants.ComponentsConstants.Hood.MAX_DEGREE);
 
-    io.runSetpointDegree(goalDeg);
-
-    // Record the active goal for diagnostics and dashboards
     Logger.recordOutput("Shooter/Hood/GoalDegrees", goalDeg, Degrees);
 
-    // Determine if the hood is within a small tolerance of the goal.
-    // EqualsUtil.epsilonEquals compares two doubles within the given
-    // epsilon (1 degree here). This flag is used by setpoint commands
-    // to indicate completion.
-    nearGoal = EqualsUtil.epsilonEquals(inputs.measuredPostionDeg, goalDeg, 1);
+    nearGoal =
+        EqualsUtil.epsilonEquals(
+            inputs.measuredPostionDeg,
+            goalDeg,
+            ShooterConstants.READY_TO_SHOOT_HOOD_DEG_TOLERANCE);
+    double hoodVelDegPerSec = 0.0;
+    if (Double.isFinite(lastMeasuredDeg)) {
+      hoodVelDegPerSec =
+          Math.abs((inputs.measuredPostionDeg - lastMeasuredDeg) / frc.robot.Constants.loopPeriodSecs);
+    }
+    settled = hoodVelDegPerSec < ShooterConstants.READY_TO_SHOOT_HOOD_MAX_DEG_PER_SEC;
+    lastMeasuredDeg = inputs.measuredPostionDeg;
+    Logger.recordOutput("Shooter/Hood/VelocityDegPerSec", hoodVelDegPerSec);
     Logger.recordOutput("Shooter/Hood/nearGoal", nearGoal);
+    Logger.recordOutput("Shooter/Hood/settled", settled);
+    RobotState.getInstance()
+        .recordLauncherHoodMeasuredAngleRad(Units.degreesToRadians(inputs.measuredPostionDeg));
+  }
+
+  @Override
+  public void periodicAfterScheduler() {
+    io.runSetpointDegree(goalDeg);
+  }
+
+  public Command runTrackTargetCommand() {
+    return runEnd(
+        () -> {
+          if (!RobotState.getInstance().isLauncherTracking()) {
+            return;
+          }
+          LaunchCalculator.LaunchingParameters p = LaunchCalculator.getInstance().getParameters();
+          if (!p.isValid()) {
+            return;
+          }
+          if (RobotState.getInstance().isLauncherTrenchProtectionActive()) {
+            setGoalSetPoint(0.0);
+          } else {
+            setGoalSetPoint(Units.radiansToDegrees(p.hoodAngle()));
+          }
+        },
+        () -> setGoalSetPoint(HoodGoal.ZERO));
   }
 
   public void setPID(double kP, double kI, double kD, double kS, double kV, double kA, double kG) {
@@ -159,9 +201,11 @@ public class Hood {
   }
 
   public double getPositionDeg() {
-    // Expose the most recently-read set position (from motor closed-loop)
-    // Note: this returns the value stored in inputs, which is refreshed in
-    // periodic() by calling io.updateInputs(...).
     return inputs.setPostionDeg;
+  }
+
+  /** Returns the latest measured hood angle in degrees. */
+  public double getMeasuredAngleDeg() {
+    return inputs.measuredPostionDeg;
   }
 }
