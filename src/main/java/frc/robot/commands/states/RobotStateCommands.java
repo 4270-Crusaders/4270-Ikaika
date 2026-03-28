@@ -3,7 +3,7 @@ package frc.robot.commands.states;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import frc.robot.RobotContainer;
-import frc.robot.commands.launcher.LaunchCommands;
+import frc.robot.commands.shooter.ShooterCommands;
 import frc.robot.subsystems.indexer.Indexer;
 import frc.robot.subsystems.indexer.Indexer.INDEXER_STATE;
 import frc.robot.subsystems.intake.Intake;
@@ -55,66 +55,66 @@ public final class RobotStateCommands {
     return new ParallelCommandGroup(
         Intake.getSetStateCommand(INTAKE_STATE.DOWN, RobotContainer.intake),
         Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
-        LaunchCommands.getSetStateCommand(
-            frc.robot.RobotState.LauncherMode.IDLE, RobotContainer.launchCoordinator));
+        ShooterCommands.getSetStateCommand(
+            frc.robot.RobotState.ShooterMode.IDLE, RobotContainer.flywheel));
   }
 
   public static Command autoDefaultState() {
     return new ParallelCommandGroup(
         Intake.getSetStateCommand(INTAKE_STATE.DOWN, RobotContainer.intake),
         Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
-        LaunchCommands.getSetStateCommand(
-            frc.robot.RobotState.LauncherMode.IDLE, RobotContainer.launchCoordinator));
+        ShooterCommands.getSetStateCommand(
+            frc.robot.RobotState.ShooterMode.IDLE, RobotContainer.flywheel));
   }
 
   public static Command trenchState() {
     return new ParallelCommandGroup(
         Intake.getSetStateCommand(INTAKE_STATE.DOWN, RobotContainer.intake),
         Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
-        LaunchCommands.getSetStateCommand(
-            frc.robot.RobotState.LauncherMode.IDLE, RobotContainer.launchCoordinator));
+        ShooterCommands.getSetStateCommand(
+            frc.robot.RobotState.ShooterMode.IDLE, RobotContainer.flywheel));
   }
 
   public static Command hubFocusState() {
     return new ParallelCommandGroup(
         Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
-        LaunchCommands.getSetStateCommand(
-            frc.robot.RobotState.LauncherMode.HUB, RobotContainer.launchCoordinator));
+        ShooterCommands.getSetStateCommand(
+            frc.robot.RobotState.ShooterMode.HUB, RobotContainer.flywheel));
   }
 
   public static Command passFocusState() {
     return new ParallelCommandGroup(
         Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
-        LaunchCommands.getSetStateCommand(
-            frc.robot.RobotState.LauncherMode.PASS, RobotContainer.launchCoordinator));
+        ShooterCommands.getSetStateCommand(
+            frc.robot.RobotState.ShooterMode.PASS, RobotContainer.flywheel));
   }
 
   public static Command autoShootStateCommand() {
     return new ParallelCommandGroup(
         Indexer.getSetStateCommand(INDEXER_STATE.AUTOSHOOT, RobotContainer.indexer),
-        LaunchCommands.getSetStateCommand(
-            frc.robot.RobotState.LauncherMode.HUB, RobotContainer.launchCoordinator));
+        ShooterCommands.getSetStateCommand(
+            frc.robot.RobotState.ShooterMode.HUB, RobotContainer.flywheel));
   }
 
   public static Command autoShootPassState() {
     return new ParallelCommandGroup(
         Indexer.getSetStateCommand(INDEXER_STATE.AUTOSHOOT, RobotContainer.indexer),
-        LaunchCommands.getSetStateCommand(
-            frc.robot.RobotState.LauncherMode.PASS, RobotContainer.launchCoordinator));
+        ShooterCommands.getSetStateCommand(
+            frc.robot.RobotState.ShooterMode.PASS, RobotContainer.flywheel));
   }
 
   public static Command teleShootState() {
     return new ParallelCommandGroup(
         Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake),
         Indexer.getSetStateCommand(INDEXER_STATE.SHOOT, RobotContainer.indexer),
-        LaunchCommands.getSetStateCommand(
-            frc.robot.RobotState.LauncherMode.HUB, RobotContainer.launchCoordinator));
+        ShooterCommands.getSetStateCommand(
+            frc.robot.RobotState.ShooterMode.HUB, RobotContainer.flywheel));
   }
 
   public static Command customShootState() {
     return new ParallelCommandGroup(
-        LaunchCommands.getSetStateCommand(
-            frc.robot.RobotState.LauncherMode.CUSTOM, RobotContainer.launchCoordinator),
+        ShooterCommands.getSetStateCommand(
+            frc.robot.RobotState.ShooterMode.CUSTOM, RobotContainer.flywheel),
         Indexer.getSetStateCommand(INDEXER_STATE.SHOOT, RobotContainer.indexer));
   }
 

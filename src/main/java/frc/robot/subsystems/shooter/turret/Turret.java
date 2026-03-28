@@ -7,7 +7,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.RobotState;
-import frc.robot.subsystems.shooter.LaunchCalculator;
+import frc.robot.subsystems.shooter.ShooterCalculator;
 import frc.robot.subsystems.shooter.ShooterConstants;
 import frc.robot.util.EqualsUtil;
 import frc.robot.util.FullSubsystem;
@@ -148,6 +148,21 @@ public class Turret extends FullSubsystem {
     this.goalSetpoint = goal;
   }
 
+  /**
+   * Call when turret goal enums change after {@link #periodic()} so {@link #periodicAfterScheduler()}
+   * uses the new {@code commandedDeg}.
+   */
+  public void applySetpointForOutput() {
+    if (setpointMode) {
+      goalDeg = goalSetpoint.getDegrees();
+    }
+    commandedDeg = getNearestLegalGoalDeg(goalDeg, inputs.measuredPostionDeg);
+    double desiredNormDeg = normalizeGoalDeg(goalDeg);
+    constrainedBySoftLimit =
+        Math.abs(normalizeDeltaDeg(desiredNormDeg - commandedDeg))
+            > ShooterConstants.ComponentsConstants.Turret.SOFT_LIMIT_CONSTRAINT_TOLERANCE_DEG;
+  }
+
   @Override
   public void periodic() {
     io.updateInputs(inputs);
@@ -221,14 +236,15 @@ public class Turret extends FullSubsystem {
   public Command runTrackTargetCommand() {
     return runEnd(
         () -> {
-          if (!RobotState.getInstance().isLauncherTracking()) {
+          RobotState rs = RobotState.getInstance();
+          if (!rs.isShooterTracking() && !rs.isShooterIdleTurretAiming()) {
             return;
           }
-          LaunchCalculator.LaunchingParameters p = LaunchCalculator.getInstance().getParameters();
+          ShooterCalculator.ShootingParameters p = ShooterCalculator.getInstance().getParameters();
           if (!p.isValid()) {
             return;
           }
-          if (RobotState.getInstance().isLauncherTrenchProtectionActive()) {
+          if (RobotState.getInstance().isShooterTrenchProtectionActive()) {
             setGoalSetPoint(0.0);
           } else {
             Rotation2d robotAngle = RobotState.getInstance().getEstimatedPose().getRotation();

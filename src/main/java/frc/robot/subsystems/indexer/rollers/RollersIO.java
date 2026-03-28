@@ -2,36 +2,43 @@ package frc.robot.subsystems.indexer.rollers;
 
 import org.littletonrobotics.junction.AutoLog;
 
+/** Hardware abstraction for indexer rollers (velocity or voltage). */
 public interface RollersIO {
   @AutoLog
   public static class RollersIOInputs {
+    /** Mechanism position in radians (sensor). */
     public double positionRad = 0.0;
+
     public double appliedVolts = 0.0;
     public double torqueCurrentAmps = 0.0;
     public double supplyCurrentAmps = 0.0;
+    /** Closed-loop velocity reference, rotations per second. */
     public double motorSetpointVelocityRPS = 0.0;
+
     public double motorMeasuredVelocityRPS = 0.0;
+    /** Measured rotor speed in revolutions per minute. */
     public double motorMeasuredVelocityRPM = 0.0;
+
     public double deviceTemperature = 0.0;
   }
 
   /**
-   * Sets PID values for subsystem
+   * Applies PID and feedforward gains to Talon slot 0.
    *
-   * @param kP P val
-   * @param kI I valw
-   * @param kD D val
-   * @param kS S val
-   * @param kV V val
-   * @param kA A val
+   * @param kP proportional gain
+   * @param kI integral gain
+   * @param kD derivative gain
+   * @param kS static friction feedforward
+   * @param kV velocity feedforward
+   * @param kA acceleration feedforward
    */
-  public default void setPID(double kP, double kI, double kD, double kS, double kV, double kA) {}
+  default void setPID(double kP, double kI, double kD, double kS, double kV, double kA) {}
 
-  public default void updateInputs(RollersIOInputs inputs) {}
-  ;
+  default void updateInputs(RollersIOInputs inputs) {}
 
-  /** Run open loop at the specified voltage. */
-  public default void runSetVoltage(double voltage) {}
+  /** Open-loop voltage (volts). */
+  default void runSetVoltage(double voltageVolts) {}
 
-  public default void runVelocityRPM(double RPM) {}
+  /** Closed-loop velocity target in revolutions per minute. */
+  default void runVelocityRPM(double rpm) {}
 }

@@ -15,37 +15,40 @@ import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.subsystems.indexer.IndexerConstants;
 
+/** Real-hardware {@link KickerIO} using a Talon FX. */
 public class KickerIOTalonFX implements KickerIO {
-  private final TalonFX LeadMotor = new TalonFX(IndexerConstants.KickerConstants.KICKER_CAN_ID);
+  private final TalonFX leadMotor =
+      new TalonFX(IndexerConstants.ComponentsConstants.Kicker.CAN_ID);
 
-  private final StatusSignal<AngularVelocity> measuredVeloRPS = LeadMotor.getVelocity();
-  private final StatusSignal<Double> setVeloRPS = LeadMotor.getClosedLoopReference();
-  private final StatusSignal<Angle> position = LeadMotor.getPosition();
-  private final StatusSignal<Voltage> appliedVoltage = LeadMotor.getMotorVoltage();
-  private final StatusSignal<Current> supplyCurrentAmps = LeadMotor.getSupplyCurrent();
-  private final StatusSignal<Current> torqueCurrentAmps = LeadMotor.getTorqueCurrent();
-  private final StatusSignal<Temperature> deviceTemperature = LeadMotor.getDeviceTemp();
+  private final StatusSignal<AngularVelocity> measuredVeloRPS = leadMotor.getVelocity();
+  private final StatusSignal<Double> setVeloRPS = leadMotor.getClosedLoopReference();
+  private final StatusSignal<Angle> position = leadMotor.getPosition();
+  private final StatusSignal<Voltage> appliedVoltage = leadMotor.getMotorVoltage();
+  private final StatusSignal<Current> supplyCurrentAmps = leadMotor.getSupplyCurrent();
+  private final StatusSignal<Current> torqueCurrentAmps = leadMotor.getTorqueCurrent();
+  private final StatusSignal<Temperature> deviceTemperature = leadMotor.getDeviceTemp();
 
   private final VoltageOut voltageRequest = new VoltageOut(0.0);
   private final VelocityVoltage velocityRequest = new VelocityVoltage(0.0);
 
-  private TalonFXConfiguration config = new TalonFXConfiguration();
+  private final TalonFXConfiguration config = new TalonFXConfiguration();
 
   public KickerIOTalonFX() {
-    config.CurrentLimits.SupplyCurrentLimit = IndexerConstants.KickerConstants.KICKER_CURRENT_LIMIT;
+    config.CurrentLimits.SupplyCurrentLimit =
+        IndexerConstants.ComponentsConstants.Kicker.CURRENT_LIMIT;
     config.CurrentLimits.SupplyCurrentLimitEnable =
-        IndexerConstants.KickerConstants.KICKER_CURRENT_LIMIT_ENABLE;
-    config.MotorOutput.NeutralMode = IndexerConstants.KickerConstants.KICKER_NEUTRAL_MODE_VALUE;
-    config.MotorOutput.Inverted = IndexerConstants.KickerConstants.KICKER_INVERTED_VALUE;
+        IndexerConstants.ComponentsConstants.Kicker.CURRENT_LIMIT_ENABLE;
+    config.MotorOutput.NeutralMode = IndexerConstants.ComponentsConstants.Kicker.NEUTRAL_MODE;
+    config.MotorOutput.Inverted = IndexerConstants.ComponentsConstants.Kicker.INVERTED;
 
-    config.Slot0.kI = IndexerConstants.KickerConstants.kI;
-    config.Slot0.kP = IndexerConstants.KickerConstants.kP;
-    config.Slot0.kD = IndexerConstants.KickerConstants.kD;
-    config.Slot0.kA = IndexerConstants.KickerConstants.kA;
-    config.Slot0.kV = IndexerConstants.KickerConstants.kV;
-    config.Slot0.kS = IndexerConstants.KickerConstants.kS;
+    config.Slot0.kI = IndexerConstants.ComponentsConstants.Kicker.Gains.kI;
+    config.Slot0.kP = IndexerConstants.ComponentsConstants.Kicker.Gains.kP;
+    config.Slot0.kD = IndexerConstants.ComponentsConstants.Kicker.Gains.kD;
+    config.Slot0.kA = IndexerConstants.ComponentsConstants.Kicker.Gains.kA;
+    config.Slot0.kV = IndexerConstants.ComponentsConstants.Kicker.Gains.kV;
+    config.Slot0.kS = IndexerConstants.ComponentsConstants.Kicker.Gains.kS;
 
-    tryUntilOk(5, () -> LeadMotor.getConfigurator().apply(config, 0.25));
+    tryUntilOk(5, () -> leadMotor.getConfigurator().apply(config, 0.25));
 
     BaseStatusSignal.setUpdateFrequencyForAll(
         50.0,
@@ -87,16 +90,16 @@ public class KickerIOTalonFX implements KickerIO {
     config.Slot0.kS = kS;
     config.Slot0.kV = kV;
     config.Slot0.kA = kA;
-    tryUntilOk(5, () -> LeadMotor.getConfigurator().apply(config));
+    tryUntilOk(5, () -> leadMotor.getConfigurator().apply(config));
   }
 
   @Override
   public void runSetVoltage(double voltage) {
-    LeadMotor.setControl(voltageRequest.withEnableFOC(true).withOutput(voltage));
+    leadMotor.setControl(voltageRequest.withEnableFOC(true).withOutput(voltage));
   }
 
   @Override
-  public void runVelocityRPM(double RPM) {
-    LeadMotor.setControl(velocityRequest.withVelocity(RPM / 60).withEnableFOC(true));
+  public void runVelocityRPM(double rpm) {
+    leadMotor.setControl(velocityRequest.withVelocity(rpm / 60.0).withEnableFOC(true));
   }
 }

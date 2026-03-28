@@ -7,22 +7,29 @@ import java.util.function.DoubleSupplier;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
+/** Indexer conveyor motor (velocity or voltage). */
 public class Conveyor {
   private final ConveyorIO io;
   private final ConveyorIOInputsAutoLogged inputs = new ConveyorIOInputsAutoLogged();
 
   private static final LoggedTunableNumber kP =
-      new LoggedTunableNumber("Indexer/Conveyor/Gains/kP", IndexerConstants.ConveyorConstants.kP);
+      new LoggedTunableNumber(
+          "Indexer/Conveyor/Gains/kP", IndexerConstants.ComponentsConstants.Conveyor.Gains.kP);
   private static final LoggedTunableNumber kI =
-      new LoggedTunableNumber("Indexer/Conveyor/Gains/kI", IndexerConstants.ConveyorConstants.kI);
+      new LoggedTunableNumber(
+          "Indexer/Conveyor/Gains/kI", IndexerConstants.ComponentsConstants.Conveyor.Gains.kI);
   private static final LoggedTunableNumber kD =
-      new LoggedTunableNumber("Indexer/Conveyor/Gains/kD", IndexerConstants.ConveyorConstants.kD);
+      new LoggedTunableNumber(
+          "Indexer/Conveyor/Gains/kD", IndexerConstants.ComponentsConstants.Conveyor.Gains.kD);
   private static final LoggedTunableNumber kA =
-      new LoggedTunableNumber("Indexer/Conveyor/Gains/kA", IndexerConstants.ConveyorConstants.kA);
+      new LoggedTunableNumber(
+          "Indexer/Conveyor/Gains/kA", IndexerConstants.ComponentsConstants.Conveyor.Gains.kA);
   private static final LoggedTunableNumber kV =
-      new LoggedTunableNumber("Indexer/Conveyor/Gains/kV", IndexerConstants.ConveyorConstants.kV);
+      new LoggedTunableNumber(
+          "Indexer/Conveyor/Gains/kV", IndexerConstants.ComponentsConstants.Conveyor.Gains.kV);
   private static final LoggedTunableNumber kS =
-      new LoggedTunableNumber("Indexer/Conveyor/Gains/kS", IndexerConstants.ConveyorConstants.kS);
+      new LoggedTunableNumber(
+          "Indexer/Conveyor/Gains/kS", IndexerConstants.ComponentsConstants.Conveyor.Gains.kS);
 
   public enum ConveyorGoal {
     ZERO(new LoggedTunableNumber("Indexer/Conveyor/Goals/Zero", 0)),
@@ -32,50 +39,53 @@ public class Conveyor {
     SPIT(new LoggedTunableNumber("Indexer/Conveyor/Goals/Spit", -5000)),
     CUSTOM(new LoggedTunableNumber("Indexer/Conveyor/Goals/Custom", 100));
 
-    private final DoubleSupplier ConveyorSetpointSupplier;
+    private final DoubleSupplier setpointSupplier;
 
-    private ConveyorGoal(DoubleSupplier ConveyorSetpointSupplier) {
-      this.ConveyorSetpointSupplier = ConveyorSetpointSupplier;
+    ConveyorGoal(DoubleSupplier setpointSupplier) {
+      this.setpointSupplier = setpointSupplier;
     }
 
     private double getRPM() {
-      return ConveyorSetpointSupplier.getAsDouble();
+      return setpointSupplier.getAsDouble();
     }
   }
 
-  @AutoLogOutput(key = "Indexer/Conveyor/GoalSetpoint") private ConveyorGoal goalSetpoint = ConveyorGoal.ZERO;
+  @AutoLogOutput(key = "Indexer/Conveyor/GoalSetpoint")
+  private ConveyorGoal goalSetpoint = ConveyorGoal.ZERO;
 
-  boolean closedLoop = true;
-
+  private boolean velocityClosedLoop = true;
   private double goalRPM = 0.0;
-
   private boolean nearGoal = false;
-
-  public void setGoalSetPoint(ConveyorGoal goal) {
-    closedLoop = true;
-    this.goalSetpoint = goal;
-  }
-
-  public void setManualVoltage(double voltage) {
-    closedLoop = false;
-    io.runSetVoltage(voltage);
-  }
 
   public Conveyor(ConveyorIO io) {
     this.io = io;
   }
 
+  /** Velocity closed-loop to the RPM from {@code goal}. */
+  public void setGoalSetPoint(ConveyorGoal goal) {
+    velocityClosedLoop = true;
+    this.goalSetpoint = goal;
+  }
+
+  /** Open-loop output; disables velocity command until {@link #setGoalSetPoint}. */
+  public void setManualVoltage(double voltageVolts) {
+    velocityClosedLoop = false;
+    io.runSetVoltage(voltageVolts);
+  }
+
+  /** Updates logging, PID refresh, and velocity/voltage command. */
   public void periodic() {
     io.updateInputs(inputs);
     Logger.processInputs("Indexer/Conveyor", inputs);
 
-    // motion magic setpoint code
-    if (closedLoop) {
+    if (velocityClosedLoop) {
       goalRPM = goalSetpoint.getRPM();
       io.runVelocityRPM(goalRPM);
     }
 
-    nearGoal = EqualsUtil.epsilonEquals(inputs.motorMeasuredVelocityRPM, goalRPM, 5);
+    nearGoal =
+        EqualsUtil.epsilonEquals(
+            inputs.motorMeasuredVelocityRPM, goalRPM, IndexerConstants.NEAR_GOAL_RPM_TOLERANCE);
     Logger.recordOutput("Indexer/Conveyor/nearGoal", nearGoal);
 
     LoggedTunableNumber.ifChanged(
@@ -88,14 +98,4 @@ public class Conveyor {
         kS,
         kA);
   }
-
-  public void getSetVoltage(double goal) {
-    setManualVoltage(goal);
-  }
-  ;
-
-  public void Setpoint(ConveyorGoal goalSetPoint) {
-    setGoalSetPoint(goalSetPoint);
-  }
-  ;
 }

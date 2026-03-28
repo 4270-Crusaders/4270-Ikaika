@@ -29,7 +29,6 @@ public class Robot extends LoggedRobot {
   private Command autonomousCommand;
   private RobotContainer robotContainer;
 
-  private boolean started = false;
   private double lastLoopTimestampSec = Double.NaN;
   private double maxLoopDtSec = 0.0;
 
@@ -76,7 +75,6 @@ public class Robot extends LoggedRobot {
     // Instantiate our RobotContainer. This will perform all our button bindings,
     // and put our autonomous chooser on the dashboard.
     robotContainer = new RobotContainer();
-    started = true;
   }
 
   @Override
@@ -111,13 +109,11 @@ public class Robot extends LoggedRobot {
     // the Command-based framework to work.
     CommandScheduler.getInstance().run();
 
+    RobotContainer.runShooterCoordinationAfterScheduler();
+
     FullSubsystem.runAllPeriodicAfterScheduler();
 
     Threads.setCurrentThreadPriority(false, 10);
-
-    if (started) {
-      robotContainer.periodic();
-    }
   }
 
   /** This function is called once when the robot is disabled. */

@@ -56,14 +56,24 @@ public class RobotState {
       };
   private Rotation2d gyroOffset = Rotation2d.kZero;
 
-  @Getter @Setter private ChassisSpeeds robotVelocity = new ChassisSpeeds();
+  @Getter private ChassisSpeeds robotVelocity = new ChassisSpeeds();
+
+  /**
+   * Robot-frame chassis acceleration from finite differencing {@link #setRobotVelocity} (vx, vy in
+   * m/s^2, omega in rad/s^2). Used for moving-target lead with constant-acceleration correction.
+   */
+  @Getter private ChassisSpeeds robotAcceleration = new ChassisSpeeds();
+
+  private boolean robotVelocityInitializedForAccel = false;
   @Getter @Setter @AutoLogOutput private boolean shooterReadyToShoot = false;
 
   /**
-   * High-level launcher / aim mode. {@link #IDLE} holds hood and turret at zero and flywheel at teleop
-   * idle RPM; not a tracking mode.
+   * High-level shooter / aim mode. {@link #IDLE} keeps flywheel at idle and hood stowed while the
+   * turret tracks hub or pass 3D aim by field X vs {@link
+   * frc.robot.subsystems.shooter.ShooterConstants.ShooterAimConstants#passPoint} (see {@link
+   * #isShooterIdleTurretAiming()}).
    */
-  public enum LauncherMode {
+  public enum ShooterMode {
     IDLE,
     HUB,
     PASS,
@@ -71,58 +81,69 @@ public class RobotState {
     POINT_3D
   }
 
-  @Getter @Setter private LauncherMode launcherMode = LauncherMode.IDLE;
+  @Getter @Setter private ShooterMode shooterMode = ShooterMode.IDLE;
 
   /**
-   * Field-consistent 3D aim point for {@link LauncherMode#POINT_3D} (updated from blue perspective via
-   * {@link #applyLauncherPoint3dTargetBlue}).
+   * Field-consistent 3D aim point for {@link ShooterMode#POINT_3D} (updated from blue perspective via
+   * {@link #applyShooterPoint3dTargetBlue}).
    */
-  @Getter @Setter private Translation3d launcherPoint3dTarget =
-      AllianceFlipUtil.apply(FieldConstants.Hub.topCenterPoint);
+  @Getter @Setter private Translation3d shooterPoint3dTarget =
+      AllianceFlipUtil.apply(FieldConstants.Hub.innerCenterPoint);
 
-  public boolean isLauncherTracking() {
-    return launcherMode == LauncherMode.HUB
-        || launcherMode == LauncherMode.PASS
-        || launcherMode == LauncherMode.POINT_3D;
+  public boolean isShooterTracking() {
+    return shooterMode == ShooterMode.HUB
+        || shooterMode == ShooterMode.PASS
+        || shooterMode == ShooterMode.POINT_3D;
+  }
+
+  /** {@link ShooterMode#IDLE}: turret follows shooter aim solve (hub or pass target); mechanisms idle. */
+  public boolean isShooterIdleTurretAiming() {
+    return shooterMode == ShooterMode.IDLE;
   }
 
   /**
    * Blue-field target in meters; alliance flip applied so it matches estimated pose, then switches to
-   * {@link LauncherMode#POINT_3D}.
+   * {@link ShooterMode#POINT_3D}.
    */
-  public void applyLauncherPoint3dTargetBlue(Translation3d targetFieldBluePerspective) {
-    this.launcherPoint3dTarget = AllianceFlipUtil.apply(targetFieldBluePerspective);
-    this.launcherMode = LauncherMode.POINT_3D;
+  public void applyShooterPoint3dTargetBlue(Translation3d targetFieldBluePerspective) {
+    this.shooterPoint3dTarget = AllianceFlipUtil.apply(targetFieldBluePerspective);
+    this.shooterMode = ShooterMode.POINT_3D;
   }
 
   /**
    * Measured average flywheel surface speed (m/s); updated from {@link
    * frc.robot.subsystems.shooter.flywheel.Flywheel#periodic}.
    */
-  @Getter @AutoLogOutput private double launcherFlywheelSurfaceSpeedMps = 0.0;
-
-  /** Measured hood angle (rad above hinge zero); updated from {@link frc.robot.subsystems.shooter.hood.Hood#periodic}. */
-  @Getter @AutoLogOutput private double launcherHoodMeasuredAngleRad = 0.0;
+  @Getter @AutoLogOutput private double shooterFlywheelSurfaceSpeedMps = 0.0;
 
   /**
-   * Ballistic solve inputs for {@link frc.robot.subsystems.shooter.LaunchCalculator}; set by {@link
-   * frc.robot.commands.launcher.LaunchCoordinatorSubsystem} while tracking, cleared with the calculator
-   * cache.
+   * Measured hood angle (rad, mechanical Talon/CANcoder frame, {@link
+   * frc.robot.subsystems.shooter.ShooterConstants#SHOOTER_HOOD_SETPOINT_MIN_DEG}..{@link
+   * frc.robot.subsystems.shooter.ShooterConstants#SHOOTER_HOOD_SETPOINT_MAX_DEG}); not physics shot elevation theta.
+   * Updated from {@link frc.robot.subsystems.shooter.hood.Hood#periodic}.
    */
-  @Getter private boolean launcherSolveInputsValid = false;
+  @Getter @AutoLogOutput private double shooterHoodMeasuredAngleRad = 0.0;
 
-  @Getter private Pose3d launcherSolveShooterLaunchPose3d = Pose3d.kZero;
-  @Getter private Translation3d launcherSolveShooterVelocity3d = Translation3d.kZero;
-  @Getter private Translation3d launcherSolveTarget3d = Translation3d.kZero;
+  /**
+   * Ballistic solve inputs for {@link frc.robot.subsystems.shooter.ShooterCalculator}; set by {@link
+   * frc.robot.subsystems.shooter.ShooterCalculator#coordinateAfterScheduler} while tracking, cleared with
+   * the calculator cache.
+   */
+  @Getter private boolean shooterSolveInputsValid = false;
 
-  /** {@code true} means {@link frc.robot.subsystems.shooter.LaunchCalculator.ArcSelection#LOW}. */
-  @Getter private boolean launcherSolveUseLowArc = false;
+  @Getter private Pose3d shooterSolvePose3d = Pose3d.kZero;
+  @Getter private Translation3d shooterSolveVelocity3d = Translation3d.kZero;
+  @Getter private Translation3d shooterSolveAcceleration3d = Translation3d.kZero;
+  @Getter private Translation3d shooterSolveTarget3d = Translation3d.kZero;
 
-  @Getter @AutoLogOutput private boolean launcherFlywheelNearGoal = false;
-  @Getter @AutoLogOutput private boolean launcherHoodNearGoal = false;
-  @Getter @AutoLogOutput private boolean launcherTurretNearGoal = false;
-  @Getter @AutoLogOutput private boolean launcherTurretConstrained = false;
-  @Getter @AutoLogOutput private boolean launcherTrenchProtectionActive = false;
+  /** {@code true} means {@link frc.robot.subsystems.shooter.ShooterCalculator.ArcSelection#LOW}. */
+  @Getter private boolean shooterSolveUseLowArc = false;
+
+  @Getter @AutoLogOutput private boolean shooterFlywheelNearGoal = false;
+  @Getter @AutoLogOutput private boolean shooterHoodNearGoal = false;
+  @Getter @AutoLogOutput private boolean shooterTurretNearGoal = false;
+  @Getter @AutoLogOutput private boolean shooterTurretConstrained = false;
+  @Getter @AutoLogOutput private boolean shooterTrenchProtectionActive = false;
 
   // MARK: - Initialization
 
@@ -150,6 +171,8 @@ public class RobotState {
     estimatedPose = pose;
     odometryPose = pose;
     poseBuffer.clear();
+    robotVelocityInitializedForAccel = false;
+    robotAcceleration = new ChassisSpeeds();
   }
 
   /** Get the rotation of the estimated pose. */
@@ -159,6 +182,25 @@ public class RobotState {
 
   public ChassisSpeeds getFieldVelocity() {
     return ChassisSpeeds.fromRobotRelativeSpeeds(robotVelocity, getRotation());
+  }
+
+  /**
+   * Updates measured chassis velocity (from swerve odometry) and derives {@link #robotAcceleration}
+   * via {@code (v - v_prev) / dt}. Call once per main loop ({@link frc.robot.Constants#loopPeriodSecs}).
+   */
+  public void setRobotVelocity(ChassisSpeeds newVelocity) {
+    double dt = Constants.loopPeriodSecs;
+    if (robotVelocityInitializedForAccel && dt > 1e-9) {
+      robotAcceleration =
+          new ChassisSpeeds(
+              (newVelocity.vxMetersPerSecond - robotVelocity.vxMetersPerSecond) / dt,
+              (newVelocity.vyMetersPerSecond - robotVelocity.vyMetersPerSecond) / dt,
+              (newVelocity.omegaRadiansPerSecond - robotVelocity.omegaRadiansPerSecond) / dt);
+    } else {
+      robotVelocityInitializedForAccel = true;
+      robotAcceleration = new ChassisSpeeds();
+    }
+    this.robotVelocity = newVelocity;
   }
 
   @AutoLogOutput
@@ -198,42 +240,44 @@ public class RobotState {
     turretAngleBuffer.addSample(observation.timestamp(), observation.turretAngle);
   }
 
-  public void recordLauncherFlywheelSurfaceSpeedMps(double flywheelSurfaceSpeedMps) {
-    this.launcherFlywheelSurfaceSpeedMps = flywheelSurfaceSpeedMps;
+  public void recordShooterFlywheelSurfaceSpeedMps(double flywheelSurfaceSpeedMps) {
+    this.shooterFlywheelSurfaceSpeedMps = flywheelSurfaceSpeedMps;
   }
 
-  public void recordLauncherHoodMeasuredAngleRad(double hoodAngleRad) {
-    this.launcherHoodMeasuredAngleRad = hoodAngleRad;
+  public void recordShooterHoodMeasuredAngleRad(double hoodAngleRad) {
+    this.shooterHoodMeasuredAngleRad = hoodAngleRad;
   }
 
-  public void setLauncherSolveInputs(
-      Pose3d shooterLaunchPose3d,
+  public void setShooterSolveInputs(
+      Pose3d shooterPose3d,
       Translation3d shooterVelocity3d,
+      Translation3d shooterAcceleration3d,
       Translation3d target3d,
       boolean useLowArc) {
-    this.launcherSolveShooterLaunchPose3d = shooterLaunchPose3d;
-    this.launcherSolveShooterVelocity3d = shooterVelocity3d;
-    this.launcherSolveTarget3d = target3d;
-    this.launcherSolveUseLowArc = useLowArc;
-    this.launcherSolveInputsValid = true;
+    this.shooterSolvePose3d = shooterPose3d;
+    this.shooterSolveVelocity3d = shooterVelocity3d;
+    this.shooterSolveAcceleration3d = shooterAcceleration3d;
+    this.shooterSolveTarget3d = target3d;
+    this.shooterSolveUseLowArc = useLowArc;
+    this.shooterSolveInputsValid = true;
   }
 
-  public void clearLauncherSolveInputs() {
-    launcherSolveInputsValid = false;
+  public void clearShooterSolveInputs() {
+    shooterSolveInputsValid = false;
   }
 
-  /** Publishes launcher readiness flags (mechanism measurements live on this class separately). */
-  public void recordLauncherMechanismProcess(
+  /** Publishes shooter readiness flags (mechanism measurements live on this class separately). */
+  public void recordShooterMechanismProcess(
       boolean flywheelNearGoal,
       boolean hoodNearGoal,
       boolean turretNearGoal,
       boolean turretConstrained,
       boolean trenchProtectionActive) {
-    this.launcherFlywheelNearGoal = flywheelNearGoal;
-    this.launcherHoodNearGoal = hoodNearGoal;
-    this.launcherTurretNearGoal = turretNearGoal;
-    this.launcherTurretConstrained = turretConstrained;
-    this.launcherTrenchProtectionActive = trenchProtectionActive;
+    this.shooterFlywheelNearGoal = flywheelNearGoal;
+    this.shooterHoodNearGoal = hoodNearGoal;
+    this.shooterTurretNearGoal = turretNearGoal;
+    this.shooterTurretConstrained = turretConstrained;
+    this.shooterTrenchProtectionActive = trenchProtectionActive;
   }
 
   /** Adds a new vision pose observation from the vision subsystem. */

@@ -11,7 +11,6 @@ import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose3d;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -56,15 +55,6 @@ public class Vision extends SubsystemBase {
     }
   }
 
-  /**
-   * Returns the X angle to the best target, which can be used for simple servoing with vision.
-   *
-   * @param cameraIndex The index of the camera to use.
-   */
-  public Rotation2d getTargetX(int cameraIndex) {
-    return inputs[cameraIndex].latestTargetObservation.tx();
-  }
-
   @Override
   public void periodic() {
     for (int i = 0; i < io.length; i++) {
@@ -72,10 +62,12 @@ public class Vision extends SubsystemBase {
       Logger.processInputs("Vision/Camera" + Integer.toString(i), inputs[i]);
     }
 
-    allTagPoses.clear();
-    allRobotPoses.clear();
-    allRobotPosesAccepted.clear();
-    allRobotPosesRejected.clear();
+    if (VisionConstants.logDetailedPoses) {
+      allTagPoses.clear();
+      allRobotPoses.clear();
+      allRobotPosesAccepted.clear();
+      allRobotPosesRejected.clear();
+    }
     robotStateVisionObservations.clear();
 
     // Loop over cameras
@@ -158,11 +150,11 @@ public class Vision extends SubsystemBase {
         Logger.recordOutput(camPrefix + "/RobotPoses", robotPoses.toArray(new Pose3d[0]));
         Logger.recordOutput(camPrefix + "/RobotPosesAccepted", robotPosesAccepted.toArray(new Pose3d[0]));
         Logger.recordOutput(camPrefix + "/RobotPosesRejected", robotPosesRejected.toArray(new Pose3d[0]));
+        allTagPoses.addAll(tagPoses);
+        allRobotPoses.addAll(robotPoses);
+        allRobotPosesAccepted.addAll(robotPosesAccepted);
+        allRobotPosesRejected.addAll(robotPosesRejected);
       }
-      allTagPoses.addAll(tagPoses);
-      allRobotPoses.addAll(robotPoses);
-      allRobotPosesAccepted.addAll(robotPosesAccepted);
-      allRobotPosesRejected.addAll(robotPosesRejected);
     }
 
     if (VisionConstants.logDetailedPoses) {

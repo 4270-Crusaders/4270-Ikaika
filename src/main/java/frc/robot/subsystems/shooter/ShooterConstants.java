@@ -81,10 +81,23 @@ public class ShooterConstants {
       public static final double MIN_DEGREE = 0;
 
       /**
-       * Mechanical hood: {@code 0°} = exit toward the sky, {@code 90°} = exit horizontal forward.
-       * Commanded angle is {@code 90° − θ + offset} where θ is launch angle above horizontal (deg).
+       * Mechanical hood angle {@code m} (what the Talon commands, deg) vs shot elevation {@code theta}
+       * above horizontal (deg, ballistics). Positive constant {@code k} matches the field convention
+       * "add {@code k} to motor reading for slope-from-vertical" and "subtract {@code k} when going from
+       * right-angle reference to motor degrees":
+       *
+       * <p>{@code slopeFromVertical_deg = m + k} (at {@code m = 0}, slope is {@code k} deg from vertical).
+       *
+       * <p>{@code theta = 90 deg - m - k} and {@code m = 90 deg - theta - k}.
+       *
+       * <p>Example: {@code k = 14} gives {@code theta = 76 deg} when {@code m = 0}.
+       *
+       * <p>Convert to/from physics for solves and commands only through {@link
+       * frc.robot.subsystems.shooter.ShooterCalculator#physicsThetaRadFromMechanicalHoodDeg} and {@link
+       * frc.robot.subsystems.shooter.ShooterCalculator#mechanicalHoodAngleRadFromPhysicsTheta} so limits
+       * and ballistics stay consistent.
        */
-      public static final double MECHANICAL_ANGLE_OFFSET_DEG = -14;
+      public static final double MECHANICAL_ANGLE_OFFSET_DEG = 14;
       public static final int HOOD_ENCODER_CAN_ID = 23;
       public static final double sensorToMechanismRatio = -21.1428571; // 296/14
       public static final double rotorToSensorRatio = -5.25000001; // 42/8
@@ -156,12 +169,21 @@ public class ShooterConstants {
     }
   }
 
+  /**
+   * Talon hood setpoint range (deg). Prefer these over {@code ComponentsConstants.Hood.MIN/MAX_DEGREE}
+   * from {@link frc.robot.subsystems.shooter.hood.Hood} (avoids {@code .Hood.*} name clashes with that
+   * class in some parsers).
+   */
+  public static final double SHOOTER_HOOD_SETPOINT_MIN_DEG = ComponentsConstants.Hood.MIN_DEGREE;
+
+  public static final double SHOOTER_HOOD_SETPOINT_MAX_DEG = ComponentsConstants.Hood.MAX_DEGREE;
+
   // General Constants
   public static final double GRAVITY = 9.81;
   /**
    * Default (initial) RPM band for flywheel {@code nearGoal} vs shooter-ready gating on {@link
    * frc.robot.RobotState#isShooterReadyToShoot()}.
-   * Overridden at runtime by {@code NearGoalRpmTolerance} × {@code PhysicsLaunchEfficiencyScale}
+   * Overridden at runtime by {@code NearGoalRpmTolerance} × {@code PhysicsShotEfficiencyScale}
    * (from ideal-min/empirical-map RPM while aiming).
    */
   public static final double READY_TO_SHOOT_FLYWHEEL_RPM_TOLERANCE = 450;
@@ -173,8 +195,8 @@ public class ShooterConstants {
   /** Max |turret slew rate| (deg/s) to still count as "settled" during slow aim tracking. */
   public static final double READY_TO_SHOOT_TURRET_MAX_DEG_PER_SEC = 35;
 
-  /** Launch/targeting constants kept with shooter constants to avoid split files. */
-  public static final class LaunchConstants {
+  /** Field aim geometry (turret offset, pass targets, trench protection). */
+  public static final class ShooterAimConstants {
     // TODO(PHYSICS_TUNE): tune pass/hub state switch distance for strategy + make rate.
     public static double passPoint = 4.425;
 
@@ -209,8 +231,11 @@ public class ShooterConstants {
        * is not yet folded, shooter will suppress fire and fold.
        */
       public static final double LOOKAHEAD_TIME_SEC = 0.35;
-      /** Hood angle threshold considered folded/safe for trench crossing. */
-      public static final double SAFE_HOOD_ANGLE_DEG = 0;
+      /**
+       * Hood angle threshold (mechanical deg, Talon setpoint frame) for folded/safe trench crossing.
+       * Not physics theta; compare to {@link ComponentsConstants.Hood#MIN_DEGREE} / measured position.
+       */
+      public static final double SAFE_HOOD_ANGLE_DEG = ShooterConstants.SHOOTER_HOOD_SETPOINT_MIN_DEG;
       /** X start for alliance trench overhang protection (meters, blue-frame). */
       public static final double START_X_METERS =
           FieldConstants.LinesVertical.hubCenter
@@ -234,45 +259,103 @@ public class ShooterConstants {
   public static final class Logging {
     public static boolean SHOOTER_VERBOSE_AIMING = false;
     public static boolean SHOOTER_VERBOSE_TRENCH = false;
-    /** When false, skips AdvantageKit outputs on the launch calculator hot path (hood-comp channels). */
-    public static boolean LOG_LAUNCH_CALC_HOOD_COMP = false;
-    /** When false, skips per-cycle Launcher/* dashboard fields (ShootMode, state string, trench active). */
-    public static boolean LOG_LAUNCH_COORD_EVERY_CYCLE = false;
+    /** When false, skips AdvantageKit outputs on the shooter calculator hot path (hood-comp channels). */
+    public static boolean LOG_SHOOTER_CALC_HOOD_COMP = false;
+    /** When false, skips per-cycle Shooter/* dashboard fields (ShootMode, state string, trench active). */
+    public static boolean LOG_SHOOTER_COORD_EVERY_CYCLE = false;
   }
 
-  /** Hybrid hood compensation settings for measured flywheel RPM sag. */
+  /**
+   * Hub funnel ("cone") clearance: after a vacuum solve, raise RPM until the parabola stays inside a
+   * simplified frustum around the hole axis (see {@link FieldConstants.Hub#funnelInnerRadiusAtZ}).
+   */
+  public static final class HubFunnelClearance {
+    public static final boolean ENABLE = true;
+    /** Max 3D distance from aim point to {@link FieldConstants.Hub#innerCenterPoint} to apply check. */
+    public static final double HUB_CLASSIFY_MAX_DIST_METERS = 3.0;
+    /** Sample trajectory in the last this many meters before the hole. */
+    public static final double FUNNEL_CHECK_DEPTH_METERS = 1.55;
+    /**
+     * Frustum length along the shot where funnel walls apply. Default matches vertical span from hole
+     * center to roof ({@link FieldConstants.Hub#innerCenterPoint} to {@link FieldConstants.Hub#height});
+     * shallow trajectories approximate this well (tune on field if needed).
+     */
+    public static final double FUNNEL_AXIAL_DEPTH_METERS =
+        FieldConstants.Hub.height - FieldConstants.Hub.innerCenterPoint.getZ();
+    /** Ball radius + comfort band vs plastic (m). */
+    public static final double RADIAL_MARGIN_METERS = Units.inchesToMeters(3.0);
+    public static final int TRAJECTORY_SAMPLES = 28;
+    public static final int MAX_SPEED_BOOST_ITERATIONS = 14;
+    public static final double SPEED_BOOST_FACTOR = 1.05;
+  }
+
+  /**
+   * Hood compensation when the flywheel sags: the ballistic solve assumes commanded wheel speed, but
+   * measured speed can be lower. The calculator infers what shot elevation would match measured speed
+   * and nudges hood toward that (blended and clamped so it stays stable).
+   *
+   * <ul>
+   *   <li>{@link #NORMAL_GAIN} — How much of that inferred angle error to apply each loop (0 = ignore
+   *       measured sag, 1 = full correction). Lower = smoother, higher = tighter tracking.
+   *   <li>{@link #MAX_CORRECTION_DEG} — Cap on how far hood can be adjusted from the nominal solve (deg).
+   *   <li>{@link #MAX_CORRECTION_RATE_DEG_PER_SEC} — Max hood slew from this logic (deg/s); limits
+   *       per-cycle jumps.
+   *   <li>{@link #RPM_FILTER_TIME_CONSTANT_SEC} — Low-pass time constant (s) on <i>measured</i> wheel
+   *       surface speed before the correction; larger = smoother, smaller = faster response.
+   * </ul>
+   */
   public static final class HoodCompensationConstants {
-    /** Normal-mode blend on measured-theta correction (0..1). */
     // TODO(PHYSICS_TUNE): tune to minimize noise while preserving correction authority.
     public static final double NORMAL_GAIN = 0.25;
-    /** Max absolute hood correction from RPM sag, in degrees. */
     // TODO(PHYSICS_TUNE): widen/narrow after observing hood saturation frequency.
     public static final double MAX_CORRECTION_DEG = 3.0;
-    /** Max hood correction slew from compensation, in deg/s. */
     // TODO(PHYSICS_TUNE): adjust to avoid chatter yet still catch RPM sag quickly.
     public static final double MAX_CORRECTION_RATE_DEG_PER_SEC = 60.0;
-    /** RPM low-pass time constant for normal mode smoothing. */
     // TODO(PHYSICS_TUNE): tune for stability vs responsiveness in normal mode.
     public static final double RPM_FILTER_TIME_CONSTANT_SEC = 0.12;
   }
 
   /**
-   * Numerical thresholds, iteration limits, and solver defaults for {@link
-   * frc.robot.subsystems.shooter.LaunchCalculator}.
+   * Ballistic solver tuning for {@link frc.robot.subsystems.shooter.ShooterCalculator}.
+   *
+   * <p><b>WPILib note:</b> {@link Units} handles length/angle conversions. There is no WPILib constant
+   * for “RPM to rotations per second”; Talon velocity is in RPS, so code uses {@code rpm / 60.0}
+   * inline. The {@code EPSILON_*} values are not from WPILib either; they are tiny thresholds so
+   * divide-by-zero and degenerate geometry do not explode floating-point math.
+   *
+   * <ul>
+   *   <li>{@link #MIN_SPEED_MARGIN} — Multiplier on the minimum theoretical exit speed before mapping
+   *       to RPM (headroom so real wheels still make the shot).
+   *   <li>{@link #INITIAL_SPEED_EFFICIENCY} — Ball loses some speed leaving wheels; required command
+   *       speed is scaled up by {@code 1/efficiency}.
+   *   <li>{@link #MIN_VALID_SHOT_SPEED_MPS} — Below this measured surface speed, skip hood sag
+   *       correction (noise dominates).
+   *   <li>{@link #EPSILON_SURFACE_SPEED_MPS}, {@link #EPSILON_METERS} — “Effectively zero” for speeds
+   *       (m/s) and distances (m) in trig and ballistics.
+   *   <li>{@link #EPSILON_DENOMINATOR} — Floor when dividing by reductions or geometry that could be
+   *       zero.
+   *   <li>{@link #EPSILON_TIME_AND_RATIO} — Small threshold for time/ratio comparisons.
+   *   <li>{@link #MOVING_TARGET_LEAD_ITERATIONS} / {@link #BALLISTIC_RPM_BOOST_MAX_ITERATIONS} —
+   *       Iteration caps for moving-target refinement and RPM search.
+   *   <li>{@link #BALLISTIC_RPM_BOOST_FACTOR} — Multiplier per boost step when no valid shot angle
+   *       exists yet.
+   *   <li>{@link #MEASURED_TO_COMMAND_RPM_RATIO_MAX} — Clamp for diagnostics / efficiency scaling.
+   *   <li>{@link #PHYSICS_SHOT_EFFICIENCY_SCALE_OUT_MIN} / {@link #PHYSICS_SHOT_EFFICIENCY_SCALE_OUT_MAX}
+   *       — Bounds on flywheel “ready” tolerance scaling from measured vs command RPM.
+   *   <li>{@link #MECHANICAL_RIGHT_ANGLE_DEG} — Relates mechanical hood angle to shot elevation theta.
+   *   <li>{@link #DUAL_WHEEL_SURFACE_BLEND} — Weighting between main and hood wheel surface speeds (0..1
+   *       each, sum used as average).
+   * </ul>
    */
-  public static final class LaunchCalculatorConstants {
+  public static final class ShooterCalculatorConstants {
     /** Moving-average window (s) for turret/hood angular velocity from filtered angle deltas. */
     public static final double ANGLE_VELOCITY_FILTER_WINDOW_SEC = 0.1;
 
+    // TODO(PHYSICS_TUNE): tune speed margin to balance make-rate vs overspeed.
+    public static final double MIN_SPEED_MARGIN = 1.2;
     /**
-     * Extra scale on vacuum minimum exit surface speed before RPM mapping (make-rate margin vs
-     * model).
-     */
-    // TODO(PHYSICS_TUNE): tune launch margin to balance make-rate vs overspeed.
-    public static final double MIN_SPEED_MARGIN = 1.08;
-    /**
-     * Fraction of no-load launch speed preserved at ball exit (0..1). Used to compensate initial
-     * velocity drop by scaling required launch speed as {@code required / efficiency}.
+     * Fraction of no-load exit speed preserved at ball exit (0..1). Used to compensate initial
+     * velocity drop by scaling required wheel speed as {@code required / efficiency}.
      */
     public static final double INITIAL_SPEED_EFFICIENCY = 0.92;
 
@@ -292,11 +375,11 @@ public class ShooterConstants {
     /** Used for timer / ratio comparisons where exact zero is ambiguous. */
     public static final double EPSILON_TIME_AND_RATIO = 1e-6;
 
-    /** Fallback launch-angle limits (deg) if hood mechanical limits are non-finite or inverted. */
+    /** Fallback shot-angle limits (deg) if hood mechanical limits are non-finite or inverted. */
     public static final double FALLBACK_THETA_MIN_DEG = 5.0;
     public static final double FALLBACK_THETA_MAX_DEG = 85.0;
 
-    /** Default launch angle above horizontal (deg) when the discriminant solve fails. */
+    /** Default shot angle above horizontal (deg) when the discriminant solve fails. */
     public static final double DEFAULT_SOLVE_THETA_DEG = 45.0;
 
     /**
@@ -306,7 +389,25 @@ public class ShooterConstants {
      */
     public static final int MOVING_TARGET_LEAD_ITERATIONS = 5;
 
-    /** Attempts to raise wheel RPM when no real θ exists at the current speed command. */
+    /**
+     * Clamp magnitude of finite-difference robot-frame linear acceleration (m/s^2) used for moving
+     * target lead (reduces derivative noise).
+     */
+    // TODO(PHYSICS_TUNE): raise if you command harder sprints while shooting.
+    public static final double ROBOT_ACCEL_CLAMP_LINEAR_MPS2 = 14.0;
+
+    /**
+     * Clamp magnitude of finite-difference angular acceleration (rad/s^2) for shooter-offset lead.
+     */
+    public static final double ROBOT_ACCEL_CLAMP_ANGULAR_RAD_PER_SEC2 = 28.0;
+
+    /**
+     * Low-pass on field-frame shooter-point acceleration: {@code a += alpha * (a_meas - a)} per loop.
+     * 1.0 = no smoothing; lower = less noise, more lag.
+     */
+    public static final double SHOOTER_LEAD_ACCEL_LOWPASS_ALPHA = 0.45;
+
+    /** Attempts to raise wheel RPM when no real shot angle exists at the current speed command. */
     public static final int BALLISTIC_RPM_BOOST_MAX_ITERATIONS = 8;
 
     /**
@@ -320,40 +421,40 @@ public class ShooterConstants {
     /** Upper clamp for measured/command RPM ratio (diagnostics + efficiency scale). */
     public static final double MEASURED_TO_COMMAND_RPM_RATIO_MAX = 2.0;
 
-    /** Output bounds for {@link LaunchCalculator#getPhysicsLaunchEfficiencyScale()}. */
-    public static final double PHYSICS_LAUNCH_EFFICIENCY_SCALE_OUT_MIN = 0.9;
-    public static final double PHYSICS_LAUNCH_EFFICIENCY_SCALE_OUT_MAX = 1.35;
+    /** Output bounds for {@link ShooterCalculator#getPhysicsShotEfficiencyScale()}. */
+    public static final double PHYSICS_SHOT_EFFICIENCY_SCALE_OUT_MIN = 0.9;
+    public static final double PHYSICS_SHOT_EFFICIENCY_SCALE_OUT_MAX = 1.35;
 
     /**
-     * Reference angle (deg): mechanical hood uses {@code 90° − θ + offset} vs launch elevation θ.
+     * Reference angle (deg): with hood offset {@code k} (positive), {@code theta = 90 - m - k}.
      */
     public static final double MECHANICAL_RIGHT_ANGLE_DEG = 90.0;
 
     /** Equal blend between main and hood wheel contributions to effective surface speed. */
     public static final double DUAL_WHEEL_SURFACE_BLEND = 0.5;
-
-    /** RPM ⟷ RPS conversion factor. */
-    public static final double SECONDS_PER_MINUTE = 60.0;
-
-    /** Unitless ratio placeholder before first solve or when RPM command is degenerate. */
-    public static final double NEUTRAL_UNIT_RATIO = 1.0;
   }
 
-  /** Defaults for flywheel idle goals and launch-efficiency scaling. */
+  /** Defaults for flywheel idle goals and shot-efficiency scaling. */
   public static final class FlywheelShotConstants {
-    public static final double FLYWHEEL_GOAL_AUTOIDLE_RPM = 3000.0;
-    public static final double FLYWHEEL_GOAL_TELEIDLE_RPM = 2500.0;
+    /**
+     * Shared flywheel speed when not shooting (auto and tele use the same idle for consistent
+     * warm-up).
+     */
+    public static final double FLYWHEEL_GOAL_IDLE_RPM = 3000.0;
+
+    public static final double FLYWHEEL_GOAL_AUTOIDLE_RPM = FLYWHEEL_GOAL_IDLE_RPM;
+    public static final double FLYWHEEL_GOAL_TELEIDLE_RPM = FLYWHEEL_GOAL_IDLE_RPM;
     /** Default custom goal - TODO(PHYSICS_TUNE). */
     public static final double FLYWHEEL_GOAL_CUSTOM_RPM = 2300.0;
 
     /**
-     * Clamp on {@link frc.robot.subsystems.shooter.flywheel.Flywheel#setPhysicsLaunchEfficiencyScale}
+     * Clamp on {@link frc.robot.subsystems.shooter.flywheel.Flywheel#setPhysicsShotEfficiencyScale}
      * inputs.
      */
-    public static final double PHYSICS_LAUNCH_EFFICIENCY_INPUT_MIN = 0.5;
-    public static final double PHYSICS_LAUNCH_EFFICIENCY_INPUT_MAX = 2.5;
+    public static final double PHYSICS_SHOT_EFFICIENCY_INPUT_MIN = 0.5;
+    public static final double PHYSICS_SHOT_EFFICIENCY_INPUT_MAX = 2.5;
 
-    /** Unit scale when launch physics efficiency is not applied (not aiming). */
-    public static final double PHYSICS_LAUNCH_EFFICIENCY_SCALE_NEUTRAL = 1.0;
+    /** Unit scale when shot physics efficiency is not applied (not aiming). */
+    public static final double PHYSICS_SHOT_EFFICIENCY_SCALE_NEUTRAL = 1.0;
   }
 }

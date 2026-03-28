@@ -15,38 +15,40 @@ import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.subsystems.indexer.IndexerConstants;
 
+/** Real-hardware {@link ConveyorIO} using a Talon FX. */
 public class ConveyorIOTalonFX implements ConveyorIO {
-  private final TalonFX LeadMotor = new TalonFX(IndexerConstants.ConveyorConstants.CONVEYOR_CAN_ID);
+  private final TalonFX leadMotor =
+      new TalonFX(IndexerConstants.ComponentsConstants.Conveyor.CAN_ID);
 
-  private final StatusSignal<AngularVelocity> measuredVeloRPS = LeadMotor.getVelocity();
-  private final StatusSignal<Double> setVeloRPS = LeadMotor.getClosedLoopReference();
-  private final StatusSignal<Angle> position = LeadMotor.getPosition();
-  private final StatusSignal<Voltage> appliedVoltage = LeadMotor.getMotorVoltage();
-  private final StatusSignal<Current> supplyCurrentAmps = LeadMotor.getSupplyCurrent();
-  private final StatusSignal<Current> torqueCurrentAmps = LeadMotor.getTorqueCurrent();
-  private final StatusSignal<Temperature> deviceTemperature = LeadMotor.getDeviceTemp();
+  private final StatusSignal<AngularVelocity> measuredVeloRPS = leadMotor.getVelocity();
+  private final StatusSignal<Double> setVeloRPS = leadMotor.getClosedLoopReference();
+  private final StatusSignal<Angle> position = leadMotor.getPosition();
+  private final StatusSignal<Voltage> appliedVoltage = leadMotor.getMotorVoltage();
+  private final StatusSignal<Current> supplyCurrentAmps = leadMotor.getSupplyCurrent();
+  private final StatusSignal<Current> torqueCurrentAmps = leadMotor.getTorqueCurrent();
+  private final StatusSignal<Temperature> deviceTemperature = leadMotor.getDeviceTemp();
 
   private final VoltageOut voltageRequest = new VoltageOut(0.0);
   private final VelocityVoltage velocityRequest = new VelocityVoltage(0.0);
 
-  private TalonFXConfiguration config = new TalonFXConfiguration();
+  private final TalonFXConfiguration config = new TalonFXConfiguration();
 
   public ConveyorIOTalonFX() {
     config.CurrentLimits.SupplyCurrentLimit =
-        IndexerConstants.ConveyorConstants.CONVEYOR_CURRENT_LIMIT;
+        IndexerConstants.ComponentsConstants.Conveyor.CURRENT_LIMIT;
     config.CurrentLimits.SupplyCurrentLimitEnable =
-        IndexerConstants.ConveyorConstants.CONVEYOR_CURRENT_LIMIT_ENABLE;
-    config.MotorOutput.NeutralMode = IndexerConstants.ConveyorConstants.CONVEY_NEUTRAL_MODE_VALUE;
-    config.MotorOutput.Inverted = IndexerConstants.ConveyorConstants.CONVEYOR_INVERTED_VALUE;
+        IndexerConstants.ComponentsConstants.Conveyor.CURRENT_LIMIT_ENABLE;
+    config.MotorOutput.NeutralMode = IndexerConstants.ComponentsConstants.Conveyor.NEUTRAL_MODE;
+    config.MotorOutput.Inverted = IndexerConstants.ComponentsConstants.Conveyor.INVERTED;
 
-    config.Slot0.kI = IndexerConstants.ConveyorConstants.kI;
-    config.Slot0.kP = IndexerConstants.ConveyorConstants.kP;
-    config.Slot0.kD = IndexerConstants.ConveyorConstants.kD;
-    config.Slot0.kA = IndexerConstants.ConveyorConstants.kA;
-    config.Slot0.kV = IndexerConstants.ConveyorConstants.kV;
-    config.Slot0.kS = IndexerConstants.ConveyorConstants.kS;
+    config.Slot0.kI = IndexerConstants.ComponentsConstants.Conveyor.Gains.kI;
+    config.Slot0.kP = IndexerConstants.ComponentsConstants.Conveyor.Gains.kP;
+    config.Slot0.kD = IndexerConstants.ComponentsConstants.Conveyor.Gains.kD;
+    config.Slot0.kA = IndexerConstants.ComponentsConstants.Conveyor.Gains.kA;
+    config.Slot0.kV = IndexerConstants.ComponentsConstants.Conveyor.Gains.kV;
+    config.Slot0.kS = IndexerConstants.ComponentsConstants.Conveyor.Gains.kS;
 
-    tryUntilOk(5, () -> LeadMotor.getConfigurator().apply(config, 0.25));
+    tryUntilOk(5, () -> leadMotor.getConfigurator().apply(config, 0.25));
 
     BaseStatusSignal.setUpdateFrequencyForAll(
         50.0,
@@ -88,16 +90,16 @@ public class ConveyorIOTalonFX implements ConveyorIO {
     config.Slot0.kS = kS;
     config.Slot0.kV = kV;
     config.Slot0.kA = kA;
-    tryUntilOk(5, () -> LeadMotor.getConfigurator().apply(config));
+    tryUntilOk(5, () -> leadMotor.getConfigurator().apply(config));
   }
 
   @Override
   public void runSetVoltage(double voltage) {
-    LeadMotor.setControl(voltageRequest.withEnableFOC(true).withOutput(voltage));
+    leadMotor.setControl(voltageRequest.withEnableFOC(true).withOutput(voltage));
   }
 
   @Override
-  public void runVelocityRPM(double RPM) {
-    LeadMotor.setControl(velocityRequest.withVelocity(RPM / 60).withEnableFOC(true));
+  public void runVelocityRPM(double rpm) {
+    leadMotor.setControl(velocityRequest.withVelocity(rpm / 60.0).withEnableFOC(true));
   }
 }

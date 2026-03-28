@@ -3,7 +3,7 @@ package frc.robot.subsystems.shooter.hood;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.RobotState;
-import frc.robot.subsystems.shooter.LaunchCalculator;
+import frc.robot.subsystems.shooter.ShooterCalculator;
 import frc.robot.subsystems.shooter.ShooterConstants;
 import frc.robot.util.EqualsUtil;
 import frc.robot.util.FullSubsystem;
@@ -69,7 +69,7 @@ public class Hood extends FullSubsystem {
   }
 
   public enum HoodGoal {
-    ZERO(new LoggedTunableNumber("Shooter/Hood/Goals/Zero", 0)),
+    ZERO(new LoggedTunableNumber("Shooter/Hood/Goals/Zero", ShooterConstants.SHOOTER_HOOD_SETPOINT_MIN_DEG)),
     TEST(new LoggedTunableNumber("Shooter/Hood/Goals/Test", 15)),
     CUSTOM(new LoggedTunableNumber("Shooter/Hood/Goals/Custom", 9.25));
 
@@ -79,7 +79,7 @@ public class Hood extends FullSubsystem {
       this.HOOD_SET_POINT_SUPPLIER = hoodSetpointSupplier;
     }
 
-    private double getDegrees() {
+    public double getDegrees() {
       return this.HOOD_SET_POINT_SUPPLIER.getAsDouble();
     }
   }
@@ -98,21 +98,38 @@ public class Hood extends FullSubsystem {
   public void setGoalSetPoint(double goal) {
     setpointMode = false;
     this.goalDeg =
-        Math.max(0.0, Math.min(goal, ShooterConstants.ComponentsConstants.Hood.MAX_DEGREE));
+        MathUtil.clamp(
+            goal, ShooterConstants.SHOOTER_HOOD_SETPOINT_MIN_DEG, ShooterConstants.SHOOTER_HOOD_SETPOINT_MAX_DEG);
   }
 
-  public void setGoalSetPoint(HoodGoal goal) {
+  public void setGoalSetPoint(HoodGoal hoodGoal) {
     double clamped =
-        Math.max(
-            0.0,
-            Math.min(goal.getDegrees(), ShooterConstants.ComponentsConstants.Hood.MAX_DEGREE));
-    if (clamped == goal.getDegrees()) {
+        MathUtil.clamp(
+            hoodGoal.getDegrees(),
+            ShooterConstants.SHOOTER_HOOD_SETPOINT_MIN_DEG,
+            ShooterConstants.SHOOTER_HOOD_SETPOINT_MAX_DEG);
+    if (clamped == hoodGoal.getDegrees()) {
       setpointMode = true;
-      this.goalSetpoint = goal;
+      this.goalSetpoint = hoodGoal;
     } else {
       setpointMode = false;
       this.goalDeg = clamped;
     }
+  }
+
+  /**
+   * Call when hood goal enums change after {@link #periodic()} so {@link #periodicAfterScheduler()}
+   * uses the new {@code goalDeg}.
+   */
+  public void applySetpointForOutput() {
+    if (setpointMode) {
+      goalDeg = goalSetpoint.getDegrees();
+    }
+    goalDeg =
+        MathUtil.clamp(
+            goalDeg,
+            ShooterConstants.SHOOTER_HOOD_SETPOINT_MIN_DEG,
+            ShooterConstants.SHOOTER_HOOD_SETPOINT_MAX_DEG);
   }
 
   @Override
@@ -149,7 +166,11 @@ public class Hood extends FullSubsystem {
     if (setpointMode) {
       goalDeg = goalSetpoint.getDegrees();
     }
-    goalDeg = MathUtil.clamp(goalDeg, 0.0, ShooterConstants.ComponentsConstants.Hood.MAX_DEGREE);
+    goalDeg =
+        MathUtil.clamp(
+            goalDeg,
+            ShooterConstants.SHOOTER_HOOD_SETPOINT_MIN_DEG,
+            ShooterConstants.SHOOTER_HOOD_SETPOINT_MAX_DEG);
 
     Logger.recordOutput("Shooter/Hood/GoalDegrees", goalDeg, Degrees);
 
@@ -169,7 +190,7 @@ public class Hood extends FullSubsystem {
     Logger.recordOutput("Shooter/Hood/nearGoal", nearGoal);
     Logger.recordOutput("Shooter/Hood/settled", settled);
     RobotState.getInstance()
-        .recordLauncherHoodMeasuredAngleRad(Units.degreesToRadians(inputs.measuredPostionDeg));
+        .recordShooterHoodMeasuredAngleRad(Units.degreesToRadians(inputs.measuredPostionDeg));
   }
 
   @Override
@@ -180,15 +201,15 @@ public class Hood extends FullSubsystem {
   public Command runTrackTargetCommand() {
     return runEnd(
         () -> {
-          if (!RobotState.getInstance().isLauncherTracking()) {
+          if (!RobotState.getInstance().isShooterTracking()) {
             return;
           }
-          LaunchCalculator.LaunchingParameters p = LaunchCalculator.getInstance().getParameters();
+          ShooterCalculator.ShootingParameters p = ShooterCalculator.getInstance().getParameters();
           if (!p.isValid()) {
             return;
           }
-          if (RobotState.getInstance().isLauncherTrenchProtectionActive()) {
-            setGoalSetPoint(0.0);
+          if (RobotState.getInstance().isShooterTrenchProtectionActive()) {
+            setGoalSetPoint(ShooterConstants.SHOOTER_HOOD_SETPOINT_MIN_DEG);
           } else {
             setGoalSetPoint(Units.radiansToDegrees(p.hoodAngle()));
           }

@@ -18,7 +18,12 @@ import frc.robot.subsystems.indexer.rollers.Rollers.RollersGoal;
 import frc.robot.subsystems.indexer.rollers.RollersIO;
 import org.littletonrobotics.junction.AutoLogOutput;
 
+/**
+ * Coordinates agitator, kicker, conveyor, and rollers into high-level {@link INDEXER_STATE}
+ * behaviors.
+ */
 public class Indexer extends SubsystemBase {
+  /** Named indexer behaviors selected by OI and autonomous. */
   public enum INDEXER_STATE {
     INTAKE,
     OUTTAKE,
@@ -29,86 +34,99 @@ public class Indexer extends SubsystemBase {
     CUSTOM
   }
 
-  @AutoLogOutput(key = "Indexer/currentState") private INDEXER_STATE currentIndexerState = INDEXER_STATE.ZERO;
+  @AutoLogOutput(key = "Indexer/currentState")
+  private INDEXER_STATE currentIndexerState = INDEXER_STATE.ZERO;
 
-  private Agitator agitator;
-  private Kicker kicker;
-  private Conveyor conveyor;
-  private Rollers Rollers;
+  private final Agitator agitator;
+  private final Kicker kicker;
+  private final Conveyor conveyor;
+  private final Rollers rollers;
 
+  /**
+   * @param agitatorIO agitator hardware (or sim/replay stub)
+   * @param kickerIO kicker hardware
+   * @param conveyorIO conveyor hardware
+   * @param rollersIO rollers hardware
+   */
   public Indexer(
-      AgitatorIO agitatorIO, KickerIO kickerIO, ConveyorIO conveyorIO, RollersIO RollersIO) {
+      AgitatorIO agitatorIO, KickerIO kickerIO, ConveyorIO conveyorIO, RollersIO rollersIO) {
     this.agitator = new Agitator(agitatorIO);
     this.kicker = new Kicker(kickerIO);
     this.conveyor = new Conveyor(conveyorIO);
-    this.Rollers = new Rollers(RollersIO);
+    this.rollers = new Rollers(rollersIO);
   }
 
+  /** Updates the state machine input; {@link #periodic()} applies it to mechanisms. */
   public void setIndexerState(INDEXER_STATE state) {
     currentIndexerState = state;
   }
 
+  /**
+   * Applies {@link #currentIndexerState} to mechanism goals, then runs each mechanism {@code
+   * periodic()}.
+   */
   @Override
   public void periodic() {
     boolean readyToShoot = RobotState.getInstance().isShooterReadyToShoot();
     switch (currentIndexerState) {
       case INTAKE:
-        agitator.Setpoint(AgitatorGoal.ZERO);
-        kicker.Setpoint(KickerGoal.ZERO);
-        conveyor.Setpoint(ConveyorGoal.ZERO);
-        Rollers.Setpoint(RollersGoal.INTAKE);
+        agitator.setGoalSetPoint(AgitatorGoal.ZERO);
+        kicker.setGoalSetPoint(KickerGoal.ZERO);
+        conveyor.setGoalSetPoint(ConveyorGoal.ZERO);
+        rollers.setGoalSetPoint(RollersGoal.INTAKE);
         break;
       case OUTTAKE:
-        agitator.Setpoint(AgitatorGoal.OUTTAKE);
-        kicker.Setpoint(KickerGoal.OUTTAKE);
-        conveyor.Setpoint(ConveyorGoal.OUTTAKE);
-        Rollers.Setpoint(RollersGoal.OUTTAKE);
+        agitator.setGoalSetPoint(AgitatorGoal.OUTTAKE);
+        kicker.setGoalSetPoint(KickerGoal.OUTTAKE);
+        conveyor.setGoalSetPoint(ConveyorGoal.OUTTAKE);
+        rollers.setGoalSetPoint(RollersGoal.OUTTAKE);
         break;
       case SPIT:
-        agitator.Setpoint(AgitatorGoal.SPIT);
-        kicker.Setpoint(KickerGoal.SPIT);
-        conveyor.Setpoint(ConveyorGoal.SPIT);
-        Rollers.Setpoint(RollersGoal.SPIT);
+        agitator.setGoalSetPoint(AgitatorGoal.SPIT);
+        kicker.setGoalSetPoint(KickerGoal.SPIT);
+        conveyor.setGoalSetPoint(ConveyorGoal.SPIT);
+        rollers.setGoalSetPoint(RollersGoal.SPIT);
         break;
       case SHOOT:
         if (readyToShoot) {
-          agitator.Setpoint(AgitatorGoal.SHOOT);
-          kicker.Setpoint(KickerGoal.SHOOT);
-          conveyor.Setpoint(ConveyorGoal.SHOOT);
-          Rollers.Setpoint(RollersGoal.SHOOT);
+          agitator.setGoalSetPoint(AgitatorGoal.SHOOT);
+          kicker.setGoalSetPoint(KickerGoal.SHOOT);
+          conveyor.setGoalSetPoint(ConveyorGoal.SHOOT);
+          rollers.setGoalSetPoint(RollersGoal.SHOOT);
         } else {
-          agitator.Setpoint(AgitatorGoal.ZERO);
-          kicker.Setpoint(KickerGoal.ZERO);
-          conveyor.Setpoint(ConveyorGoal.ZERO);
-          Rollers.Setpoint(RollersGoal.ZERO);
+          agitator.setGoalSetPoint(AgitatorGoal.ZERO);
+          kicker.setGoalSetPoint(KickerGoal.ZERO);
+          conveyor.setGoalSetPoint(ConveyorGoal.ZERO);
+          rollers.setGoalSetPoint(RollersGoal.ZERO);
         }
         break;
       case AUTOSHOOT:
-        agitator.Setpoint(AgitatorGoal.SHOOT);
-        kicker.Setpoint(KickerGoal.SHOOT);
-        conveyor.Setpoint(ConveyorGoal.SHOOT);
-        Rollers.Setpoint(RollersGoal.SHOOT);
+        agitator.setGoalSetPoint(AgitatorGoal.SHOOT);
+        kicker.setGoalSetPoint(KickerGoal.SHOOT);
+        conveyor.setGoalSetPoint(ConveyorGoal.SHOOT);
+        rollers.setGoalSetPoint(RollersGoal.SHOOT);
         break;
       case ZERO:
-        agitator.Setpoint(AgitatorGoal.ZERO);
-        kicker.Setpoint(KickerGoal.ZERO);
-        conveyor.Setpoint(ConveyorGoal.ZERO);
-        Rollers.Setpoint(RollersGoal.ZERO);
+        agitator.setGoalSetPoint(AgitatorGoal.ZERO);
+        kicker.setGoalSetPoint(KickerGoal.ZERO);
+        conveyor.setGoalSetPoint(ConveyorGoal.ZERO);
+        rollers.setGoalSetPoint(RollersGoal.ZERO);
         break;
       case CUSTOM:
-        agitator.Setpoint(AgitatorGoal.CUSTOM);
-        kicker.Setpoint(KickerGoal.CUSTOM);
-        conveyor.Setpoint(ConveyorGoal.CUSTOM);
-        Rollers.Setpoint(RollersGoal.CUSTOM);
+        agitator.setGoalSetPoint(AgitatorGoal.CUSTOM);
+        kicker.setGoalSetPoint(KickerGoal.CUSTOM);
+        conveyor.setGoalSetPoint(ConveyorGoal.CUSTOM);
+        rollers.setGoalSetPoint(RollersGoal.CUSTOM);
         break;
     }
 
     agitator.periodic();
     kicker.periodic();
     conveyor.periodic();
-    Rollers.periodic();
+    rollers.periodic();
   }
 
+  /** Schedules a one-shot update of {@link #setIndexerState(INDEXER_STATE)}. */
   public static Command getSetStateCommand(INDEXER_STATE state, Indexer indexer) {
     return Commands.runOnce(() -> indexer.setIndexerState(state), indexer);
   }

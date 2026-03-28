@@ -47,7 +47,7 @@ import frc.robot.subsystems.intake.intakeRollers.IntakeRollerIOTalonFX;
 import frc.robot.subsystems.intake.intakeRollers.IntakeRollersIO;
 import frc.robot.subsystems.intake.intakeWrist.IntakeWristIO;
 import frc.robot.subsystems.intake.intakeWrist.IntakeWristIOTalonFX;
-import frc.robot.commands.launcher.LaunchCoordinatorSubsystem;
+import frc.robot.subsystems.shooter.ShooterCalculator;
 import frc.robot.subsystems.shooter.flywheel.Flywheel;
 import frc.robot.subsystems.shooter.flywheel.FlywheelIO;
 import frc.robot.subsystems.shooter.hood.Hood;
@@ -70,13 +70,16 @@ import frc.robot.subsystems.vision.VisionIOPhotonVisionSim;
  */
 public class RobotContainer {
 
+  /**
+   * Constructed for side effects only: {@link Vision} registers with {@link
+   * edu.wpi.first.wpilibj2.command.CommandScheduler} and runs {@code periodic()} each loop.
+   */
   @SuppressWarnings("unused")
   private final Vision vision;
   public static Drive drive;
   public static Flywheel flywheel;
   public static Hood hood;
   public static Turret turret;
-  public static LaunchCoordinatorSubsystem launchCoordinator;
   public static Intake intake;
   public static Indexer indexer;
 
@@ -103,7 +106,7 @@ public class RobotContainer {
             new VisionIOLimelight(cameraFrontName, drive::getRotation),
             new VisionIOLimelight(cameraLeftName, drive::getRotation),
             new VisionIOLimelight(cameraRightName, drive::getRotation));
-        configureLauncherDefaults(
+        configureShooterMechanismDefaults(
             new Flywheel(new FlywheelIOTalonFX()),
             new Turret(new TurretIOTalonFX()),
             new Hood(new HoodIOTalonFX()));
@@ -126,7 +129,7 @@ public class RobotContainer {
                 new VisionIOPhotonVisionSim(cameraFrontName, robotToFrontCam, drive::getPose),
                 new VisionIOPhotonVisionSim(cameraLeftName, robotToLeftCam, drive::getPose),
                 new VisionIOPhotonVisionSim(cameraRightName, robotToRightCam, drive::getPose));
-        configureLauncherDefaults(
+        configureShooterMechanismDefaults(
             new Flywheel(new FlywheelIO() {}),
             new Turret(new TurretIO() {}),
             new Hood(new HoodIO() {}));
@@ -156,7 +159,7 @@ public class RobotContainer {
             new Vision(
                 new VisionIO() {},
                 new VisionIO() {});
-        configureLauncherDefaults(
+        configureShooterMechanismDefaults(
             new Flywheel(new FlywheelIO() {}),
             new Turret(new TurretIO() {}),
             new Hood(new HoodIO() {}));
@@ -179,17 +182,24 @@ public class RobotContainer {
     autoSelector = new LoggedDashboardChooser<>("Auto Selection", AutoBuilder.buildAutoChooser());
   }
 
-  /** Runs after the command scheduler (reserved for drive/indexer alignment if needed). */
-  public void periodic() {}
-
-  private void configureLauncherDefaults(Flywheel fw, Turret tr, Hood hd) {
+  private void configureShooterMechanismDefaults(Flywheel fw, Turret tr, Hood hd) {
     flywheel = fw;
     turret = tr;
     hood = hd;
-    launchCoordinator = new LaunchCoordinatorSubsystem(fw, tr, hd);
     flywheel.setDefaultCommand(flywheel.runTrackTargetCommand());
     hood.setDefaultCommand(hood.runTrackTargetCommand());
     turret.setDefaultCommand(turret.runTrackTargetCommand());
+  }
+
+  /**
+   * Invoked from {@link Robot#robotPeriodic()} after {@code CommandScheduler.getInstance().run()} so
+   * mechanism {@code periodic()} has updated sensors, and before {@link
+   * frc.robot.util.FullSubsystem#runAllPeriodicAfterScheduler()}.
+   */
+  public static void runShooterCoordinationAfterScheduler() {
+    if (flywheel != null && hood != null && turret != null) {
+      ShooterCalculator.getInstance().coordinateAfterScheduler(flywheel, hood, turret);
+    }
   }
 
   /**

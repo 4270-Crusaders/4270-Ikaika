@@ -2,10 +2,13 @@ package frc.robot.subsystems.indexer.agitator;
 
 import org.littletonrobotics.junction.AutoLog;
 
+/** Hardware abstraction for the indexer agitator. */
 public interface AgitatorIO {
   @AutoLog
   public static class AgitatorIOInputs {
+    /** Mechanism position in radians (sensor). */
     public double positionRad = 0.0;
+
     public double appliedVolts = 0.0;
     public double torqueCurrentAmps = 0.0;
     public double supplyCurrentAmps = 0.0;
@@ -16,22 +19,22 @@ public interface AgitatorIO {
   }
 
   /**
-   * Sets PID values for subsystem
+   * Applies PID and feedforward gains to Talon slot 0.
    *
-   * @param kP P val
-   * @param kI I valw
-   * @param kD D val
-   * @param kS S val
-   * @param kV V val
-   * @param kA A val
+   * @param kP proportional gain
+   * @param kI integral gain
+   * @param kD derivative gain
+   * @param kS static friction feedforward
+   * @param kV velocity feedforward
+   * @param kA acceleration feedforward
    */
-  public default void setPID(double kP, double kI, double kD, double kS, double kV, double kA) {}
+  default void setPID(double kP, double kI, double kD, double kS, double kV, double kA) {}
 
-  public default void updateInputs(AgitatorIOInputs inputs) {}
-  ;
+  default void updateInputs(AgitatorIOInputs inputs) {}
 
-  /** Run open loop at the specified voltage. */
-  public default void runSetVoltage(double voltage) {}
+  /** Open-loop voltage (volts). */
+  default void runSetVoltage(double voltageVolts) {}
 
-  public default void runVelocityRPM(double RPM) {}
+  /** Closed-loop velocity target in revolutions per minute. */
+  default void runVelocityRPM(double rpm) {}
 }

@@ -79,15 +79,30 @@ public class FieldConstants {
     public static final double leftTrenchOpenStart = fieldWidth;
   }
 
-  /** Hub related constants */
+  /**
+   * Hub related constants.
+   *
+   * <p>Plan / controlled dimensions from FIRST 2026 field dwgs (FE-2026 Rev B), e.g. <a
+   * href="https://firstfrc.blob.core.windows.net/frc2026/FieldAssets/2026-field-dimension-dwgs.pdf">2026-field-dimension-dwgs.pdf</a>:
+   * 47" O.D., 72" top height, 41.73" inside scoring opening, hole center 44.25" AG, mouth inner
+   * radius 22.25" (2× 22.25 +0.25/−0.25 controlled on perimeter dwg; plan shows (22.25) from hub
+   * centerline).
+   */
   public static class Hub {
 
-    // Dimensions
     public static final double width = Units.inchesToMeters(47.0);
-    public static final double height =
-        Units.inchesToMeters(72.0); // includes the catcher at the top
-    public static final double innerWidth = Units.inchesToMeters(41.7);
-    public static final double innerHeight = Units.inchesToMeters(56.5);
+    /** Top of hub / funnel roof plane (72.000 ± 0.500 on GE-26300). */
+    public static final double height = Units.inchesToMeters(72.0);
+    /** Inside scoring opening ⌀ (field plan reference). */
+    public static final double innerWidth = Units.inchesToMeters(41.73);
+    /** Hole center height AG (field plan / hub origin table). */
+    public static final double innerHeight = Units.inchesToMeters(44.25);
+
+    /**
+     * Clear inner radius (m) at the funnel mouth plane ({@link #height}): nominal 22.25 in from
+     * official hub / field drawings (not half of {@link #width}, which is outer structure).
+     */
+    public static final double funnelMouthInnerRadius = Units.inchesToMeters(22.25);
 
     // Relevant reference points on alliance side
     public static final Translation3d topCenterPoint =
@@ -95,11 +110,49 @@ public class FieldConstants {
             AprilTagLayoutType.OFFICIAL.getLayout().getTagPose(26).get().getX() + width / 2.0,
             fieldWidth / 2.0,
             height);
+    /** Aim here for scoring shots (hole center), not {@link #topCenterPoint}. */
     public static final Translation3d innerCenterPoint =
         new Translation3d(
             AprilTagLayoutType.OFFICIAL.getLayout().getTagPose(26).get().getX() + width / 2.0,
             fieldWidth / 2.0,
             innerHeight);
+
+    /**
+     * Upside-down funnel: wider aperture at {@link #height}, narrowing to the hole at {@link
+     * #innerHeight}. Used for radial clearance along the shot.
+     */
+    public static double funnelInnerRadiusAtZ(double zMeters) {
+      double zHole = innerCenterPoint.getZ();
+      double zTop = height;
+      double rHole = innerWidth * 0.5;
+      double rMouth = funnelMouthInnerRadius;
+      if (zMeters <= zHole) {
+        return rHole;
+      }
+      if (zMeters >= zTop) {
+        return rMouth;
+      }
+      double t = (zMeters - zHole) / (zTop - zHole);
+      return rHole + t * (rMouth - rHole);
+    }
+
+    /**
+     * Inner funnel radius allowed at horizontal distance {@code approachMetersFromHole} before the
+     * hole along the shot (0 at hole center, larger when farther from hole). Linear frustum from hole
+     * to mouth; beyond {@code funnelAxialDepthMeters} the robot is outside the funnel walls.
+     */
+    public static double funnelInnerRadiusAtApproach(
+        double approachMetersFromHole, double funnelAxialDepthMeters) {
+        double rHole = innerWidth * 0.5;
+        double rMouth = funnelMouthInnerRadius;
+        if (approachMetersFromHole <= 0.0) {
+            return rHole;
+        }
+        if (approachMetersFromHole >= funnelAxialDepthMeters) {
+            return rMouth;
+        }
+        return rHole + (rMouth - rHole) * (approachMetersFromHole / funnelAxialDepthMeters);
+    }
 
     public static final Translation2d nearLeftCorner =
         new Translation2d(topCenterPoint.getX() - width / 2.0, fieldWidth / 2.0 + width / 2.0);
