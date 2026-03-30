@@ -1,3 +1,6 @@
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
+
 package frc.robot.subsystems.intake;
 
 import com.ctre.phoenix6.signals.GravityTypeValue;

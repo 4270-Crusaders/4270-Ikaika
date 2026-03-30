@@ -1,6 +1,5 @@
-// Copyright (c) 2021-2026 Littleton Robotics
-//
-// Pattern from Mechanical-Advantage/RobotCode2026Public FullSubsystem.
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
 
 package frc.robot.util;
 

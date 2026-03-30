@@ -1,3 +1,6 @@
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
+
 package frc.robot.commands.states;
 
 import edu.wpi.first.wpilibj2.command.Command;
