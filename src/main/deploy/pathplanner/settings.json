@@ -3,16 +3,14 @@
   "robotLength": 0.8128,
   "holonomicMode": true,
   "pathFolders": [
-    "Left-Triple-Swipe-Pass",
-    "Left-Triple-Swipe-Shoot",
+    "Right-Double-Swipe",
+    "Right-Pass-Swipe",
     "Right-Rush-Double-Swipe",
-    "Right-Side-Double-Swipe",
     "Tests"
   ],
   "autoFolders": [
     "Comp",
-    "Tests",
-    "V1"
+    "Tests"
   ],
   "defaultMaxVel": 5.12,
   "defaultMaxAccel": 5.12,
@@ -25,7 +23,7 @@
   "driveWheelRadius": 0.0508,
   "driveGearing": 6.03,
   "maxDriveSpeed": 5.45,
-  "driveMotorType": "krakenX60",
+  "driveMotorType": "krakenX60FOC",
   "driveCurrentLimit": 60.0,
   "wheelCOF": 1.2,
   "flModuleX": 0.279,
