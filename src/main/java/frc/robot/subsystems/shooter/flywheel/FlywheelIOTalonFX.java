@@ -1,5 +1,8 @@
 package frc.robot.subsystems.shooter.flywheel;
 
+import static frc.robot.Constants.TalonFxIo.CONFIG_APPLY_TIMEOUT_SEC;
+import static frc.robot.Constants.TalonFxIo.CONFIG_RETRY_COUNT;
+import static frc.robot.Constants.TalonFxIo.STATUS_SIGNAL_UPDATE_HZ;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
@@ -16,13 +19,9 @@ import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.math.util.Units;
 import frc.robot.subsystems.shooter.ShooterConstants;
-import frc.robot.util.PhoenixUtil;
 import java.util.List;
 
 public class FlywheelIOTalonFX implements FlywheelIO {
-  private static final int CONFIG_RETRY_COUNT = 5;
-  private static final double CONFIG_TIMEOUT_SEC = 0.25;
-  private static final double STATUS_UPDATE_HZ = 50.0;
   private final TalonFX leadMotor =
       new TalonFX(ShooterConstants.ComponentsConstants.Flywheel.FLYWHEEL_LEAD_CAN_ID);
   private final TalonFX followMotor =
@@ -73,12 +72,13 @@ public class FlywheelIOTalonFX implements FlywheelIO {
     config.Audio.BeepOnBoot = false;
     config.Audio.BeepOnConfig = false;
 
-    tryUntilOk(CONFIG_RETRY_COUNT, () -> leadMotor.getConfigurator().apply(config, CONFIG_TIMEOUT_SEC));
-    tryUntilOk(CONFIG_RETRY_COUNT, () -> followMotor.getConfigurator().apply(config, CONFIG_TIMEOUT_SEC));
+    tryUntilOk(CONFIG_RETRY_COUNT, () -> leadMotor.getConfigurator().apply(config, CONFIG_APPLY_TIMEOUT_SEC));
+    tryUntilOk(
+        CONFIG_RETRY_COUNT, () -> followMotor.getConfigurator().apply(config, CONFIG_APPLY_TIMEOUT_SEC));
     followMotor.setControl(followController);
 
     BaseStatusSignal.setUpdateFrequencyForAll(
-        STATUS_UPDATE_HZ,
+        STATUS_SIGNAL_UPDATE_HZ,
         setpointVelocityRpsSignals.get(0),
         setpointVelocityRpsSignals.get(1),
         measuredVelocityRpsSignals.get(0),
@@ -155,8 +155,8 @@ public class FlywheelIOTalonFX implements FlywheelIO {
     config.Slot0.kS = kS;
     config.Slot0.kV = kV;
     config.Slot0.kA = kA;
-    PhoenixUtil.tryUntilOk(CONFIG_RETRY_COUNT, () -> leadMotor.getConfigurator().apply(config));
-    PhoenixUtil.tryUntilOk(CONFIG_RETRY_COUNT, () -> followMotor.getConfigurator().apply(config));
+    tryUntilOk(CONFIG_RETRY_COUNT, () -> leadMotor.getConfigurator().apply(config));
+    tryUntilOk(CONFIG_RETRY_COUNT, () -> followMotor.getConfigurator().apply(config));
   }
 
   @Override

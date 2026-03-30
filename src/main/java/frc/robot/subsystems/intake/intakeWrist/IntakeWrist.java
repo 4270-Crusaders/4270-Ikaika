@@ -13,71 +13,73 @@ public class IntakeWrist {
 
   private static final LoggedTunableNumber kP =
       new LoggedTunableNumber(
-          "Intake/Wrist/Gains/kP", IntakeConstants.IntakeWristConstants.IntakeWristkP);
+          "Intake/IntakeWrist/Gains/kP", IntakeConstants.IntakeWristConstants.kP);
   private static final LoggedTunableNumber kI =
       new LoggedTunableNumber(
-          "Intake/Wrist/Gains/kI", IntakeConstants.IntakeWristConstants.IntakeWristkI);
+          "Intake/IntakeWrist/Gains/kI", IntakeConstants.IntakeWristConstants.kI);
   private static final LoggedTunableNumber kD =
       new LoggedTunableNumber(
-          "Intake/Wrist/Gains/kD", IntakeConstants.IntakeWristConstants.IntakeWristkD);
+          "Intake/IntakeWrist/Gains/kD", IntakeConstants.IntakeWristConstants.kD);
   private static final LoggedTunableNumber kA =
       new LoggedTunableNumber(
-          "Intake/Wrist/Gains/kA", IntakeConstants.IntakeWristConstants.IntakeWristkA);
+          "Intake/IntakeWrist/Gains/kA", IntakeConstants.IntakeWristConstants.kA);
   private static final LoggedTunableNumber kV =
       new LoggedTunableNumber(
-          "Intake/Wrist/Gains/kV", IntakeConstants.IntakeWristConstants.IntakeWristkV);
+          "Intake/IntakeWrist/Gains/kV", IntakeConstants.IntakeWristConstants.kV);
   private static final LoggedTunableNumber kS =
       new LoggedTunableNumber(
-          "Intake/Wrist/Gains/kS", IntakeConstants.IntakeWristConstants.IntakeWristkS);
+          "Intake/IntakeWrist/Gains/kS", IntakeConstants.IntakeWristConstants.kS);
   private static final LoggedTunableNumber kG =
       new LoggedTunableNumber(
-          "Intake/Wrist/Gains/kG", IntakeConstants.IntakeWristConstants.IntakeWristkG);
+          "Intake/IntakeWrist/Gains/kG", IntakeConstants.IntakeWristConstants.kG);
 
   private static final LoggedTunableNumber MOTION_MAGIC_JERK =
       new LoggedTunableNumber(
-          "Intake/Wrist/MotionMagic/Jerk",
-          IntakeConstants.IntakeWristConstants.IntakeWristMotionMagicJerk);
+          "Intake/IntakeWrist/MotionMagic/Jerk",
+          IntakeConstants.IntakeWristConstants.motionMagicJerk);
   private static final LoggedTunableNumber MOTION_MAGIC_ACCELERATION =
       new LoggedTunableNumber(
-          "Intake/Wrist/MotionMagic/Acceleration",
-          IntakeConstants.IntakeWristConstants.IntakeWristMotionMagicAcceleration);
+          "Intake/IntakeWrist/MotionMagic/Acceleration",
+          IntakeConstants.IntakeWristConstants.motionMagicAcceleration);
   private static final LoggedTunableNumber MOTION_MAGIC_VELOCITY =
       new LoggedTunableNumber(
-          "Intake/Wrist/MotionMagic/Velocity",
-          IntakeConstants.IntakeWristConstants.IntakeWristMotionMagicVelocity);
+          "Intake/IntakeWrist/MotionMagic/Velocity",
+          IntakeConstants.IntakeWristConstants.motionMagicVelocity);
   private static final LoggedTunableNumber MOTION_MAGIC_EXPO_kV =
       new LoggedTunableNumber(
-          "Intake/Wrist/MotionMagic/ExpoKv",
-          IntakeConstants.IntakeWristConstants.IntakeWristMotionMagickV);
+          "Intake/IntakeWrist/MotionMagic/ExpoKv",
+          IntakeConstants.IntakeWristConstants.motionMagicExpoKV);
   private static final LoggedTunableNumber MOTION_MAGIC_EXPO_kA =
       new LoggedTunableNumber(
-          "Intake/Wrist/MotionMagic/ExpoKa",
-          IntakeConstants.IntakeWristConstants.IntakeWristMotionMagickA);
+          "Intake/IntakeWrist/MotionMagic/ExpoKa",
+          IntakeConstants.IntakeWristConstants.motionMagicExpoKA);
 
   public enum IntakeWristGoal {
-    UP(new LoggedTunableNumber("Intake/Wrist/Goals/Up", 0.25)),
-    DOWN(new LoggedTunableNumber("Intake/Wrist/Goals/Down", 88)),
-    AGITATE(new LoggedTunableNumber("Intake/Wrist/Goals/Agitate", 40)),
-    CUSTOM(new LoggedTunableNumber("Intake/Wrist/Goals/Custom", 0));
+    UP(new LoggedTunableNumber("Intake/IntakeWrist/Goals/Up", 0.25)),
+    DOWN(new LoggedTunableNumber("Intake/IntakeWrist/Goals/Down", 88)),
+    AGITATE(new LoggedTunableNumber("Intake/IntakeWrist/Goals/Agitate", 40)),
+    CUSTOM(new LoggedTunableNumber("Intake/IntakeWrist/Goals/Custom", 0));
 
-    private final DoubleSupplier intakeWristSetpointSupplier;
+    private final DoubleSupplier setpointSupplier;
 
-    private IntakeWristGoal(DoubleSupplier intakeWristSetpointSupplier) {
-      this.intakeWristSetpointSupplier = intakeWristSetpointSupplier;
+    IntakeWristGoal(DoubleSupplier setpointSupplier) {
+      this.setpointSupplier = setpointSupplier;
     }
 
     private double getDegrees() {
-      return intakeWristSetpointSupplier.getAsDouble();
+      return setpointSupplier.getAsDouble();
     }
   }
 
   @AutoLogOutput private IntakeWristGoal goalSetpoint = IntakeWristGoal.UP;
 
   private boolean closedLoop = true;
-
   private double goalDeg = 0.0;
-
   private boolean nearGoal = false;
+
+  public IntakeWrist(IntakeWristIO io) {
+    this.io = io;
+  }
 
   public void setGoalSetPoint(IntakeWristGoal goal) {
     closedLoop = true;
@@ -89,22 +91,17 @@ public class IntakeWrist {
     io.runSetVoltage(voltage);
   }
 
-  public IntakeWrist(IntakeWristIO io) {
-    this.io = io;
-  }
-
   public void periodic() {
     io.updateInputs(inputs);
-    Logger.processInputs("Intake/Wrist", inputs);
+    Logger.processInputs("Intake/IntakeWrist", inputs);
 
-    // motion magic setpoint code
     if (closedLoop) {
       goalDeg = goalSetpoint.getDegrees();
       io.runSetpointDegree(goalDeg);
     }
 
     nearGoal = EqualsUtil.epsilonEquals(inputs.measuredPostionDeg, goalDeg, 5);
-    Logger.recordOutput("Intake/Wrist/nearGoal", nearGoal);
+    Logger.recordOutput("Intake/IntakeWrist/nearGoal", nearGoal);
 
     LoggedTunableNumber.ifChanged(
         hashCode(),
@@ -132,14 +129,4 @@ public class IntakeWrist {
         MOTION_MAGIC_EXPO_kA,
         MOTION_MAGIC_EXPO_kV);
   }
-
-  public void getSetVoltage(double goal) {
-    setManualVoltage(goal);
-  }
-  ;
-
-  public void Setpoint(IntakeWristGoal goalSetPoint) {
-    setGoalSetPoint(goalSetPoint);
-  }
-  ;
 }

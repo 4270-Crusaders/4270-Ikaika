@@ -1,4 +1,4 @@
-package frc.robot.subsystems.indexer.kicker;
+package frc.robot.subsystems.indexer.indexerRollers;
 
 import frc.robot.subsystems.indexer.IndexerConstants;
 import frc.robot.util.EqualsUtil;
@@ -7,41 +7,40 @@ import java.util.function.DoubleSupplier;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
-/** Indexer kicker motor (velocity or voltage). */
-public class Kicker {
-  private final KickerIO io;
-  private final KickerIOInputsAutoLogged inputs = new KickerIOInputsAutoLogged();
+public class IndexerRollers {
+  private final IndexerRollersIO io;
+  private final IndexerRollersIOInputsAutoLogged inputs = new IndexerRollersIOInputsAutoLogged();
 
   private static final LoggedTunableNumber kP =
       new LoggedTunableNumber(
-          "Indexer/Kicker/Gains/kP", IndexerConstants.ComponentsConstants.Kicker.Gains.kP);
+          "Indexer/IndexerRollers/Gains/kP", IndexerConstants.IndexerRollers.Gains.kP);
   private static final LoggedTunableNumber kI =
       new LoggedTunableNumber(
-          "Indexer/Kicker/Gains/kI", IndexerConstants.ComponentsConstants.Kicker.Gains.kI);
+          "Indexer/IndexerRollers/Gains/kI", IndexerConstants.IndexerRollers.Gains.kI);
   private static final LoggedTunableNumber kD =
       new LoggedTunableNumber(
-          "Indexer/Kicker/Gains/kD", IndexerConstants.ComponentsConstants.Kicker.Gains.kD);
+          "Indexer/IndexerRollers/Gains/kD", IndexerConstants.IndexerRollers.Gains.kD);
   private static final LoggedTunableNumber kA =
       new LoggedTunableNumber(
-          "Indexer/Kicker/Gains/kA", IndexerConstants.ComponentsConstants.Kicker.Gains.kA);
+          "Indexer/IndexerRollers/Gains/kA", IndexerConstants.IndexerRollers.Gains.kA);
   private static final LoggedTunableNumber kV =
       new LoggedTunableNumber(
-          "Indexer/Kicker/Gains/kV", IndexerConstants.ComponentsConstants.Kicker.Gains.kV);
+          "Indexer/IndexerRollers/Gains/kV", IndexerConstants.IndexerRollers.Gains.kV);
   private static final LoggedTunableNumber kS =
       new LoggedTunableNumber(
-          "Indexer/Kicker/Gains/kS", IndexerConstants.ComponentsConstants.Kicker.Gains.kS);
+          "Indexer/IndexerRollers/Gains/kS", IndexerConstants.IndexerRollers.Gains.kS);
 
-  public enum KickerGoal {
-    ZERO(new LoggedTunableNumber("Indexer/Kicker/Goals/Zero", 0)),
-    INTAKE(new LoggedTunableNumber("Indexer/Kicker/Goals/Intake", 100)),
-    SHOOT(new LoggedTunableNumber("Indexer/Kicker/Goals/Shoot", 4000)),
-    OUTTAKE(new LoggedTunableNumber("Indexer/Kicker/Goals/Outtake", -3000)),
-    SPIT(new LoggedTunableNumber("Indexer/Kicker/Goals/Spit", -4000)),
-    CUSTOM(new LoggedTunableNumber("Indexer/Kicker/Goals/Custom", 100));
+  public enum IndexerRollersGoal {
+    ZERO(new LoggedTunableNumber("Indexer/IndexerRollers/Goals/Zero", 0)),
+    INTAKE(new LoggedTunableNumber("Indexer/IndexerRollers/Goals/Intake", 1500)),
+    SHOOT(new LoggedTunableNumber("Indexer/IndexerRollers/Goals/Shoot", 4000)),
+    OUTTAKE(new LoggedTunableNumber("Indexer/IndexerRollers/Goals/Outtake", -1500)),
+    SPIT(new LoggedTunableNumber("Indexer/IndexerRollers/Goals/Spit", 2000)),
+    CUSTOM(new LoggedTunableNumber("Indexer/IndexerRollers/Goals/Custom", 100));
 
     private final DoubleSupplier setpointSupplier;
 
-    KickerGoal(DoubleSupplier setpointSupplier) {
+    IndexerRollersGoal(DoubleSupplier setpointSupplier) {
       this.setpointSupplier = setpointSupplier;
     }
 
@@ -50,33 +49,30 @@ public class Kicker {
     }
   }
 
-  @AutoLogOutput(key = "Indexer/Kicker/GoalSetpoint")
-  private KickerGoal goalSetpoint = KickerGoal.ZERO;
+  @AutoLogOutput(key = "Indexer/IndexerRollers/GoalSetpoint")
+  private IndexerRollersGoal goalSetpoint = IndexerRollersGoal.ZERO;
 
   private boolean velocityClosedLoop = true;
   private double goalRPM = 0.0;
   private boolean nearGoal = false;
 
-  public Kicker(KickerIO io) {
+  public IndexerRollers(IndexerRollersIO io) {
     this.io = io;
   }
 
-  /** Velocity closed-loop to the RPM from {@code goal}. */
-  public void setGoalSetPoint(KickerGoal goal) {
+  public void setGoalSetPoint(IndexerRollersGoal goal) {
     velocityClosedLoop = true;
     this.goalSetpoint = goal;
   }
 
-  /** Open-loop output; disables velocity command until {@link #setGoalSetPoint}. */
   public void setManualVoltage(double voltageVolts) {
     velocityClosedLoop = false;
     io.runSetVoltage(voltageVolts);
   }
 
-  /** Updates logging, PID refresh, and velocity/voltage command. */
   public void periodic() {
     io.updateInputs(inputs);
-    Logger.processInputs("Indexer/Kicker", inputs);
+    Logger.processInputs("Indexer/IndexerRollers", inputs);
 
     if (velocityClosedLoop) {
       goalRPM = goalSetpoint.getRPM();
@@ -86,7 +82,7 @@ public class Kicker {
     nearGoal =
         EqualsUtil.epsilonEquals(
             inputs.motorMeasuredVelocityRPM, goalRPM, IndexerConstants.NEAR_GOAL_RPM_TOLERANCE);
-    Logger.recordOutput("Indexer/Kicker/nearGoal", nearGoal);
+    Logger.recordOutput("Indexer/IndexerRollers/nearGoal", nearGoal);
 
     LoggedTunableNumber.ifChanged(
         hashCode(),

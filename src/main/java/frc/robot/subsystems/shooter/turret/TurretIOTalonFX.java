@@ -1,5 +1,8 @@
 package frc.robot.subsystems.shooter.turret;
 
+import static frc.robot.Constants.TalonFxIo.CONFIG_APPLY_TIMEOUT_SEC;
+import static frc.robot.Constants.TalonFxIo.CONFIG_RETRY_COUNT;
+import static frc.robot.Constants.TalonFxIo.STATUS_SIGNAL_UPDATE_HZ;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
@@ -28,9 +31,6 @@ import frc.robot.subsystems.shooter.ShooterConstants;
  * command a closed-loop position setpoint using MotionMagicExpoTorqueCurrentFOC.
  */
 public class TurretIOTalonFX implements TurretIO {
-  private static final int CONFIG_RETRY_COUNT = 5;
-  private static final double CONFIG_TIMEOUT_SEC = 0.25;
-  private static final double STATUS_UPDATE_HZ = 50.0;
   // Motor and absolute encoder on the turret
   private final TalonFX motor = new TalonFX(ShooterConstants.ComponentsConstants.Turret.TURRET_CAN_ID);
   private final CANcoder encoder =
@@ -63,7 +63,8 @@ public class TurretIOTalonFX implements TurretIO {
         ShooterConstants.ComponentsConstants.Turret.TurretEncoderMagnetOffset;
 
     // Retry applying CANcoder config to tolerate CAN startup races
-    tryUntilOk(CONFIG_RETRY_COUNT, () -> encoder.getConfigurator().apply(encoderConfig, CONFIG_TIMEOUT_SEC));
+    tryUntilOk(
+        CONFIG_RETRY_COUNT, () -> encoder.getConfigurator().apply(encoderConfig, CONFIG_APPLY_TIMEOUT_SEC));
 
     motorConfig.CurrentLimits.SupplyCurrentLimit =
         ShooterConstants.ComponentsConstants.Turret.TurretCurrentLimit;
@@ -104,11 +105,12 @@ public class TurretIOTalonFX implements TurretIO {
     motorConfig.Feedback.RotorToSensorRatio =
         ShooterConstants.ComponentsConstants.Turret.rotorToSensorRatio;
 
-    tryUntilOk(CONFIG_RETRY_COUNT, () -> motor.getConfigurator().apply(motorConfig, CONFIG_TIMEOUT_SEC));
+    tryUntilOk(
+        CONFIG_RETRY_COUNT, () -> motor.getConfigurator().apply(motorConfig, CONFIG_APPLY_TIMEOUT_SEC));
 
     // Set the update frequency for the status signals we plan to read
     BaseStatusSignal.setUpdateFrequencyForAll(
-        STATUS_UPDATE_HZ,
+        STATUS_SIGNAL_UPDATE_HZ,
         velocityRps,
         setpointPositionRotations,
         measuredPositionRotations,

@@ -1,5 +1,8 @@
 package frc.robot.subsystems.shooter.hood;
 
+import static frc.robot.Constants.TalonFxIo.CONFIG_APPLY_TIMEOUT_SEC;
+import static frc.robot.Constants.TalonFxIo.CONFIG_RETRY_COUNT;
+import static frc.robot.Constants.TalonFxIo.STATUS_SIGNAL_UPDATE_HZ;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
@@ -21,9 +24,6 @@ import frc.robot.subsystems.shooter.ShooterConstants;
 import org.littletonrobotics.junction.Logger;
 
 public class HoodIOTalonFX implements HoodIO {
-  private static final int CONFIG_RETRY_COUNT = 5;
-  private static final double CONFIG_TIMEOUT_SEC = 0.25;
-  private static final double STATUS_UPDATE_HZ = 50.0;
   private final TalonFX motor = new TalonFX(ShooterConstants.ComponentsConstants.Hood.HOOD_CAN_ID);
   private final CANcoder encoder =
       new CANcoder(ShooterConstants.ComponentsConstants.Hood.HOOD_ENCODER_CAN_ID);
@@ -55,7 +55,8 @@ public class HoodIOTalonFX implements HoodIO {
     encoderConfig.MagnetSensor.SensorDirection =
         ShooterConstants.ComponentsConstants.Hood.hoodEncoderDirection;
 
-    tryUntilOk(CONFIG_RETRY_COUNT, () -> encoder.getConfigurator().apply(encoderConfig, CONFIG_TIMEOUT_SEC));
+    tryUntilOk(
+        CONFIG_RETRY_COUNT, () -> encoder.getConfigurator().apply(encoderConfig, CONFIG_APPLY_TIMEOUT_SEC));
 
     motorConfig.CurrentLimits.SupplyCurrentLimit =
         ShooterConstants.ComponentsConstants.Hood.HoodCurrentLimit;
@@ -88,10 +89,11 @@ public class HoodIOTalonFX implements HoodIO {
         ShooterConstants.ComponentsConstants.Hood.sensorToMechanismRatio;
     motorConfig.Feedback.RotorToSensorRatio =
         ShooterConstants.ComponentsConstants.Hood.rotorToSensorRatio;
-    tryUntilOk(CONFIG_RETRY_COUNT, () -> motor.getConfigurator().apply(motorConfig, CONFIG_TIMEOUT_SEC));
+    tryUntilOk(
+        CONFIG_RETRY_COUNT, () -> motor.getConfigurator().apply(motorConfig, CONFIG_APPLY_TIMEOUT_SEC));
 
     BaseStatusSignal.setUpdateFrequencyForAll(
-        STATUS_UPDATE_HZ,
+        STATUS_SIGNAL_UPDATE_HZ,
         velocityRps,
         setpointPositionRotations,
         measuredPositionRotations,

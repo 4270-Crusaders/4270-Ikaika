@@ -1,5 +1,8 @@
 package frc.robot.subsystems.intake.intakeWrist;
 
+import static frc.robot.Constants.TalonFxIo.CONFIG_APPLY_TIMEOUT_SEC;
+import static frc.robot.Constants.TalonFxIo.CONFIG_RETRY_COUNT;
+import static frc.robot.Constants.TalonFxIo.STATUS_SIGNAL_UPDATE_HZ;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
@@ -19,62 +22,55 @@ import frc.robot.subsystems.intake.IntakeConstants;
 import org.littletonrobotics.junction.Logger;
 
 public class IntakeWristIOTalonFX implements IntakeWristIO {
-  private final TalonFX WristMotor =
-      new TalonFX(IntakeConstants.IntakeWristConstants.INTAKE_WRIST_CAN_ID);
+  private final TalonFX wristMotor = new TalonFX(IntakeConstants.IntakeWristConstants.CAN_ID);
 
-  private final StatusSignal<AngularVelocity> veloRPS = WristMotor.getVelocity();
-  private final StatusSignal<Double> setVeloRPS = WristMotor.getClosedLoopReference();
-  private final StatusSignal<Angle> measuredPosRot = WristMotor.getPosition();
-  private final StatusSignal<Voltage> appliedVoltage = WristMotor.getMotorVoltage();
-  private final StatusSignal<Current> supplyCurrentAmps = WristMotor.getSupplyCurrent();
-  private final StatusSignal<Current> torqueCurrentAmps = WristMotor.getTorqueCurrent();
-  private final StatusSignal<Temperature> deviceTemperature = WristMotor.getDeviceTemp();
+  private final StatusSignal<AngularVelocity> veloRPS = wristMotor.getVelocity();
+  private final StatusSignal<Double> setVeloRPS = wristMotor.getClosedLoopReference();
+  private final StatusSignal<Angle> measuredPosRot = wristMotor.getPosition();
+  private final StatusSignal<Voltage> appliedVoltage = wristMotor.getMotorVoltage();
+  private final StatusSignal<Current> supplyCurrentAmps = wristMotor.getSupplyCurrent();
+  private final StatusSignal<Current> torqueCurrentAmps = wristMotor.getTorqueCurrent();
+  private final StatusSignal<Temperature> deviceTemperature = wristMotor.getDeviceTemp();
 
   private final MotionMagicExpoVoltage positionRequest = new MotionMagicExpoVoltage(0.0);
   private final VoltageOut voltageRequest = new VoltageOut(0);
   private TalonFXConfiguration motorConfig = new TalonFXConfiguration();
 
   public IntakeWristIOTalonFX() {
-    motorConfig.CurrentLimits.SupplyCurrentLimit =
-        IntakeConstants.IntakeWristConstants.INTAKE_WRIST_CURRENT_LIMIT;
+    motorConfig.CurrentLimits.SupplyCurrentLimit = IntakeConstants.IntakeWristConstants.CURRENT_LIMIT;
     motorConfig.CurrentLimits.SupplyCurrentLimitEnable =
-        IntakeConstants.IntakeWristConstants.INTAKE_WRIST_CURRENT_LIMIT_ENABLE;
-    motorConfig.MotorOutput.NeutralMode =
-        IntakeConstants.IntakeWristConstants.INTAKE_WRIST_NEUTRAL_MODE_VALUE;
-    motorConfig.MotorOutput.Inverted =
-        IntakeConstants.IntakeWristConstants.INTAKE_WRIST_INVERTED_VALUE;
+        IntakeConstants.IntakeWristConstants.CURRENT_LIMIT_ENABLE;
+    motorConfig.MotorOutput.NeutralMode = IntakeConstants.IntakeWristConstants.NEUTRAL_MODE;
+    motorConfig.MotorOutput.Inverted = IntakeConstants.IntakeWristConstants.INVERTED;
 
-    motorConfig.Slot0.kP = IntakeConstants.IntakeWristConstants.IntakeWristkP;
-    motorConfig.Slot0.kI = IntakeConstants.IntakeWristConstants.IntakeWristkI;
-    motorConfig.Slot0.kD = IntakeConstants.IntakeWristConstants.IntakeWristkD;
-    motorConfig.Slot0.kA = IntakeConstants.IntakeWristConstants.IntakeWristkA;
-    motorConfig.Slot0.kV = IntakeConstants.IntakeWristConstants.IntakeWristkV;
-    motorConfig.Slot0.kS = IntakeConstants.IntakeWristConstants.IntakeWristkS;
-    motorConfig.Slot0.kG = IntakeConstants.IntakeWristConstants.IntakeWristkG;
-    motorConfig.Slot0.GravityType = IntakeConstants.IntakeWristConstants.intakeWristGravityType;
+    motorConfig.Slot0.kP = IntakeConstants.IntakeWristConstants.kP;
+    motorConfig.Slot0.kI = IntakeConstants.IntakeWristConstants.kI;
+    motorConfig.Slot0.kD = IntakeConstants.IntakeWristConstants.kD;
+    motorConfig.Slot0.kA = IntakeConstants.IntakeWristConstants.kA;
+    motorConfig.Slot0.kV = IntakeConstants.IntakeWristConstants.kV;
+    motorConfig.Slot0.kS = IntakeConstants.IntakeWristConstants.kS;
+    motorConfig.Slot0.kG = IntakeConstants.IntakeWristConstants.kG;
+    motorConfig.Slot0.GravityType = IntakeConstants.IntakeWristConstants.gravityType;
 
     motorConfig.MotionMagic.MotionMagicCruiseVelocity =
-        IntakeConstants.IntakeWristConstants
-            .IntakeWristMotionMagicVelocity; // Target cruise velocity in rps
+        IntakeConstants.IntakeWristConstants.motionMagicVelocity;
     motorConfig.MotionMagic.MotionMagicAcceleration =
-        IntakeConstants.IntakeWristConstants
-            .IntakeWristMotionMagicAcceleration; // Target acceleration in rps/s (0.5 seconds)
-    motorConfig.MotionMagic.MotionMagicJerk =
-        IntakeConstants.IntakeWristConstants
-            .IntakeWristMotionMagicJerk; // Target jerk in rps/s/s (0.1 seconds)
+        IntakeConstants.IntakeWristConstants.motionMagicAcceleration;
+    motorConfig.MotionMagic.MotionMagicJerk = IntakeConstants.IntakeWristConstants.motionMagicJerk;
     motorConfig.MotionMagic.MotionMagicExpo_kA =
-        IntakeConstants.IntakeWristConstants.IntakeWristMotionMagickA;
+        IntakeConstants.IntakeWristConstants.motionMagicExpoKA;
     motorConfig.MotionMagic.MotionMagicExpo_kV =
-        IntakeConstants.IntakeWristConstants.IntakeWristMotionMagickV;
+        IntakeConstants.IntakeWristConstants.motionMagicExpoKV;
 
     motorConfig.Feedback.SensorToMechanismRatio =
-        IntakeConstants.IntakeWristConstants.IntakeWristSensorToMechanismRatio;
+        IntakeConstants.IntakeWristConstants.sensorToMechanismRatio;
     motorConfig.Feedback.withFeedbackSensorSource(FeedbackSensorSourceValue.RotorSensor);
 
-    tryUntilOk(5, () -> WristMotor.getConfigurator().apply(motorConfig, 0.25));
+    tryUntilOk(
+        CONFIG_RETRY_COUNT, () -> wristMotor.getConfigurator().apply(motorConfig, CONFIG_APPLY_TIMEOUT_SEC));
 
     BaseStatusSignal.setUpdateFrequencyForAll(
-        50.0,
+        STATUS_SIGNAL_UPDATE_HZ,
         veloRPS,
         setVeloRPS,
         measuredPosRot,
@@ -112,7 +108,7 @@ public class IntakeWristIOTalonFX implements IntakeWristIO {
     motorConfig.Slot0.kV = kV;
     motorConfig.Slot0.kA = kA;
     motorConfig.Slot0.kG = kG;
-    tryUntilOk(5, () -> WristMotor.getConfigurator().apply(motorConfig));
+    tryUntilOk(CONFIG_RETRY_COUNT, () -> wristMotor.getConfigurator().apply(motorConfig));
   }
 
   @Override
@@ -122,18 +118,18 @@ public class IntakeWristIOTalonFX implements IntakeWristIO {
     motorConfig.MotionMagic.MotionMagicAcceleration = acceleration;
     motorConfig.MotionMagic.MotionMagicExpo_kA = expokA;
     motorConfig.MotionMagic.MotionMagicExpo_kV = expokV;
-    tryUntilOk(5, () -> WristMotor.getConfigurator().apply(motorConfig));
+    tryUntilOk(CONFIG_RETRY_COUNT, () -> wristMotor.getConfigurator().apply(motorConfig));
   }
 
   @Override
   public void runSetpointDegree(double setpointDeg) {
-    Logger.recordOutput("Intake/Wrist/SetpointDegree", setpointDeg);
-    WristMotor.setControl(
+    Logger.recordOutput("Intake/IntakeWrist/SetpointDegree", setpointDeg);
+    wristMotor.setControl(
         positionRequest.withPosition(Units.degreesToRotations(setpointDeg)).withEnableFOC(true));
   }
 
   @Override
   public void runSetVoltage(double voltage) {
-    WristMotor.setControl(voltageRequest.withEnableFOC(true).withOutput(voltage));
+    wristMotor.setControl(voltageRequest.withEnableFOC(true).withOutput(voltage));
   }
 }

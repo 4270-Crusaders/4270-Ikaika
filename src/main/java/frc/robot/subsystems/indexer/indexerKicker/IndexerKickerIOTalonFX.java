@@ -1,5 +1,8 @@
-package frc.robot.subsystems.indexer.kicker;
+package frc.robot.subsystems.indexer.indexerKicker;
 
+import static frc.robot.Constants.TalonFxIo.CONFIG_APPLY_TIMEOUT_SEC;
+import static frc.robot.Constants.TalonFxIo.CONFIG_RETRY_COUNT;
+import static frc.robot.Constants.TalonFxIo.STATUS_SIGNAL_UPDATE_HZ;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
@@ -15,43 +18,40 @@ import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.subsystems.indexer.IndexerConstants;
 
-/** Real-hardware {@link KickerIO} using a Talon FX. */
-public class KickerIOTalonFX implements KickerIO {
-  private final TalonFX leadMotor =
-      new TalonFX(IndexerConstants.ComponentsConstants.Kicker.CAN_ID);
+public class IndexerKickerIOTalonFX implements IndexerKickerIO {
+  private final TalonFX motor = new TalonFX(IndexerConstants.IndexerKicker.CAN_ID);
 
-  private final StatusSignal<AngularVelocity> measuredVeloRPS = leadMotor.getVelocity();
-  private final StatusSignal<Double> setVeloRPS = leadMotor.getClosedLoopReference();
-  private final StatusSignal<Angle> position = leadMotor.getPosition();
-  private final StatusSignal<Voltage> appliedVoltage = leadMotor.getMotorVoltage();
-  private final StatusSignal<Current> supplyCurrentAmps = leadMotor.getSupplyCurrent();
-  private final StatusSignal<Current> torqueCurrentAmps = leadMotor.getTorqueCurrent();
-  private final StatusSignal<Temperature> deviceTemperature = leadMotor.getDeviceTemp();
+  private final StatusSignal<AngularVelocity> measuredVeloRPS = motor.getVelocity();
+  private final StatusSignal<Double> setVeloRPS = motor.getClosedLoopReference();
+  private final StatusSignal<Angle> position = motor.getPosition();
+  private final StatusSignal<Voltage> appliedVoltage = motor.getMotorVoltage();
+  private final StatusSignal<Current> supplyCurrentAmps = motor.getSupplyCurrent();
+  private final StatusSignal<Current> torqueCurrentAmps = motor.getTorqueCurrent();
+  private final StatusSignal<Temperature> deviceTemperature = motor.getDeviceTemp();
 
   private final VoltageOut voltageRequest = new VoltageOut(0.0);
   private final VelocityVoltage velocityRequest = new VelocityVoltage(0.0);
 
   private final TalonFXConfiguration config = new TalonFXConfiguration();
 
-  public KickerIOTalonFX() {
-    config.CurrentLimits.SupplyCurrentLimit =
-        IndexerConstants.ComponentsConstants.Kicker.CURRENT_LIMIT;
+  public IndexerKickerIOTalonFX() {
+    config.CurrentLimits.SupplyCurrentLimit = IndexerConstants.IndexerKicker.CURRENT_LIMIT;
     config.CurrentLimits.SupplyCurrentLimitEnable =
-        IndexerConstants.ComponentsConstants.Kicker.CURRENT_LIMIT_ENABLE;
-    config.MotorOutput.NeutralMode = IndexerConstants.ComponentsConstants.Kicker.NEUTRAL_MODE;
-    config.MotorOutput.Inverted = IndexerConstants.ComponentsConstants.Kicker.INVERTED;
+        IndexerConstants.IndexerKicker.CURRENT_LIMIT_ENABLE;
+    config.MotorOutput.NeutralMode = IndexerConstants.IndexerKicker.NEUTRAL_MODE;
+    config.MotorOutput.Inverted = IndexerConstants.IndexerKicker.INVERTED;
 
-    config.Slot0.kI = IndexerConstants.ComponentsConstants.Kicker.Gains.kI;
-    config.Slot0.kP = IndexerConstants.ComponentsConstants.Kicker.Gains.kP;
-    config.Slot0.kD = IndexerConstants.ComponentsConstants.Kicker.Gains.kD;
-    config.Slot0.kA = IndexerConstants.ComponentsConstants.Kicker.Gains.kA;
-    config.Slot0.kV = IndexerConstants.ComponentsConstants.Kicker.Gains.kV;
-    config.Slot0.kS = IndexerConstants.ComponentsConstants.Kicker.Gains.kS;
+    config.Slot0.kI = IndexerConstants.IndexerKicker.Gains.kI;
+    config.Slot0.kP = IndexerConstants.IndexerKicker.Gains.kP;
+    config.Slot0.kD = IndexerConstants.IndexerKicker.Gains.kD;
+    config.Slot0.kA = IndexerConstants.IndexerKicker.Gains.kA;
+    config.Slot0.kV = IndexerConstants.IndexerKicker.Gains.kV;
+    config.Slot0.kS = IndexerConstants.IndexerKicker.Gains.kS;
 
-    tryUntilOk(5, () -> leadMotor.getConfigurator().apply(config, 0.25));
+    tryUntilOk(CONFIG_RETRY_COUNT, () -> motor.getConfigurator().apply(config, CONFIG_APPLY_TIMEOUT_SEC));
 
     BaseStatusSignal.setUpdateFrequencyForAll(
-        50.0,
+        STATUS_SIGNAL_UPDATE_HZ,
         setVeloRPS,
         measuredVeloRPS,
         position,
@@ -62,7 +62,7 @@ public class KickerIOTalonFX implements KickerIO {
   }
 
   @Override
-  public void updateInputs(KickerIOInputs inputs) {
+  public void updateInputs(IndexerKickerIOInputs inputs) {
     BaseStatusSignal.refreshAll(
         setVeloRPS,
         measuredVeloRPS,
@@ -90,16 +90,16 @@ public class KickerIOTalonFX implements KickerIO {
     config.Slot0.kS = kS;
     config.Slot0.kV = kV;
     config.Slot0.kA = kA;
-    tryUntilOk(5, () -> leadMotor.getConfigurator().apply(config));
+    tryUntilOk(CONFIG_RETRY_COUNT, () -> motor.getConfigurator().apply(config));
   }
 
   @Override
   public void runSetVoltage(double voltage) {
-    leadMotor.setControl(voltageRequest.withEnableFOC(true).withOutput(voltage));
+    motor.setControl(voltageRequest.withEnableFOC(true).withOutput(voltage));
   }
 
   @Override
   public void runVelocityRPM(double rpm) {
-    leadMotor.setControl(velocityRequest.withVelocity(rpm / 60.0).withEnableFOC(true));
+    motor.setControl(velocityRequest.withVelocity(rpm / 60.0).withEnableFOC(true));
   }
 }

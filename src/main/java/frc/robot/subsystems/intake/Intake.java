@@ -3,9 +3,9 @@ package frc.robot.subsystems.intake;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.subsystems.intake.intakeRollers.IntakeRollers;
-import frc.robot.subsystems.intake.intakeRollers.IntakeRollers.IntakeRollersGoal;
-import frc.robot.subsystems.intake.intakeRollers.IntakeRollersIO;
+import frc.robot.subsystems.intake.intakeRoller.IntakeRoller;
+import frc.robot.subsystems.intake.intakeRoller.IntakeRoller.IntakeRollerGoal;
+import frc.robot.subsystems.intake.intakeRoller.IntakeRollerIO;
 import frc.robot.subsystems.intake.intakeWrist.IntakeWrist;
 import frc.robot.subsystems.intake.intakeWrist.IntakeWrist.IntakeWristGoal;
 import frc.robot.subsystems.intake.intakeWrist.IntakeWristIO;
@@ -22,14 +22,14 @@ public class Intake extends SubsystemBase {
     CUSTOM
   }
 
-  @AutoLogOutput(key = "Intake/CurretState") private INTAKE_STATE currentIntakeState = INTAKE_STATE.UP;
+  @AutoLogOutput(key = "Intake/currentState")
+  private INTAKE_STATE currentIntakeState = INTAKE_STATE.UP;
 
+  private final IntakeRoller intakeRoller;
+  private final IntakeWrist intakeWrist;
 
-  private IntakeRollers intakeRollers;
-  private IntakeWrist intakeWrist;
-
-  public Intake(IntakeRollersIO intakeRollersIO, IntakeWristIO intakeWristIO) {
-    this.intakeRollers = new IntakeRollers(intakeRollersIO);
+  public Intake(IntakeRollerIO intakeRollerIO, IntakeWristIO intakeWristIO) {
+    this.intakeRoller = new IntakeRoller(intakeRollerIO);
     this.intakeWrist = new IntakeWrist(intakeWristIO);
   }
 
@@ -37,40 +37,39 @@ public class Intake extends SubsystemBase {
     currentIntakeState = state;
   }
 
-
   @Override
   public void periodic() {
-      switch (currentIntakeState) {
-        case UP:
-          intakeRollers.Setpoint(IntakeRollersGoal.ZERO);
-          intakeWrist.Setpoint(IntakeWristGoal.UP);
-          break;
-        case DOWN:
-          intakeRollers.Setpoint(IntakeRollersGoal.ZERO);
-          intakeWrist.Setpoint(IntakeWristGoal.DOWN);
-          break;
-        case INTAKE:
-            intakeRollers.Setpoint(IntakeRollersGoal.INTAKE);
-            intakeWrist.Setpoint(IntakeWristGoal.DOWN);
-          break;
-        case OUTTAKE:
-          intakeRollers.Setpoint(IntakeRollersGoal.OUTTAKE);
-          intakeWrist.Setpoint(IntakeWristGoal.DOWN);
-          break;
-        case AGITATE:
-          intakeRollers.Setpoint(IntakeRollersGoal.AGITATE);
-          intakeWrist.Setpoint(IntakeWristGoal.AGITATE);
-          break;
-        case SHOOT:
-          intakeRollers.Setpoint(IntakeRollersGoal.INTAKE);
-          break;
-        case CUSTOM:
-          intakeRollers.Setpoint(IntakeRollersGoal.CUSTOM);
-          intakeWrist.Setpoint(IntakeWristGoal.CUSTOM);
-          break;
+    switch (currentIntakeState) {
+      case UP:
+        intakeRoller.setGoalSetPoint(IntakeRollerGoal.ZERO);
+        intakeWrist.setGoalSetPoint(IntakeWristGoal.UP);
+        break;
+      case DOWN:
+        intakeRoller.setGoalSetPoint(IntakeRollerGoal.ZERO);
+        intakeWrist.setGoalSetPoint(IntakeWristGoal.DOWN);
+        break;
+      case INTAKE:
+        intakeRoller.setGoalSetPoint(IntakeRollerGoal.INTAKE);
+        intakeWrist.setGoalSetPoint(IntakeWristGoal.DOWN);
+        break;
+      case OUTTAKE:
+        intakeRoller.setGoalSetPoint(IntakeRollerGoal.OUTTAKE);
+        intakeWrist.setGoalSetPoint(IntakeWristGoal.DOWN);
+        break;
+      case AGITATE:
+        intakeRoller.setGoalSetPoint(IntakeRollerGoal.AGITATE);
+        intakeWrist.setGoalSetPoint(IntakeWristGoal.AGITATE);
+        break;
+      case SHOOT:
+        intakeRoller.setGoalSetPoint(IntakeRollerGoal.INTAKE);
+        break;
+      case CUSTOM:
+        intakeRoller.setGoalSetPoint(IntakeRollerGoal.CUSTOM);
+        intakeWrist.setGoalSetPoint(IntakeWristGoal.CUSTOM);
+        break;
     }
 
-    intakeRollers.periodic();
+    intakeRoller.periodic();
     intakeWrist.periodic();
   }
 

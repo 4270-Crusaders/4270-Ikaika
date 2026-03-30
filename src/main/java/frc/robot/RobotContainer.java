@@ -34,17 +34,17 @@ import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.subsystems.indexer.Indexer;
-import frc.robot.subsystems.indexer.agitator.AgitatorIO;
-import frc.robot.subsystems.indexer.agitator.AgitatorIOTalonFX;
-import frc.robot.subsystems.indexer.conveyor.ConveyorIO;
-import frc.robot.subsystems.indexer.conveyor.ConveyorIOTalonFX;
-import frc.robot.subsystems.indexer.kicker.KickerIO;
-import frc.robot.subsystems.indexer.kicker.KickerIOTalonFX;
-import frc.robot.subsystems.indexer.rollers.RollersIO;
-import frc.robot.subsystems.indexer.rollers.RollersIOTalonFX;
+import frc.robot.subsystems.indexer.indexerAgitator.IndexerAgitatorIO;
+import frc.robot.subsystems.indexer.indexerAgitator.IndexerAgitatorIOTalonFX;
+import frc.robot.subsystems.indexer.indexerConveyor.IndexerConveyorIO;
+import frc.robot.subsystems.indexer.indexerConveyor.IndexerConveyorIOTalonFX;
+import frc.robot.subsystems.indexer.indexerKicker.IndexerKickerIO;
+import frc.robot.subsystems.indexer.indexerKicker.IndexerKickerIOTalonFX;
+import frc.robot.subsystems.indexer.indexerRollers.IndexerRollersIO;
+import frc.robot.subsystems.indexer.indexerRollers.IndexerRollersIOTalonFX;
 import frc.robot.subsystems.intake.Intake;
-import frc.robot.subsystems.intake.intakeRollers.IntakeRollerIOTalonFX;
-import frc.robot.subsystems.intake.intakeRollers.IntakeRollersIO;
+import frc.robot.subsystems.intake.intakeRoller.IntakeRollerIO;
+import frc.robot.subsystems.intake.intakeRoller.IntakeRollerIOTalonFX;
 import frc.robot.subsystems.intake.intakeWrist.IntakeWristIO;
 import frc.robot.subsystems.intake.intakeWrist.IntakeWristIOTalonFX;
 import frc.robot.subsystems.shooter.ShooterCalculator;
@@ -110,7 +110,12 @@ public class RobotContainer {
             new Flywheel(new FlywheelIOTalonFX()),
             new Turret(new TurretIOTalonFX()),
             new Hood(new HoodIOTalonFX()));
-        indexer = new Indexer(new AgitatorIOTalonFX(), new KickerIOTalonFX(), new ConveyorIOTalonFX(), new RollersIOTalonFX());
+        indexer =
+            new Indexer(
+                new IndexerAgitatorIOTalonFX(),
+                new IndexerKickerIOTalonFX(),
+                new IndexerConveyorIOTalonFX(),
+                new IndexerRollersIOTalonFX());
         intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeWristIOTalonFX());
 
         break;
@@ -133,16 +138,13 @@ public class RobotContainer {
             new Flywheel(new FlywheelIO() {}),
             new Turret(new TurretIO() {}),
             new Hood(new HoodIO() {}));
-        indexer = new Indexer(
-          new AgitatorIO(){},
-          new KickerIO(){},
-          new ConveyorIO(){},
-          new RollersIO(){}
-        );
-        intake = new Intake(
-          new IntakeRollersIO(){},
-          new IntakeWristIO(){}
-        );
+        indexer =
+            new Indexer(
+                new IndexerAgitatorIO() {},
+                new IndexerKickerIO() {},
+                new IndexerConveyorIO() {},
+                new IndexerRollersIO() {});
+        intake = new Intake(new IntakeRollerIO() {}, new IntakeWristIO() {});
         break;
 
       default:
@@ -163,16 +165,13 @@ public class RobotContainer {
             new Flywheel(new FlywheelIO() {}),
             new Turret(new TurretIO() {}),
             new Hood(new HoodIO() {}));
-        indexer = new Indexer(
-          new AgitatorIO(){},
-          new KickerIO(){},
-          new ConveyorIO(){},
-          new RollersIO(){}
-        );
-        intake = new Intake(
-          new IntakeRollersIO(){},
-          new IntakeWristIO(){}
-        );
+        indexer =
+            new Indexer(
+                new IndexerAgitatorIO() {},
+                new IndexerKickerIO() {},
+                new IndexerConveyorIO() {},
+                new IndexerRollersIO() {});
+        intake = new Intake(new IntakeRollerIO() {}, new IntakeWristIO() {});
         break;
     }
 

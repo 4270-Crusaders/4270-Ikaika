@@ -7,6 +7,9 @@
 
 package frc.robot.subsystems.drive;
 
+import static frc.robot.Constants.TalonFxIo.CONFIG_APPLY_TIMEOUT_SEC;
+import static frc.robot.Constants.TalonFxIo.CONFIG_RETRY_COUNT;
+import static frc.robot.Constants.TalonFxIo.STATUS_SIGNAL_UPDATE_HZ;
 import static frc.robot.util.PhoenixUtil.*;
 
 import com.ctre.phoenix6.BaseStatusSignal;
@@ -116,8 +119,9 @@ public class ModuleIOTalonFX implements ModuleIO {
         constants.DriveMotorInverted
             ? InvertedValue.Clockwise_Positive
             : InvertedValue.CounterClockwise_Positive;
-    tryUntilOk(5, () -> driveTalon.getConfigurator().apply(driveConfig, 0.25));
-    tryUntilOk(5, () -> driveTalon.setPosition(0.0, 0.25));
+    tryUntilOk(
+        CONFIG_RETRY_COUNT, () -> driveTalon.getConfigurator().apply(driveConfig, CONFIG_APPLY_TIMEOUT_SEC));
+    tryUntilOk(CONFIG_RETRY_COUNT, () -> driveTalon.setPosition(0.0, CONFIG_APPLY_TIMEOUT_SEC));
 
     // Configure turn motor
     var turnConfig = new TalonFXConfiguration();
@@ -143,7 +147,8 @@ public class ModuleIOTalonFX implements ModuleIO {
         constants.SteerMotorInverted
             ? InvertedValue.Clockwise_Positive
             : InvertedValue.CounterClockwise_Positive;
-    tryUntilOk(5, () -> turnTalon.getConfigurator().apply(turnConfig, 0.25));
+    tryUntilOk(
+        CONFIG_RETRY_COUNT, () -> turnTalon.getConfigurator().apply(turnConfig, CONFIG_APPLY_TIMEOUT_SEC));
 
     // Configure CANCoder
     CANcoderConfiguration cancoderConfig = constants.EncoderInitialConfigs;
@@ -176,7 +181,7 @@ public class ModuleIOTalonFX implements ModuleIO {
     BaseStatusSignal.setUpdateFrequencyForAll(
         Drive.ODOMETRY_FREQUENCY, drivePosition, turnPosition);
     BaseStatusSignal.setUpdateFrequencyForAll(
-        50.0,
+        STATUS_SIGNAL_UPDATE_HZ,
         driveVelocity,
         driveAppliedVolts,
         driveCurrent,

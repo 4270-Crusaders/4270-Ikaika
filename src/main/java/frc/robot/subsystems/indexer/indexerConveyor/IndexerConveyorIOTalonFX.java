@@ -1,5 +1,8 @@
-package frc.robot.subsystems.indexer.conveyor;
+package frc.robot.subsystems.indexer.indexerConveyor;
 
+import static frc.robot.Constants.TalonFxIo.CONFIG_APPLY_TIMEOUT_SEC;
+import static frc.robot.Constants.TalonFxIo.CONFIG_RETRY_COUNT;
+import static frc.robot.Constants.TalonFxIo.STATUS_SIGNAL_UPDATE_HZ;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
@@ -15,43 +18,40 @@ import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.subsystems.indexer.IndexerConstants;
 
-/** Real-hardware {@link ConveyorIO} using a Talon FX. */
-public class ConveyorIOTalonFX implements ConveyorIO {
-  private final TalonFX leadMotor =
-      new TalonFX(IndexerConstants.ComponentsConstants.Conveyor.CAN_ID);
+public class IndexerConveyorIOTalonFX implements IndexerConveyorIO {
+  private final TalonFX motor = new TalonFX(IndexerConstants.IndexerConveyor.CAN_ID);
 
-  private final StatusSignal<AngularVelocity> measuredVeloRPS = leadMotor.getVelocity();
-  private final StatusSignal<Double> setVeloRPS = leadMotor.getClosedLoopReference();
-  private final StatusSignal<Angle> position = leadMotor.getPosition();
-  private final StatusSignal<Voltage> appliedVoltage = leadMotor.getMotorVoltage();
-  private final StatusSignal<Current> supplyCurrentAmps = leadMotor.getSupplyCurrent();
-  private final StatusSignal<Current> torqueCurrentAmps = leadMotor.getTorqueCurrent();
-  private final StatusSignal<Temperature> deviceTemperature = leadMotor.getDeviceTemp();
+  private final StatusSignal<AngularVelocity> measuredVeloRPS = motor.getVelocity();
+  private final StatusSignal<Double> setVeloRPS = motor.getClosedLoopReference();
+  private final StatusSignal<Angle> position = motor.getPosition();
+  private final StatusSignal<Voltage> appliedVoltage = motor.getMotorVoltage();
+  private final StatusSignal<Current> supplyCurrentAmps = motor.getSupplyCurrent();
+  private final StatusSignal<Current> torqueCurrentAmps = motor.getTorqueCurrent();
+  private final StatusSignal<Temperature> deviceTemperature = motor.getDeviceTemp();
 
   private final VoltageOut voltageRequest = new VoltageOut(0.0);
   private final VelocityVoltage velocityRequest = new VelocityVoltage(0.0);
 
   private final TalonFXConfiguration config = new TalonFXConfiguration();
 
-  public ConveyorIOTalonFX() {
-    config.CurrentLimits.SupplyCurrentLimit =
-        IndexerConstants.ComponentsConstants.Conveyor.CURRENT_LIMIT;
+  public IndexerConveyorIOTalonFX() {
+    config.CurrentLimits.SupplyCurrentLimit = IndexerConstants.IndexerConveyor.CURRENT_LIMIT;
     config.CurrentLimits.SupplyCurrentLimitEnable =
-        IndexerConstants.ComponentsConstants.Conveyor.CURRENT_LIMIT_ENABLE;
-    config.MotorOutput.NeutralMode = IndexerConstants.ComponentsConstants.Conveyor.NEUTRAL_MODE;
-    config.MotorOutput.Inverted = IndexerConstants.ComponentsConstants.Conveyor.INVERTED;
+        IndexerConstants.IndexerConveyor.CURRENT_LIMIT_ENABLE;
+    config.MotorOutput.NeutralMode = IndexerConstants.IndexerConveyor.NEUTRAL_MODE;
+    config.MotorOutput.Inverted = IndexerConstants.IndexerConveyor.INVERTED;
 
-    config.Slot0.kI = IndexerConstants.ComponentsConstants.Conveyor.Gains.kI;
-    config.Slot0.kP = IndexerConstants.ComponentsConstants.Conveyor.Gains.kP;
-    config.Slot0.kD = IndexerConstants.ComponentsConstants.Conveyor.Gains.kD;
-    config.Slot0.kA = IndexerConstants.ComponentsConstants.Conveyor.Gains.kA;
-    config.Slot0.kV = IndexerConstants.ComponentsConstants.Conveyor.Gains.kV;
-    config.Slot0.kS = IndexerConstants.ComponentsConstants.Conveyor.Gains.kS;
+    config.Slot0.kI = IndexerConstants.IndexerConveyor.Gains.kI;
+    config.Slot0.kP = IndexerConstants.IndexerConveyor.Gains.kP;
+    config.Slot0.kD = IndexerConstants.IndexerConveyor.Gains.kD;
+    config.Slot0.kA = IndexerConstants.IndexerConveyor.Gains.kA;
+    config.Slot0.kV = IndexerConstants.IndexerConveyor.Gains.kV;
+    config.Slot0.kS = IndexerConstants.IndexerConveyor.Gains.kS;
 
-    tryUntilOk(5, () -> leadMotor.getConfigurator().apply(config, 0.25));
+    tryUntilOk(CONFIG_RETRY_COUNT, () -> motor.getConfigurator().apply(config, CONFIG_APPLY_TIMEOUT_SEC));
 
     BaseStatusSignal.setUpdateFrequencyForAll(
-        50.0,
+        STATUS_SIGNAL_UPDATE_HZ,
         setVeloRPS,
         measuredVeloRPS,
         position,
@@ -62,7 +62,7 @@ public class ConveyorIOTalonFX implements ConveyorIO {
   }
 
   @Override
-  public void updateInputs(ConveyorIOInputs inputs) {
+  public void updateInputs(IndexerConveyorIOInputs inputs) {
     BaseStatusSignal.refreshAll(
         setVeloRPS,
         measuredVeloRPS,
@@ -90,16 +90,16 @@ public class ConveyorIOTalonFX implements ConveyorIO {
     config.Slot0.kS = kS;
     config.Slot0.kV = kV;
     config.Slot0.kA = kA;
-    tryUntilOk(5, () -> leadMotor.getConfigurator().apply(config));
+    tryUntilOk(CONFIG_RETRY_COUNT, () -> motor.getConfigurator().apply(config));
   }
 
   @Override
   public void runSetVoltage(double voltage) {
-    leadMotor.setControl(voltageRequest.withEnableFOC(true).withOutput(voltage));
+    motor.setControl(voltageRequest.withEnableFOC(true).withOutput(voltage));
   }
 
   @Override
   public void runVelocityRPM(double rpm) {
-    leadMotor.setControl(velocityRequest.withVelocity(rpm / 60.0).withEnableFOC(true));
+    motor.setControl(velocityRequest.withVelocity(rpm / 60.0).withEnableFOC(true));
   }
 }

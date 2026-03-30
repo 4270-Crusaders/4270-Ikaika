@@ -41,4 +41,16 @@ public final class Constants {
   public static void disableHAL() {
     disableHAL = true;
   }
+
+  /**
+   * Defaults for Phoenix 6 Talon FX / CANcoder config retries and status-frame rates in subsystem IO
+   * implementations.
+   */
+  public static final class TalonFxIo {
+    public static final int CONFIG_RETRY_COUNT = 5;
+    public static final double CONFIG_APPLY_TIMEOUT_SEC = 0.25;
+    public static final double STATUS_SIGNAL_UPDATE_HZ = 50.0;
+
+    private TalonFxIo() {}
+  }
 }

@@ -1,5 +1,8 @@
-package frc.robot.subsystems.indexer.rollers;
+package frc.robot.subsystems.indexer.indexerAgitator;
 
+import static frc.robot.Constants.TalonFxIo.CONFIG_APPLY_TIMEOUT_SEC;
+import static frc.robot.Constants.TalonFxIo.CONFIG_RETRY_COUNT;
+import static frc.robot.Constants.TalonFxIo.STATUS_SIGNAL_UPDATE_HZ;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
@@ -15,43 +18,40 @@ import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.subsystems.indexer.IndexerConstants;
 
-/** Real-hardware {@link RollersIO} using a Talon FX and velocity-voltage closed loop. */
-public class RollersIOTalonFX implements RollersIO {
-  private final TalonFX leadMotor =
-      new TalonFX(IndexerConstants.ComponentsConstants.Rollers.CAN_ID);
+public class IndexerAgitatorIOTalonFX implements IndexerAgitatorIO {
+  private final TalonFX motor = new TalonFX(IndexerConstants.IndexerAgitator.CAN_ID);
 
-  private final StatusSignal<AngularVelocity> measuredVeloRPS = leadMotor.getVelocity();
-  private final StatusSignal<Double> setVeloRPS = leadMotor.getClosedLoopReference();
-  private final StatusSignal<Angle> position = leadMotor.getPosition();
-  private final StatusSignal<Voltage> appliedVoltage = leadMotor.getMotorVoltage();
-  private final StatusSignal<Current> supplyCurrentAmps = leadMotor.getSupplyCurrent();
-  private final StatusSignal<Current> torqueCurrentAmps = leadMotor.getTorqueCurrent();
-  private final StatusSignal<Temperature> deviceTemperature = leadMotor.getDeviceTemp();
+  private final StatusSignal<AngularVelocity> measuredVeloRPS = motor.getVelocity();
+  private final StatusSignal<Double> setVeloRPS = motor.getClosedLoopReference();
+  private final StatusSignal<Angle> position = motor.getPosition();
+  private final StatusSignal<Voltage> appliedVoltage = motor.getMotorVoltage();
+  private final StatusSignal<Current> supplyCurrentAmps = motor.getSupplyCurrent();
+  private final StatusSignal<Current> torqueCurrentAmps = motor.getTorqueCurrent();
+  private final StatusSignal<Temperature> deviceTemperature = motor.getDeviceTemp();
 
   private final VoltageOut voltageRequest = new VoltageOut(0.0);
   private final VelocityVoltage velocityRequest = new VelocityVoltage(0.0);
 
   private final TalonFXConfiguration config = new TalonFXConfiguration();
 
-  public RollersIOTalonFX() {
-    config.CurrentLimits.SupplyCurrentLimit =
-        IndexerConstants.ComponentsConstants.Rollers.CURRENT_LIMIT;
+  public IndexerAgitatorIOTalonFX() {
+    config.CurrentLimits.SupplyCurrentLimit = IndexerConstants.IndexerAgitator.CURRENT_LIMIT;
     config.CurrentLimits.SupplyCurrentLimitEnable =
-        IndexerConstants.ComponentsConstants.Rollers.CURRENT_LIMIT_ENABLE;
-    config.MotorOutput.NeutralMode = IndexerConstants.ComponentsConstants.Rollers.NEUTRAL_MODE;
-    config.MotorOutput.Inverted = IndexerConstants.ComponentsConstants.Rollers.INVERTED;
+        IndexerConstants.IndexerAgitator.CURRENT_LIMIT_ENABLE;
+    config.MotorOutput.NeutralMode = IndexerConstants.IndexerAgitator.NEUTRAL_MODE;
+    config.MotorOutput.Inverted = IndexerConstants.IndexerAgitator.INVERTED;
 
-    config.Slot0.kI = IndexerConstants.ComponentsConstants.Rollers.Gains.kI;
-    config.Slot0.kP = IndexerConstants.ComponentsConstants.Rollers.Gains.kP;
-    config.Slot0.kD = IndexerConstants.ComponentsConstants.Rollers.Gains.kD;
-    config.Slot0.kA = IndexerConstants.ComponentsConstants.Rollers.Gains.kA;
-    config.Slot0.kV = IndexerConstants.ComponentsConstants.Rollers.Gains.kV;
-    config.Slot0.kS = IndexerConstants.ComponentsConstants.Rollers.Gains.kS;
+    config.Slot0.kI = IndexerConstants.IndexerAgitator.Gains.kI;
+    config.Slot0.kP = IndexerConstants.IndexerAgitator.Gains.kP;
+    config.Slot0.kD = IndexerConstants.IndexerAgitator.Gains.kD;
+    config.Slot0.kA = IndexerConstants.IndexerAgitator.Gains.kA;
+    config.Slot0.kV = IndexerConstants.IndexerAgitator.Gains.kV;
+    config.Slot0.kS = IndexerConstants.IndexerAgitator.Gains.kS;
 
-    tryUntilOk(5, () -> leadMotor.getConfigurator().apply(config, 0.25));
+    tryUntilOk(CONFIG_RETRY_COUNT, () -> motor.getConfigurator().apply(config, CONFIG_APPLY_TIMEOUT_SEC));
 
     BaseStatusSignal.setUpdateFrequencyForAll(
-        50.0,
+        STATUS_SIGNAL_UPDATE_HZ,
         setVeloRPS,
         measuredVeloRPS,
         position,
@@ -62,7 +62,7 @@ public class RollersIOTalonFX implements RollersIO {
   }
 
   @Override
-  public void updateInputs(RollersIOInputs inputs) {
+  public void updateInputs(IndexerAgitatorIOInputs inputs) {
     BaseStatusSignal.refreshAll(
         setVeloRPS,
         measuredVeloRPS,
@@ -90,16 +90,16 @@ public class RollersIOTalonFX implements RollersIO {
     config.Slot0.kS = kS;
     config.Slot0.kV = kV;
     config.Slot0.kA = kA;
-    tryUntilOk(5, () -> leadMotor.getConfigurator().apply(config));
+    tryUntilOk(CONFIG_RETRY_COUNT, () -> motor.getConfigurator().apply(config));
   }
 
   @Override
   public void runSetVoltage(double voltage) {
-    leadMotor.setControl(voltageRequest.withEnableFOC(true).withOutput(voltage));
+    motor.setControl(voltageRequest.withEnableFOC(true).withOutput(voltage));
   }
 
   @Override
   public void runVelocityRPM(double rpm) {
-    leadMotor.setControl(velocityRequest.withVelocity(rpm / 60.0).withEnableFOC(true));
+    motor.setControl(velocityRequest.withVelocity(rpm / 60.0).withEnableFOC(true));
   }
 }
