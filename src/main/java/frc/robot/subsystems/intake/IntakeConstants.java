@@ -40,7 +40,7 @@ public class IntakeConstants {
     public static final double CURRENT_LIMIT = 60;
     public static final boolean CURRENT_LIMIT_ENABLE = true;
     public static final NeutralModeValue NEUTRAL_MODE = NeutralModeValue.Coast;
-    public static final InvertedValue LEAD_INVERTED = InvertedValue.Clockwise_Positive;
+    public static final InvertedValue LEAD_INVERTED = InvertedValue.CounterClockwise_Positive;
     public static final InvertedValue FOLLOW_INVERTED = InvertedValue.Clockwise_Positive;
 
     public static final double kP = 0.025;

@@ -1,6 +1,3 @@
-// Copyright (c) 2026 FRC Team 4270
-// Credit: FRC 6328 Mechanical Advantage.
-
 package frc.robot.subsystems.shooter;
 
 import com.ctre.phoenix6.signals.InvertedValue;
@@ -40,7 +37,7 @@ public class ShooterConstants {
         public static final double kV = 0.0976759;
         public static final double kS = 0.849814;
         /**
-         * Rotations per second² profile limit for {@link com.ctre.phoenix6.controls.VelocityVoltage}
+         * Rotations per second^2 profile limit for {@link com.ctre.phoenix6.controls.VelocityVoltage}
          * (flywheel uses velocity closed-loop, not motion magic).
          */
         public static final double VELOCITY_ACCELERATION_RPS_PER_SEC = 250.0;
@@ -186,7 +183,7 @@ public class ShooterConstants {
   /**
    * Default (initial) RPM band for flywheel {@code nearGoal} vs shooter-ready gating on {@link
    * frc.robot.RobotState#isShooterReadyToShoot()}.
-   * Overridden at runtime by {@code NearGoalRpmTolerance} × {@code PhysicsShotEfficiencyScale}
+  * Overridden at runtime by {@code NearGoalRpmTolerance} * {@code PhysicsShotEfficiencyScale}
    * (from ideal-min/empirical-map RPM while aiming).
    */
   public static final double READY_TO_SHOOT_FLYWHEEL_RPM_TOLERANCE = 450;
@@ -298,12 +295,12 @@ public class ShooterConstants {
    * and nudges hood toward that (blended and clamped so it stays stable).
    *
    * <ul>
-   *   <li>{@link #NORMAL_GAIN} — How much of that inferred angle error to apply each loop (0 = ignore
+  *   <li>{@link #NORMAL_GAIN} - How much of that inferred angle error to apply each loop (0 = ignore
    *       measured sag, 1 = full correction). Lower = smoother, higher = tighter tracking.
-   *   <li>{@link #MAX_CORRECTION_DEG} — Cap on how far hood can be adjusted from the nominal solve (deg).
-   *   <li>{@link #MAX_CORRECTION_RATE_DEG_PER_SEC} — Max hood slew from this logic (deg/s); limits
+  *   <li>{@link #MAX_CORRECTION_DEG} - Cap on how far hood can be adjusted from the nominal solve (deg).
+  *   <li>{@link #MAX_CORRECTION_RATE_DEG_PER_SEC} - Max hood slew from this logic (deg/s); limits
    *       per-cycle jumps.
-   *   <li>{@link #RPM_FILTER_TIME_CONSTANT_SEC} — Low-pass time constant (s) on <i>measured</i> wheel
+  *   <li>{@link #RPM_FILTER_TIME_CONSTANT_SEC} - Low-pass time constant (s) on <i>measured</i> wheel
    *       surface speed before the correction; larger = smoother, smaller = faster response.
    * </ul>
    */
@@ -322,31 +319,31 @@ public class ShooterConstants {
    * Ballistic solver tuning for {@link frc.robot.subsystems.shooter.ShooterCalculator}.
    *
    * <p><b>WPILib note:</b> {@link Units} handles length/angle conversions. There is no WPILib constant
-   * for “RPM to rotations per second”; Talon velocity is in RPS, so code uses {@code rpm / 60.0}
+  * for "RPM to rotations per second"; Talon velocity is in RPS, so code uses {@code rpm / 60.0}
    * inline. The {@code EPSILON_*} values are not from WPILib either; they are tiny thresholds so
    * divide-by-zero and degenerate geometry do not explode floating-point math.
    *
    * <ul>
-   *   <li>{@link #MIN_SPEED_MARGIN} — Multiplier on the minimum theoretical exit speed before mapping
+   *   <li>{@link #MIN_SPEED_MARGIN} - Multiplier on the minimum theoretical exit speed before mapping
    *       to RPM (headroom so real wheels still make the shot).
-   *   <li>{@link #INITIAL_SPEED_EFFICIENCY} — Ball loses some speed leaving wheels; required command
+   *   <li>{@link #INITIAL_SPEED_EFFICIENCY} - Ball loses some speed leaving wheels; required command
    *       speed is scaled up by {@code 1/efficiency}.
-   *   <li>{@link #MIN_VALID_SHOT_SPEED_MPS} — Below this measured surface speed, skip hood sag
+   *   <li>{@link #MIN_VALID_SHOT_SPEED_MPS} - Below this measured surface speed, skip hood sag
    *       correction (noise dominates).
-   *   <li>{@link #EPSILON_SURFACE_SPEED_MPS}, {@link #EPSILON_METERS} — “Effectively zero” for speeds
+  *   <li>{@link #EPSILON_SURFACE_SPEED_MPS}, {@link #EPSILON_METERS} - "Effectively zero" for speeds
    *       (m/s) and distances (m) in trig and ballistics.
-   *   <li>{@link #EPSILON_DENOMINATOR} — Floor when dividing by reductions or geometry that could be
+   *   <li>{@link #EPSILON_DENOMINATOR} - Floor when dividing by reductions or geometry that could be
    *       zero.
-   *   <li>{@link #EPSILON_TIME_AND_RATIO} — Small threshold for time/ratio comparisons.
-   *   <li>{@link #MOVING_TARGET_LEAD_ITERATIONS} / {@link #BALLISTIC_RPM_BOOST_MAX_ITERATIONS} —
+   *   <li>{@link #EPSILON_TIME_AND_RATIO} - Small threshold for time/ratio comparisons.
+   *   <li>{@link #MOVING_TARGET_LEAD_ITERATIONS} / {@link #BALLISTIC_RPM_BOOST_MAX_ITERATIONS} -
    *       Iteration caps for moving-target refinement and RPM search.
-   *   <li>{@link #BALLISTIC_RPM_BOOST_FACTOR} — Multiplier per boost step when no valid shot angle
+   *   <li>{@link #BALLISTIC_RPM_BOOST_FACTOR} - Multiplier per boost step when no valid shot angle
    *       exists yet.
-   *   <li>{@link #MEASURED_TO_COMMAND_RPM_RATIO_MAX} — Clamp for diagnostics / efficiency scaling.
-   *   <li>{@link #PHYSICS_SHOT_EFFICIENCY_SCALE_OUT_MIN} / {@link #PHYSICS_SHOT_EFFICIENCY_SCALE_OUT_MAX}
-   *       — Bounds on flywheel “ready” tolerance scaling from measured vs command RPM.
-   *   <li>{@link #MECHANICAL_RIGHT_ANGLE_DEG} — Relates mechanical hood angle to shot elevation theta.
-   *   <li>{@link #DUAL_WHEEL_SURFACE_BLEND} — Weighting between main and hood wheel surface speeds (0..1
+  *   <li>{@link #MEASURED_TO_COMMAND_RPM_RATIO_MAX} - Clamp for diagnostics / efficiency scaling.
+  *   <li>{@link #PHYSICS_SHOT_EFFICIENCY_SCALE_OUT_MIN} / {@link #PHYSICS_SHOT_EFFICIENCY_SCALE_OUT_MAX}
+  *       - Bounds on flywheel "ready" tolerance scaling from measured vs command RPM.
+   *   <li>{@link #MECHANICAL_RIGHT_ANGLE_DEG} - Relates mechanical hood angle to shot elevation theta.
+   *   <li>{@link #DUAL_WHEEL_SURFACE_BLEND} - Weighting between main and hood wheel surface speeds (0..1
    *       each, sum used as average).
    * </ul>
    */

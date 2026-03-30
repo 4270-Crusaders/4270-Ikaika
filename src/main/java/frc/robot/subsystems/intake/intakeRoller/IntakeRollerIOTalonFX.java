@@ -11,9 +11,11 @@ import static frc.robot.util.PhoenixUtil.tryUntilOk;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -23,11 +25,14 @@ import edu.wpi.first.units.measure.Voltage;
 import frc.robot.subsystems.intake.IntakeConstants;
 import java.util.List;
 
-/** Two Talon FX, independent {@link VelocityVoltage} loops (same RPM each). */
+/** Intake rollers: lead commanded; follow mirrors via hardware follower. */
 public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   private final TalonFX leadMotor = new TalonFX(IntakeConstants.IntakeRollerConstants.LEAD_CAN_ID);
-  private final TalonFX followMotor =
-      new TalonFX(IntakeConstants.IntakeRollerConstants.FOLLOW_CAN_ID);
+  private final TalonFX followMotor = new TalonFX(IntakeConstants.IntakeRollerConstants.FOLLOW_CAN_ID);
+  private final Follower followController =
+      new Follower(
+          IntakeConstants.IntakeRollerConstants.LEAD_CAN_ID,
+          MotorAlignmentValue.Opposed);
 
   private final List<StatusSignal<AngularVelocity>> measuredVeloRps =
       List.of(leadMotor.getVelocity(), followMotor.getVelocity());
@@ -45,9 +50,7 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
       List.of(leadMotor.getDeviceTemp(), followMotor.getDeviceTemp());
 
   private final VelocityVoltage velocityLead = new VelocityVoltage(0.0);
-  private final VelocityVoltage velocityFollow = new VelocityVoltage(0.0);
   private final VoltageOut voltageLead = new VoltageOut(0.0);
-  private final VoltageOut voltageFollow = new VoltageOut(0.0);
 
   private final TalonFXConfiguration configLead = new TalonFXConfiguration();
   private final TalonFXConfiguration configFollow = new TalonFXConfiguration();
@@ -78,6 +81,9 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
         torqueCurrentAmps.get(1),
         deviceTemperature.get(0),
         deviceTemperature.get(1));
+
+    // Only command the lead; the follow controller mirrors it in hardware.
+    followMotor.setControl(followController);
   }
 
   private static void applyCommonMotorConfig(TalonFXConfiguration config, InvertedValue inverted) {
@@ -143,12 +149,10 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   public void runVelocityRPM(double rpm) {
     double rps = rpm / 60.0;
     leadMotor.setControl(velocityLead.withVelocity(rps).withEnableFOC(true));
-    followMotor.setControl(velocityFollow.withVelocity(rps).withEnableFOC(true));
   }
 
   @Override
   public void runSetVoltage(double voltage) {
     leadMotor.setControl(voltageLead.withOutput(voltage).withEnableFOC(true));
-    followMotor.setControl(voltageFollow.withOutput(voltage).withEnableFOC(true));
   }
 }
