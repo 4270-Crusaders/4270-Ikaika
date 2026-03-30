@@ -457,4 +457,20 @@ public class ShooterConstants {
     /** Unit scale when shot physics efficiency is not applied (not aiming). */
     public static final double PHYSICS_SHOT_EFFICIENCY_SCALE_NEUTRAL = 1.0;
   }
+
+  /**
+   * Empirical flywheel RPM vs horizontal range (meters): {@code c3·x³ + c2·x² + c1·x + c0}. Commanded
+   * flywheel RPM uses {@code (polyRpm + RPM_LAUNCH_OFFSET_RPM) * RPM_LAUNCH_MULTIPLIER}; offset and
+   * multiplier are also exposed as {@code TunableNumbers/Shooter/Launch/...} in {@link
+   * ShooterCalculator}.
+   */
+  public static final class LaunchRpmPolynomialConstants {
+    public static final double C3 = 29.9272;
+    public static final double C2 = -281.9474;
+    public static final double C1 = 1120.7543;
+    public static final double C0 = 919.4346;
+
+    public static final double RPM_LAUNCH_OFFSET_RPM = 0.0;
+    public static final double RPM_LAUNCH_MULTIPLIER = 1.0;
+  }
 }

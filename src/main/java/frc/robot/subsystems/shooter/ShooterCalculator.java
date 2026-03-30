@@ -19,11 +19,24 @@ import frc.robot.subsystems.shooter.hood.Hood;
 import frc.robot.subsystems.shooter.hood.Hood.HoodGoal;
 import frc.robot.subsystems.shooter.turret.Turret;
 import frc.robot.subsystems.shooter.turret.Turret.TurretGoal;
+import frc.robot.util.LoggedTunableNumber;
 import frc.robot.util.geometry.AllianceFlipUtil;
 import org.littletonrobotics.junction.Logger;
 
+import static edu.wpi.first.units.Units.RPM;
+
 public class ShooterCalculator {
   private static ShooterCalculator instance;
+
+  private static final LoggedTunableNumber launchRpmOffsetRpm =
+      new LoggedTunableNumber(
+          "Shooter/Launch/RpmOffsetRpm",
+          ShooterConstants.LaunchRpmPolynomialConstants.RPM_LAUNCH_OFFSET_RPM);
+
+  private static final LoggedTunableNumber launchRpmMultiplier =
+      new LoggedTunableNumber(
+          "Shooter/Launch/RpmMultiplier",
+          ShooterConstants.LaunchRpmPolynomialConstants.RPM_LAUNCH_MULTIPLIER);
 
   /** Cached wheel kinematics (rad/solve); avoids repeated composite math on the hot path. */
   private static final double EFFECTIVE_METERS_PER_MOTOR_REV;
@@ -137,6 +150,20 @@ public class ShooterCalculator {
 
   public static double surfaceVelocityFromRpm(double rpm) {
     return rpm * RPM_TO_SURFACE_MPS;
+  }
+
+  /**
+   * Empirical flywheel RPM vs horizontal distance (m): {@code 29.9272x³ - 281.9474x² + 1120.7543x +
+   * 919.4346}.
+   */
+  public static double flywheelRpmFromDistancePolynomialMeters(double distanceM) {
+    double x = distanceM;
+    return ((ShooterConstants.LaunchRpmPolynomialConstants.C3 * x
+                + ShooterConstants.LaunchRpmPolynomialConstants.C2)
+            * x
+            + ShooterConstants.LaunchRpmPolynomialConstants.C1)
+            * x
+        + ShooterConstants.LaunchRpmPolynomialConstants.C0;
   }
 
   public static double minimumExitVelocity(double horizontalDistanceM, double heightDeltaM) {
@@ -453,18 +480,29 @@ public class ShooterCalculator {
     double vMinIdeal = minimumExitVelocity(dFinal, relFz);
     double minRpmIdeal = rpmFromSurfaceVelocity(vMinIdeal);
     double ratioEps = ShooterConstants.ShooterCalculatorConstants.EPSILON_TIME_AND_RATIO;
+
+    double polyRpm = flywheelRpmFromDistancePolynomialMeters(dFinal);
+    double rpmOffset = launchRpmOffsetRpm.get();
+    double rpmMult = launchRpmMultiplier.get();
+    double flywheelCmdRpm =
+        MathUtil.clamp(
+            (polyRpm + rpmOffset) * rpmMult,
+            0.0,
+            ShooterConstants.ComponentsConstants.Flywheel.FLYWHEEL_MAX_RPM);
+
     lastPhysicsMinToEmpiricalRpmRatio =
-        scratchRpmWheel > ratioEps
-            ? minRpmIdeal / scratchRpmWheel
-            : 1.0;
+        flywheelCmdRpm > ratioEps ? minRpmIdeal / flywheelCmdRpm : 1.0;
     // TODO(PHYSICS_TUNE): revisit clamp limits if drivetrain brownout causes deeper RPM dips.
     measuredToCommandRpmRatio =
-        scratchRpmWheel > ratioEps
+        flywheelCmdRpm > ratioEps
             ? MathUtil.clamp(
-                rpmFromSurfaceVelocity(measuredSpeed) / scratchRpmWheel,
+                rpmFromSurfaceVelocity(measuredSpeed) / flywheelCmdRpm,
                 0.0,
                 ShooterConstants.ShooterCalculatorConstants.MEASURED_TO_COMMAND_RPM_RATIO_MAX)
             : 1.0;
+
+    Logger.recordOutput("Shooter/Launch/TunableOffsetRpm", rpmOffset, RPM);
+    Logger.recordOutput("Shooter/Launch/TunableRpmMultiplier", rpmMult);
 
     latestParameters =
         new ShootingParameters(
@@ -473,7 +511,7 @@ public class ShooterCalculator {
             turretVelocity,
             hoodAngle,
             hoodVelocity,
-            scratchRpmWheel,
+            flywheelCmdRpm,
             tofUsed);
     if (ShooterConstants.Logging.LOG_SHOOTER_CALC_HOOD_COMP) {
       Logger.recordOutput(
