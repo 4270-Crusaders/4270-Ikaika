@@ -28,6 +28,15 @@ import static edu.wpi.first.units.Units.RPM;
 public class ShooterCalculator {
   private static ShooterCalculator instance;
 
+  /**
+   * Launch RPM trim: {@code (polyRpm + offset) * multiplier}. NT: {@code TunableNumbers/Shooter/Launch/...}.
+   *
+   * <p><b>Too low</b> — tune <b>offset</b> first (+RPM, same at every distance; preserves polynomial
+   * shape). Then <b>multiplier</b> if still low by a similar <i>fraction</i> at short and long range.
+   *
+   * <p><b>Too high</b> — same order: <b>offset</b> first (−RPM), then <b>multiplier</b> &lt; 1.0 if
+   * systematically high by a percentage. Match-day: usually offset; whole curve scaled wrong: multiplier.
+   */
   private static final LoggedTunableNumber launchRpmOffsetRpm =
       new LoggedTunableNumber(
           "Shooter/Launch/RpmOffsetRpm",
