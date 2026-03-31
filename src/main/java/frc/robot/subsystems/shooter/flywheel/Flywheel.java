@@ -43,8 +43,9 @@ public class Flywheel extends FullSubsystem {
           "Shooter/Flywheel/Gains/kS", ShooterConstants.ComponentsConstants.Flywheel.Gains.kS);
 
   /**
-   * Half-width of the RPM window around goal for {@link #nearGoal}. Effective tolerance is {@code
-   * NearGoalRpmTolerance × PhysicsShotEfficiencyScale}.
+   * Base half-width of the RPM window around goal for {@link #nearGoal}. Effective tolerance is
+   * this tunable times {@link #physicsShotEfficiencyScale} (constant {@code 1.0} while aiming with
+   * the current {@link ShooterCalculator}).
    */
   private static final LoggedTunableNumber nearGoalRpmTolerance =
       new LoggedTunableNumber(

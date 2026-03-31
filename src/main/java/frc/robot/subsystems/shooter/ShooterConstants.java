@@ -19,13 +19,8 @@ public class ShooterConstants {
       public static final int FLYWHEEL_FOLLOW_CAN_ID = 21;
 
       public static final double FLYWHEEL_MAX_RPM = 6500;
-      public static final double TOP_FLYWHEEL_RADIUS_METERS = 0.0254;
-      public static final double BOTTOM_FLYWHEEL_RADIUS_METER = 0.0381;
       public static final boolean FLYWHEEL_CURRENT_LIMIT_ENABLE = true;
       public static final double FLYWHEEL_CURRENT_LIMIT = 75;
-      public static final boolean FLYWHEEL_LIMIT_ENABLE = false;
-      public static final double FLYWHEEL_MAIN_ROLLER_REDUCTION = 1;
-      public static final double FLYWHEEL_HOOD_ROLLER_REDUCTION = 1;
       public static final InvertedValue MAIN_FLYWHEEL_INVERTED_VALUE =
           InvertedValue.Clockwise_Positive;
       public static final NeutralModeValue FLYWHEEL_NEUTRAL_MODE = NeutralModeValue.Coast;
@@ -55,12 +50,7 @@ public class ShooterConstants {
        * Diameter: 5.91 in, material: high-density polyurethane foam.
        */
       public static final double BALL_DIAMETER_METERS = Units.inchesToMeters(5.91);
-      public static final double BALL_MASS_MIN_KG = Units.lbsToKilograms(0.448);
-      public static final double BALL_MASS_MAX_KG = Units.lbsToKilograms(0.5);
-      public static final double BALL_MASS_NOMINAL_KG = 0.5 * (BALL_MASS_MIN_KG + BALL_MASS_MAX_KG);
       public static final double BALL_COMPRESSION_METERS = Units.inchesToMeters(0.625);
-      /** Center distance between wheel shafts (diagnostic/geometry reference). */
-      public static final double WHEEL_CENTER_DISTANCE_METERS = Units.inchesToMeters(8.0);
       /**
        * Exit transfer efficiency from wheel-surface speed to ball exit speed.
        * Derived from compression ratio as a conservative first-order estimate.
@@ -181,10 +171,9 @@ public class ShooterConstants {
   // General Constants
   public static final double GRAVITY = 9.81;
   /**
-   * Default (initial) RPM band for flywheel {@code nearGoal} vs shooter-ready gating on {@link
-   * frc.robot.RobotState#isShooterReadyToShoot()}.
-  * Overridden at runtime by {@code NearGoalRpmTolerance} * {@code PhysicsShotEfficiencyScale}
-   * (from ideal-min/empirical-map RPM while aiming).
+   * Base half-width RPM window for flywheel {@code nearGoal}. Effective tolerance is this value
+   * times {@link frc.robot.subsystems.shooter.flywheel.Flywheel}'s physics shot efficiency scale
+   * ({@code 1.0} while aiming with the current calculator).
    */
   public static final double READY_TO_SHOOT_FLYWHEEL_RPM_TOLERANCE = 450;
   public static final double READY_TO_SHOOT_HOOD_DEG_TOLERANCE = 1.0;
@@ -266,85 +255,25 @@ public class ShooterConstants {
   }
 
   /**
-   * Hub funnel ("cone") clearance: after a vacuum solve, raise RPM until the parabola stays inside a
-   * simplified frustum around the hole axis (see {@link FieldConstants.Hub#funnelInnerRadiusAtZ}).
-   */
-  public static final class HubFunnelClearance {
-    public static final boolean ENABLE = true;
-    /** Max 3D distance from aim point to {@link FieldConstants.Hub#innerCenterPoint} to apply check. */
-    public static final double HUB_CLASSIFY_MAX_DIST_METERS = 3.0;
-    /** Sample trajectory in the last this many meters before the hole. */
-    public static final double FUNNEL_CHECK_DEPTH_METERS = 1.55;
-    /**
-     * Frustum length along the shot where funnel walls apply. Default matches vertical span from hole
-     * center to roof ({@link FieldConstants.Hub#innerCenterPoint} to {@link FieldConstants.Hub#height});
-     * shallow trajectories approximate this well (tune on field if needed).
-     */
-    public static final double FUNNEL_AXIAL_DEPTH_METERS =
-        FieldConstants.Hub.height - FieldConstants.Hub.innerCenterPoint.getZ();
-    /** Ball radius + comfort band vs plastic (m). */
-    public static final double RADIAL_MARGIN_METERS = Units.inchesToMeters(3.0);
-    public static final int TRAJECTORY_SAMPLES = 28;
-    public static final int MAX_SPEED_BOOST_ITERATIONS = 14;
-    public static final double SPEED_BOOST_FACTOR = 1.05;
-  }
-
-  /**
-   * Hood compensation when the flywheel sags: the ballistic solve assumes commanded wheel speed, but
-   * measured speed can be lower. The calculator infers what shot elevation would match measured speed
-   * and nudges hood toward that (blended and clamped so it stays stable).
-   *
-   * <ul>
-  *   <li>{@link #NORMAL_GAIN} - How much of that inferred angle error to apply each loop (0 = ignore
-   *       measured sag, 1 = full correction). Lower = smoother, higher = tighter tracking.
-  *   <li>{@link #MAX_CORRECTION_DEG} - Cap on how far hood can be adjusted from the nominal solve (deg).
-  *   <li>{@link #MAX_CORRECTION_RATE_DEG_PER_SEC} - Max hood slew from this logic (deg/s); limits
-   *       per-cycle jumps.
-  *   <li>{@link #RPM_FILTER_TIME_CONSTANT_SEC} - Low-pass time constant (s) on <i>measured</i> wheel
-   *       surface speed before the correction; larger = smoother, smaller = faster response.
-   * </ul>
-   */
-  public static final class HoodCompensationConstants {
-    // TODO(PHYSICS_TUNE): tune to minimize noise while preserving correction authority.
-    public static final double NORMAL_GAIN = 0.25;
-    // TODO(PHYSICS_TUNE): widen/narrow after observing hood saturation frequency.
-    public static final double MAX_CORRECTION_DEG = 3.0;
-    // TODO(PHYSICS_TUNE): adjust to avoid chatter yet still catch RPM sag quickly.
-    public static final double MAX_CORRECTION_RATE_DEG_PER_SEC = 60.0;
-    // TODO(PHYSICS_TUNE): tune for stability vs responsiveness in normal mode.
-    public static final double RPM_FILTER_TIME_CONSTANT_SEC = 0.12;
-  }
-
-  /**
    * Ballistic solver tuning for {@link frc.robot.subsystems.shooter.ShooterCalculator}.
    *
    * <p><b>WPILib note:</b> {@link Units} handles length/angle conversions. There is no WPILib constant
-  * for "RPM to rotations per second"; Talon velocity is in RPS, so code uses {@code rpm / 60.0}
-   * inline. The {@code EPSILON_*} values are not from WPILib either; they are tiny thresholds so
-   * divide-by-zero and degenerate geometry do not explode floating-point math.
+   * for "RPM to rotations per second"; Talon velocity is in RPS, so code uses {@code rpm / 60.0}
+   * inline. The {@code EPSILON_*} values are tiny thresholds so divide-by-zero and degenerate
+   * geometry do not explode floating-point math.
    *
    * <ul>
-   *   <li>{@link #MIN_SPEED_MARGIN} - Multiplier on the minimum theoretical exit speed before mapping
-   *       to RPM (headroom so real wheels still make the shot).
-   *   <li>{@link #INITIAL_SPEED_EFFICIENCY} - Ball loses some speed leaving wheels; required command
-   *       speed is scaled up by {@code 1/efficiency}.
-   *   <li>{@link #MIN_VALID_SHOT_SPEED_MPS} - Below this measured surface speed, skip hood sag
-   *       correction (noise dominates).
-  *   <li>{@link #EPSILON_SURFACE_SPEED_MPS}, {@link #EPSILON_METERS} - "Effectively zero" for speeds
-   *       (m/s) and distances (m) in trig and ballistics.
-   *   <li>{@link #EPSILON_DENOMINATOR} - Floor when dividing by reductions or geometry that could be
-   *       zero.
+   *   <li>{@link #MIN_SPEED_MARGIN} - Multiplier on minimum theoretical exit speed before RPM (headroom).
+   *   <li>{@link #INITIAL_SPEED_EFFICIENCY} - Exit-speed drop from wheels; command speed scaled by {@code 1/efficiency}.
+   *   <li>{@link #MIN_VALID_SHOT_SPEED_MPS} - Below this measured surface speed, fall back to command-path θ (noise dominates).
+   *   <li>{@link #EPSILON_SURFACE_SPEED_MPS}, {@link #EPSILON_METERS} - Near-zero thresholds for speeds (m/s) and distances (m).
+   *   <li>{@link #EPSILON_DENOMINATOR} - Floor when dividing by reductions or geometry.
    *   <li>{@link #EPSILON_TIME_AND_RATIO} - Small threshold for time/ratio comparisons.
-   *   <li>{@link #MOVING_TARGET_LEAD_ITERATIONS} / {@link #BALLISTIC_RPM_BOOST_MAX_ITERATIONS} -
-   *       Iteration caps for moving-target refinement and RPM search.
-   *   <li>{@link #BALLISTIC_RPM_BOOST_FACTOR} - Multiplier per boost step when no valid shot angle
-   *       exists yet.
-  *   <li>{@link #MEASURED_TO_COMMAND_RPM_RATIO_MAX} - Clamp for diagnostics / efficiency scaling.
-  *   <li>{@link #PHYSICS_SHOT_EFFICIENCY_SCALE_OUT_MIN} / {@link #PHYSICS_SHOT_EFFICIENCY_SCALE_OUT_MAX}
-  *       - Bounds on flywheel "ready" tolerance scaling from measured vs command RPM.
+   *   <li>{@link #MOVING_TARGET_LEAD_ITERATIONS} - Moving-target lead refinement iterations.
+   *   <li>{@link #MEASURED_SURFACE_SPEED_FILTER_TAU_SEC} - Low-pass on measured wheel surface speed before hood θ solve.
+   *   <li>{@link #HOOD_GOAL_MAX_SLEW_DEG_PER_SEC} - Hood command slew limit (deg/s).
    *   <li>{@link #MECHANICAL_RIGHT_ANGLE_DEG} - Relates mechanical hood angle to shot elevation theta.
-   *   <li>{@link #DUAL_WHEEL_SURFACE_BLEND} - Weighting between main and hood wheel surface speeds (0..1
-   *       each, sum used as average).
+   *   <li>{@link #DUAL_WHEEL_SURFACE_BLEND} - Blend weight for dual-wheel surface speed (0..1 each).
    * </ul>
    */
   public static final class ShooterCalculatorConstants {
@@ -365,6 +294,11 @@ public class ShooterConstants {
      */
     // TODO(PHYSICS_TUNE): set threshold where measured-RPM angle correction is trustworthy.
     public static final double MIN_VALID_SHOT_SPEED_MPS = 0.5;
+
+    // TODO(PHYSICS_TUNE): smooth measured speed vs responsiveness for hood angle from measured v.
+    public static final double MEASURED_SURFACE_SPEED_FILTER_TAU_SEC = 0.12;
+    // TODO(PHYSICS_TUNE): limit hood jumps without hiding real setpoint changes.
+    public static final double HOOD_GOAL_MAX_SLEW_DEG_PER_SEC = 60.0;
 
     public static final double EPSILON_SURFACE_SPEED_MPS = 1e-6;
     /**
@@ -407,24 +341,6 @@ public class ShooterConstants {
      */
     public static final double SHOOTER_LEAD_ACCEL_LOWPASS_ALPHA = 0.45;
 
-    /** Attempts to raise wheel RPM when no real shot angle exists at the current speed command. */
-    public static final int BALLISTIC_RPM_BOOST_MAX_ITERATIONS = 8;
-
-    /**
-     * Per-iteration RPM multiplier when boosting speed to find a feasible arc (unitless).
-     *
-     * <p>TODO(PHYSICS_TUNE): treat as coarse search step; tie to {@link #MIN_SPEED_MARGIN} if you
-     * want a fixed relative step.
-     */
-    public static final double BALLISTIC_RPM_BOOST_FACTOR = 1.07;
-
-    /** Upper clamp for measured/command RPM ratio (diagnostics + efficiency scale). */
-    public static final double MEASURED_TO_COMMAND_RPM_RATIO_MAX = 2.0;
-
-    /** Output bounds for {@link ShooterCalculator#getPhysicsShotEfficiencyScale()}. */
-    public static final double PHYSICS_SHOT_EFFICIENCY_SCALE_OUT_MIN = 0.9;
-    public static final double PHYSICS_SHOT_EFFICIENCY_SCALE_OUT_MAX = 1.35;
-
     /**
      * Reference angle (deg): with hood offset {@code k} (positive), {@code theta = 90 - m - k}.
      */
@@ -442,8 +358,6 @@ public class ShooterConstants {
      */
     public static final double FLYWHEEL_GOAL_IDLE_RPM = 3000.0;
 
-    public static final double FLYWHEEL_GOAL_AUTOIDLE_RPM = FLYWHEEL_GOAL_IDLE_RPM;
-    public static final double FLYWHEEL_GOAL_TELEIDLE_RPM = FLYWHEEL_GOAL_IDLE_RPM;
     /** Default custom goal - TODO(PHYSICS_TUNE). */
     public static final double FLYWHEEL_GOAL_CUSTOM_RPM = 2300.0;
 

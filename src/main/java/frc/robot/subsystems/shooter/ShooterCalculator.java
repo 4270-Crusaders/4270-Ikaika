@@ -90,8 +90,6 @@ public class ShooterCalculator {
 
   /** Low-pass state for field-native shooter-point horizontal acceleration (m/s^2). */
   private Translation2d filteredShooterFieldAccelNative = null;
-  private double lastPhysicsMinToEmpiricalRpmRatio = 1.0;
-  private double measuredToCommandRpmRatio = 1.0;
   private double filteredMeasuredFlywheelSurfaceSpeedMps = Double.NaN;
 
   /** Latest ballistic solve written by {@link #solveBallisticsInPlace}; no heap allocation. */
@@ -232,7 +230,39 @@ public class ShooterCalculator {
     return Math.sqrt(v2);
   }
 
-  private void solveBallisticsFixedThetaInPlace(
+  /**
+   * Flywheel command: theoretical minimum exit speed for horizontal range / Δz, × headroom (margin /
+   * efficiency), then motor RPM from blended wheel kinematics. Hood uses measured speed separately in
+   * {@link #refreshCachedParameters}.
+   */
+  private void computeCommandRpmFromMinimumSpeed(
+      double horizontalDistanceM, double heightDeltaM, ArcSelection arc) {
+    double vMin = minimumExitVelocity(horizontalDistanceM, heightDeltaM);
+    double shotEfficiency =
+        Math.max(
+            ShooterConstants.ShooterCalculatorConstants.INITIAL_SPEED_EFFICIENCY,
+            ShooterConstants.ShooterCalculatorConstants.EPSILON_DENOMINATOR);
+    double vCmd =
+        (vMin * ShooterConstants.ShooterCalculatorConstants.MIN_SPEED_MARGIN) / shotEfficiency;
+    double theta = solveThetaForSpeed(vCmd, horizontalDistanceM, heightDeltaM, arc);
+    if (!Double.isFinite(theta)) {
+      theta =
+          Units.degreesToRadians(
+              ShooterConstants.ShooterCalculatorConstants.DEFAULT_SOLVE_THETA_DEG);
+    }
+    theta = clampThetaToHoodLimits(theta);
+    scratchThetaRad = theta;
+    scratchRpmWheel =
+        MathUtil.clamp(
+            rpmFromSurfaceVelocity(vCmd),
+            0.0,
+            ShooterConstants.ComponentsConstants.Flywheel.FLYWHEEL_MAX_RPM);
+    scratchExitSpeedMps = surfaceVelocityFromRpm(scratchRpmWheel);
+    scratchTofSec = timeOfFlightFromPhysics(horizontalDistanceM, scratchExitSpeedMps, theta);
+  }
+
+  /** Fixed exit angle (e.g. PASS): required speed for geometry × headroom → RPM; no RPM boost loop. */
+  private void computeFixedThetaCommandRpm(
       double horizontalDistanceM, double heightDeltaM, double thetaAboveHorizontalRad) {
     double theta = clampThetaToHoodLimits(thetaAboveHorizontalRad);
     double vIdeal = exitSpeedForFixedTheta(horizontalDistanceM, heightDeltaM, theta);
@@ -247,24 +277,16 @@ public class ShooterCalculator {
         Math.max(
             ShooterConstants.ShooterCalculatorConstants.INITIAL_SPEED_EFFICIENCY,
             ShooterConstants.ShooterCalculatorConstants.EPSILON_DENOMINATOR);
-    double compensatedSpeed =
+    double vCmd =
         (vIdeal * ShooterConstants.ShooterCalculatorConstants.MIN_SPEED_MARGIN) / shotEfficiency;
-    double rpmWheelCmd = Math.max(0.0, rpmFromSurfaceVelocity(compensatedSpeed));
-    double vCmd = surfaceVelocityFromRpm(rpmWheelCmd);
     scratchThetaRad = theta;
-    scratchExitSpeedMps = vCmd;
-    scratchTofSec = timeOfFlightFromPhysics(horizontalDistanceM, vCmd, theta);
-    scratchRpmWheel = rpmWheelCmd;
-    for (int i = 0;
-        i < ShooterConstants.ShooterCalculatorConstants.BALLISTIC_RPM_BOOST_MAX_ITERATIONS
-            && (!Double.isFinite(scratchTofSec) || scratchTofSec <= 0.0);
-        i++) {
-      rpmWheelCmd *= ShooterConstants.ShooterCalculatorConstants.BALLISTIC_RPM_BOOST_FACTOR;
-      vCmd = surfaceVelocityFromRpm(rpmWheelCmd);
-      scratchExitSpeedMps = vCmd;
-      scratchTofSec = timeOfFlightFromPhysics(horizontalDistanceM, vCmd, theta);
-      scratchRpmWheel = rpmWheelCmd;
-    }
+    scratchRpmWheel =
+        MathUtil.clamp(
+            rpmFromSurfaceVelocity(vCmd),
+            0.0,
+            ShooterConstants.ComponentsConstants.Flywheel.FLYWHEEL_MAX_RPM);
+    scratchExitSpeedMps = surfaceVelocityFromRpm(scratchRpmWheel);
+    scratchTofSec = timeOfFlightFromPhysics(horizontalDistanceM, scratchExitSpeedMps, theta);
   }
 
   private static double timeOfFlightFromPhysics(
@@ -273,45 +295,6 @@ public class ShooterCalculator {
     if (vx < ShooterConstants.ShooterCalculatorConstants.EPSILON_SURFACE_SPEED_MPS)
       return Double.NaN;
     return horizontalDistanceM / vx;
-  }
-
-  private void solveBallisticsInPlace(double horizontalDistanceM, double heightDeltaM, ArcSelection arc) {
-    ArcSelection effectiveArc = heightDeltaM < 0.0 ? ArcSelection.LOW : arc;
-    double vMin = minimumExitVelocity(horizontalDistanceM, heightDeltaM);
-    double shotEfficiency =
-        Math.max(
-            ShooterConstants.ShooterCalculatorConstants.INITIAL_SPEED_EFFICIENCY,
-            ShooterConstants.ShooterCalculatorConstants.EPSILON_DENOMINATOR);
-    double compensatedMinSpeed =
-        (vMin * ShooterConstants.ShooterCalculatorConstants.MIN_SPEED_MARGIN) / shotEfficiency;
-    double rpmWheelCmd = Math.max(0.0, rpmFromSurfaceVelocity(compensatedMinSpeed));
-    double vCmd = surfaceVelocityFromRpm(rpmWheelCmd);
-
-    double theta = solveThetaForSpeed(vCmd, horizontalDistanceM, heightDeltaM, effectiveArc);
-    if (!Double.isFinite(theta)) {
-      for (int i = 0;
-          i < ShooterConstants.ShooterCalculatorConstants.BALLISTIC_RPM_BOOST_MAX_ITERATIONS
-              && !Double.isFinite(theta);
-          i++) {
-        rpmWheelCmd *= ShooterConstants.ShooterCalculatorConstants.BALLISTIC_RPM_BOOST_FACTOR;
-        vCmd = surfaceVelocityFromRpm(rpmWheelCmd);
-        theta = solveThetaForSpeed(vCmd, horizontalDistanceM, heightDeltaM, effectiveArc);
-      }
-    }
-    if (!Double.isFinite(theta)) {
-      scratchExitSpeedMps = vCmd;
-      scratchThetaRad =
-          Units.degreesToRadians(ShooterConstants.ShooterCalculatorConstants.DEFAULT_SOLVE_THETA_DEG);
-      scratchTofSec = Double.NaN;
-      scratchRpmWheel = rpmWheelCmd;
-      return;
-    }
-
-    theta = clampThetaToHoodLimits(theta);
-    scratchExitSpeedMps = vCmd;
-    scratchThetaRad = theta;
-    scratchTofSec = timeOfFlightFromPhysics(horizontalDistanceM, vCmd, theta);
-    scratchRpmWheel = rpmWheelCmd;
   }
 
   /**
@@ -336,7 +319,6 @@ public class ShooterCalculator {
     Translation3d shooterVelocity3d = rs.getShooterSolveVelocity3d();
     Translation3d shooterAcceleration3d = rs.getShooterSolveAcceleration3d();
     Translation3d targetTranslation3d = rs.getShooterSolveTarget3d();
-    ArcSelection arcSelection = rs.isShooterSolveUseLowArc() ? ArcSelection.LOW : ArcSelection.HIGH;
     double measuredFlywheelSurfaceSpeedMps = rs.getShooterFlywheelSurfaceSpeedMps();
 
     boolean passUseFixedMaxHood = rs.getShooterMode() == RobotState.ShooterMode.PASS;
@@ -368,10 +350,14 @@ public class ShooterCalculator {
       double rdy = ty - ly;
       double rdz = tz - lz;
       double d = Math.hypot(rdx, rdy);
+      ArcSelection arc =
+          rdz > ShooterConstants.ShooterCalculatorConstants.EPSILON_METERS
+              ? ArcSelection.HIGH
+              : ArcSelection.LOW;
       if (passUseFixedMaxHood) {
-        solveBallisticsFixedThetaInPlace(d, rdz, passThetaFixed);
+        computeFixedThetaCommandRpm(d, rdz, passThetaFixed);
       } else {
-        solveBallisticsInPlace(d, rdz, arcSelection);
+        computeCommandRpmFromMinimumSpeed(d, rdz, arc);
       }
 
       double tof = Double.isFinite(scratchTofSec) ? scratchTofSec : 0.0;
@@ -387,17 +373,18 @@ public class ShooterCalculator {
     double dFinal = Math.hypot(relFx, relFy);
     Rotation2d turretAngle = new Rotation2d(Math.atan2(relFy, relFx));
 
+    ArcSelection arcFinal =
+        relFz > ShooterConstants.ShooterCalculatorConstants.EPSILON_METERS
+            ? ArcSelection.HIGH
+            : ArcSelection.LOW;
     if (passUseFixedMaxHood) {
-      solveBallisticsFixedThetaInPlace(dFinal, relFz, passThetaFixed);
+      computeFixedThetaCommandRpm(dFinal, relFz, passThetaFixed);
     } else {
-      solveBallisticsInPlace(dFinal, relFz, arcSelection);
-      enforceHubFunnelClearanceIfApplicable(
-          shooterPose3d, targetTranslation3d, dFinal, relFz, arcSelection);
+      computeCommandRpmFromMinimumSpeed(dFinal, relFz, arcFinal);
     }
 
-    // Hood follows actual wheel speed with filtered correction only (simpler, less oscillation).
-    ArcSelection effectiveArc = relFz < 0.0 ? ArcSelection.LOW : arcSelection;
-    double tau = ShooterConstants.HoodCompensationConstants.RPM_FILTER_TIME_CONSTANT_SEC;
+    // Hood angle from projectile math at measured wheel surface speed (high arc if Δz > 0).
+    double tau = ShooterConstants.ShooterCalculatorConstants.MEASURED_SURFACE_SPEED_FILTER_TAU_SEC;
     // TODO(PHYSICS_TUNE): review alpha behavior if loop rate changes from 20ms.
     double alpha =
         Constants.loopPeriodSecs
@@ -411,7 +398,6 @@ public class ShooterCalculator {
         alpha * (measuredFlywheelSurfaceSpeedMps - filteredMeasuredFlywheelSurfaceSpeedMps);
 
     double measuredSpeed = filteredMeasuredFlywheelSurfaceSpeedMps;
-    double thetaNominal = scratchThetaRad;
     double thetaUsedRad;
     double hoodAngle;
 
@@ -419,29 +405,25 @@ public class ShooterCalculator {
       thetaUsedRad = passThetaFixed;
       hoodAngle = Units.degreesToRadians(passHoodMechanicalDeg);
     } else {
-      double thetaFromMeasured = solveThetaForSpeed(measuredSpeed, dFinal, relFz, effectiveArc);
-      double thetaError = 0.0;
-      if (Double.isFinite(thetaFromMeasured)
-          && measuredSpeed > ShooterConstants.ShooterCalculatorConstants.MIN_VALID_SHOT_SPEED_MPS) {
-        thetaError = clampThetaToHoodLimits(thetaFromMeasured) - thetaNominal;
+      double thetaFromMeasured = solveThetaForSpeed(measuredSpeed, dFinal, relFz, arcFinal);
+      if (!Double.isFinite(thetaFromMeasured)
+          || measuredSpeed < ShooterConstants.ShooterCalculatorConstants.MIN_VALID_SHOT_SPEED_MPS) {
+        thetaFromMeasured = scratchThetaRad;
       }
-      double gain = ShooterConstants.HoodCompensationConstants.NORMAL_GAIN;
-      double maxCorrRad =
-          Units.degreesToRadians(ShooterConstants.HoodCompensationConstants.MAX_CORRECTION_DEG);
-      double thetaCorrected =
-          thetaNominal + MathUtil.clamp(thetaError * gain, -maxCorrRad, maxCorrRad);
-      thetaUsedRad = clampThetaToHoodLimits(thetaCorrected);
-
+      thetaUsedRad = clampThetaToHoodLimits(thetaFromMeasured);
       hoodAngle = mechanicalHoodAngleRadFromPhysicsTheta(thetaUsedRad);
       if (!Double.isNaN(lastHoodAngle)) {
         double maxDelta =
             Units.degreesToRadians(
-                    ShooterConstants.HoodCompensationConstants.MAX_CORRECTION_RATE_DEG_PER_SEC)
+                    ShooterConstants.ShooterCalculatorConstants.HOOD_GOAL_MAX_SLEW_DEG_PER_SEC)
                 * Constants.loopPeriodSecs;
         hoodAngle = MathUtil.clamp(hoodAngle, lastHoodAngle - maxDelta, lastHoodAngle + maxDelta);
       }
     }
-    double tofUsed = timeOfFlightFromPhysics(dFinal, scratchExitSpeedMps, scratchThetaRad);
+    double tofUsed = timeOfFlightFromPhysics(dFinal, measuredSpeed, thetaUsedRad);
+    if (!Double.isFinite(tofUsed)) {
+      tofUsed = timeOfFlightFromPhysics(dFinal, scratchExitSpeedMps, scratchThetaRad);
+    }
 
     if (lastTurretAngle == null) lastTurretAngle = turretAngle;
     if (Double.isNaN(lastHoodAngle)) lastHoodAngle = hoodAngle;
@@ -452,22 +434,6 @@ public class ShooterCalculator {
         hoodAngleFilter.calculate((hoodAngle - lastHoodAngle) / Constants.loopPeriodSecs);
     lastTurretAngle = turretAngle;
     lastHoodAngle = hoodAngle;
-
-    double vMinIdeal = minimumExitVelocity(dFinal, relFz);
-    double minRpmIdeal = rpmFromSurfaceVelocity(vMinIdeal);
-    double ratioEps = ShooterConstants.ShooterCalculatorConstants.EPSILON_TIME_AND_RATIO;
-    lastPhysicsMinToEmpiricalRpmRatio =
-        scratchRpmWheel > ratioEps
-            ? minRpmIdeal / scratchRpmWheel
-            : 1.0;
-    // TODO(PHYSICS_TUNE): revisit clamp limits if drivetrain brownout causes deeper RPM dips.
-    measuredToCommandRpmRatio =
-        scratchRpmWheel > ratioEps
-            ? MathUtil.clamp(
-                rpmFromSurfaceVelocity(measuredSpeed) / scratchRpmWheel,
-                0.0,
-                ShooterConstants.ShooterCalculatorConstants.MEASURED_TO_COMMAND_RPM_RATIO_MAX)
-            : 1.0;
 
     latestParameters =
         new ShootingParameters(
@@ -486,37 +452,21 @@ public class ShooterCalculator {
           "Shooter/Calculator/HoodComp/MeasuredSurfaceSpeedMpsFiltered",
           filteredMeasuredFlywheelSurfaceSpeedMps);
       Logger.recordOutput(
-          "Shooter/Calculator/HoodComp/ThetaNominalDeg", Units.radiansToDegrees(thetaNominal));
-      Logger.recordOutput("Shooter/Calculator/HoodComp/ThetaUsedDeg", Units.radiansToDegrees(thetaUsedRad));
-      Logger.recordOutput(
-          "Shooter/Calculator/HoodComp/ThetaErrorDeg",
-          Units.radiansToDegrees(thetaUsedRad - thetaNominal));
+          "Shooter/Calculator/HoodComp/ThetaUsedDeg", Units.radiansToDegrees(thetaUsedRad));
     }
   }
 
+  /** Flywheel ready-band scaling: neutral (no RPM-boost style sag compensation). */
   public double getPhysicsShotEfficiencyScale() {
-    // Use measured-vs-command ratio so tolerance adapts to real wheel sag, not only model ideality.
-    double measuredRatio = measuredToCommandRpmRatio;
-    if (!Double.isFinite(measuredRatio))
-      return ShooterConstants.FlywheelShotConstants.PHYSICS_SHOT_EFFICIENCY_SCALE_NEUTRAL;
-    measuredRatio =
-        MathUtil.clamp(
-            measuredRatio,
-            0.0,
-            ShooterConstants.ShooterCalculatorConstants.MEASURED_TO_COMMAND_RPM_RATIO_MAX);
-    double unity = ShooterConstants.FlywheelShotConstants.PHYSICS_SHOT_EFFICIENCY_SCALE_NEUTRAL;
-    return MathUtil.clamp(
-        unity + (unity - Math.min(measuredRatio, unity)),
-        ShooterConstants.ShooterCalculatorConstants.PHYSICS_SHOT_EFFICIENCY_SCALE_OUT_MIN,
-        ShooterConstants.ShooterCalculatorConstants.PHYSICS_SHOT_EFFICIENCY_SCALE_OUT_MAX);
+    return ShooterConstants.FlywheelShotConstants.PHYSICS_SHOT_EFFICIENCY_SCALE_NEUTRAL;
   }
 
   public double getPhysicsMinToEmpiricalRpmRatio() {
-    return lastPhysicsMinToEmpiricalRpmRatio;
+    return 1.0;
   }
 
   public double getMeasuredToCommandRpmRatio() {
-    return measuredToCommandRpmRatio;
+    return 1.0;
   }
 
   public void clearShootingParameters() {
@@ -677,14 +627,8 @@ public class ShooterCalculator {
       solveTarget3d = solveTargetOut[0];
     }
 
-    boolean shooterTrackingTarget =
-        mode == RobotState.ShooterMode.HUB
-            || mode == RobotState.ShooterMode.PASS
-            || mode == RobotState.ShooterMode.POINT_3D;
     flywheel.setPhysicsShotEfficiencyScale(
-        shooterTrackingTarget
-            ? getPhysicsShotEfficiencyScale()
-            : ShooterConstants.FlywheelShotConstants.PHYSICS_SHOT_EFFICIENCY_SCALE_NEUTRAL);
+        ShooterConstants.FlywheelShotConstants.PHYSICS_SHOT_EFFICIENCY_SCALE_NEUTRAL);
 
     if (ShooterConstants.Logging.LOG_SHOOTER_COORD_EVERY_CYCLE) {
       Logger.recordOutput("Shooter/TrenchProtection/Active", trenchTeleNear);
@@ -699,11 +643,13 @@ public class ShooterCalculator {
           "Shooter/TrenchProtection/PredictedOrCurrentUnderTrench", predictedOrCurrentUnderTrench);
       Logger.recordOutput("Shooter/TrenchProtection/HoodFoldedForTrench", hoodFoldedForTrench);
     }
+    boolean shooterTrackingTarget =
+        mode == RobotState.ShooterMode.HUB
+            || mode == RobotState.ShooterMode.PASS
+            || mode == RobotState.ShooterMode.POINT_3D;
     if (shooterTrackingTarget && ShooterConstants.Logging.SHOOTER_VERBOSE_AIMING) {
       Logger.recordOutput("Shooter/Calculator/FlywheelSpeed", shootParam.flywheelSpeed());
       Logger.recordOutput("Shooter/Calculator/TimeOfFlightSec", shootParam.timeOfFlightSec());
-      Logger.recordOutput(
-          "Shooter/Calculator/MeasuredToCommandRpmRatio", getMeasuredToCommandRpmRatio());
       Logger.recordOutput(
           "Shooter/Calculator/HoodAngleDeg", Units.radiansToDegrees(shootParam.hoodAngle()));
       Logger.recordOutput(
@@ -753,120 +699,18 @@ public class ShooterCalculator {
     if (solveTargetOut != null && solveTargetOut.length > 0) {
       solveTargetOut[0] = solveTarget3d;
     }
-    ArcSelection arcSelection =
-        solveTarget3d.getZ() - shooterPose3d.getZ()
-                < -ShooterConstants.ShooterCalculatorConstants.EPSILON_METERS
-            ? ArcSelection.LOW
-            : ArcSelection.HIGH;
+    // Target above shooter (positive delta Z) → high arc; below → low arc.
+    double dz = solveTarget3d.getZ() - shooterPose3d.getZ();
+    boolean useLowArc = dz <= ShooterConstants.ShooterCalculatorConstants.EPSILON_METERS;
     RobotState.getInstance()
         .setShooterSolveInputs(
             shooterPose3d,
             shooterVelocity3d,
             shooterAcceleration3d,
             solveTarget3d,
-            arcSelection == ArcSelection.LOW);
+            useLowArc);
     refreshCachedParameters();
     return getParameters();
-  }
-
-  private static boolean isHubClassTarget(Translation3d target) {
-    if (!ShooterConstants.HubFunnelClearance.ENABLE) {
-      return false;
-    }
-    Translation3d hub = AllianceFlipUtil.apply(FieldConstants.Hub.innerCenterPoint);
-    return target.getDistance(hub)
-        < ShooterConstants.HubFunnelClearance.HUB_CLASSIFY_MAX_DIST_METERS;
-  }
-
-  /**
-   * Along a straight-line approach to the hole, horizontal offset from hole axis is {@code D − s}.
-   * Require that offset to stay inside both the axial frustum and vertical aperture (see {@link
-   * FieldConstants.Hub}).
-   */
-  private static boolean hubShotClearsFunnel(
-      double sz,
-      double D,
-      double v,
-      double theta,
-      double radialMargin,
-      double funnelCheckDepth,
-      double funnelAxialDepth,
-      int numSamples) {
-    double g = ShooterConstants.GRAVITY;
-    double cosT = Math.cos(theta);
-    if (cosT < ShooterConstants.ShooterCalculatorConstants.EPSILON_SURFACE_SPEED_MPS) {
-      return true;
-    }
-    double tanT = Math.tan(theta);
-    double cos2 = cosT * cosT;
-
-    double sStart = Math.max(0.0, D - funnelCheckDepth);
-    for (int i = 1; i <= numSamples; i++) {
-      double s = sStart + (D - sStart) * (i / (double) numSamples);
-      double a = D - s;
-      if (a > funnelAxialDepth) {
-        continue;
-      }
-      double z = sz + s * tanT - g * s * s / (2.0 * v * v * cos2);
-      double rA = FieldConstants.Hub.funnelInnerRadiusAtApproach(a, funnelAxialDepth);
-      double rZ = FieldConstants.Hub.funnelInnerRadiusAtZ(z);
-      double maxR = Math.min(rA, rZ) - radialMargin;
-      if (maxR < 0.0 || a > maxR) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private void enforceHubFunnelClearanceIfApplicable(
-      Pose3d shooterPose3d,
-      Translation3d targetTranslation3d,
-      double dFinal,
-      double relFz,
-      ArcSelection arcSelection) {
-    if (RobotState.getInstance().getShooterMode() == RobotState.ShooterMode.IDLE) {
-      return;
-    }
-    if (!isHubClassTarget(targetTranslation3d)) {
-      return;
-    }
-    Translation3d sTr = shooterPose3d.getTranslation();
-    double margin = ShooterConstants.HubFunnelClearance.RADIAL_MARGIN_METERS;
-    double checkDepth = ShooterConstants.HubFunnelClearance.FUNNEL_CHECK_DEPTH_METERS;
-    double axialDepth = ShooterConstants.HubFunnelClearance.FUNNEL_AXIAL_DEPTH_METERS;
-    int samples = ShooterConstants.HubFunnelClearance.TRAJECTORY_SAMPLES;
-    int maxIter = ShooterConstants.HubFunnelClearance.MAX_SPEED_BOOST_ITERATIONS;
-    double boost = ShooterConstants.HubFunnelClearance.SPEED_BOOST_FACTOR;
-
-    ArcSelection effectiveArc = relFz < 0.0 ? ArcSelection.LOW : arcSelection;
-    for (int iter = 0; iter < maxIter; iter++) {
-      if (hubShotClearsFunnel(
-          sTr.getZ(),
-          dFinal,
-          scratchExitSpeedMps,
-          scratchThetaRad,
-          margin,
-          checkDepth,
-          axialDepth,
-          samples)) {
-        if (iter > 0) {
-          Logger.recordOutput("Shooter/HubFunnel/SpeedBoostIterations", iter);
-        }
-        return;
-      }
-      scratchRpmWheel =
-          Math.min(
-              scratchRpmWheel * boost,
-              ShooterConstants.ComponentsConstants.Flywheel.FLYWHEEL_MAX_RPM);
-      scratchExitSpeedMps = surfaceVelocityFromRpm(scratchRpmWheel);
-      double theta = solveThetaForSpeed(scratchExitSpeedMps, dFinal, relFz, effectiveArc);
-      if (!Double.isFinite(theta)) {
-        break;
-      }
-      scratchThetaRad = clampThetaToHoodLimits(theta);
-      scratchTofSec = timeOfFlightFromPhysics(dFinal, scratchExitSpeedMps, scratchThetaRad);
-    }
-    Logger.recordOutput("Shooter/HubFunnel/SpeedBoostIterations", maxIter);
   }
 
   /** Same LEFT/RIGHT pass 3D selection as {@link RobotState.ShooterMode#PASS}. */
