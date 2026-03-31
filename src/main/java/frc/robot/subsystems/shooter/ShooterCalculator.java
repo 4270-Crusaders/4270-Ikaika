@@ -85,6 +85,108 @@ public class ShooterCalculator {
     return SpeedUtil.metersPerSecondFromRpm(rpm, averageWheelRadiusMeters());
   }
 
+  private record TrajectoryAtDistance(boolean isValid, double heightMeters, double timeSeconds) {}
+
+  private static double estimateBallSpinRadPerSec(double launchSpeedMetersPerSec) {
+    double radiusM = ShooterConstants.ProjectileConstants.FUEL_RADIUS_METERS;
+    if (radiusM < ShooterConstants.ShooterCalculatorConstants.EPSILON_DENOMINATOR) {
+      return 0.0;
+    }
+
+    // Geometry path: more compression generally couples stronger spin into the game piece.
+    double freeDiameterM = ShooterConstants.ProjectileConstants.FUEL_DIAMETER_METERS;
+    double compressionM = ShooterConstants.ComponentsConstants.Flywheel.BALL_COMPRESSION_METERS;
+    double compressedDiameterM =
+        Math.max(
+            freeDiameterM - 2.0 * compressionM,
+            ShooterConstants.ShooterCalculatorConstants.EPSILON_METERS);
+    double geometryScale =
+        MathUtil.clamp(
+            compressedDiameterM / Math.max(freeDiameterM, ShooterConstants.ShooterCalculatorConstants.EPSILON_METERS),
+            ShooterConstants.ProjectileConstants.SPIN_GEOMETRY_SCALE_MIN,
+            ShooterConstants.ProjectileConstants.SPIN_GEOMETRY_SCALE_MAX);
+    double omegaGeometry = (launchSpeedMetersPerSec / radiusM) * geometryScale;
+
+    // Fallback path remains valid even if compression parameters are modified unexpectedly.
+    double omegaFallback =
+        (launchSpeedMetersPerSec / radiusM) * ShooterConstants.ProjectileConstants.SPIN_SLIP_RATIO;
+    double omegaBase = Double.isFinite(omegaGeometry) ? omegaGeometry : omegaFallback;
+
+    // Optional signed wheel mismatch term for future dual-wheel asymmetry tuning.
+    double wheelDelta = 0.0;
+    return Math.max(
+        0.0,
+        omegaBase + wheelDelta * ShooterConstants.ProjectileConstants.WHEEL_DELTA_SPIN_GAIN);
+  }
+
+  private static TrajectoryAtDistance simulateTrajectoryToDistance(
+      double launchSpeedMetersPerSec, double thetaAboveHorizontalRad, double horizontalDistanceM) {
+    if (launchSpeedMetersPerSec <= ShooterConstants.ShooterCalculatorConstants.EPSILON_SURFACE_SPEED_MPS
+        || horizontalDistanceM < 0.0) {
+      return new TrajectoryAtDistance(false, Double.NaN, Double.NaN);
+    }
+
+    double dt = ShooterConstants.ShooterCalculatorConstants.TRAJECTORY_SIM_DT_SEC;
+    double maxTime = ShooterConstants.ShooterCalculatorConstants.TRAJECTORY_SIM_MAX_TIME_SEC;
+    double g = ShooterConstants.GRAVITY;
+    double dragFactor = ShooterConstants.ProjectileConstants.DRAG_ACCEL_FACTOR_PER_M;
+    double magnusFactor = ShooterConstants.ProjectileConstants.MAGNUS_ACCEL_FACTOR_PER_M;
+    double omegaBallRadPerSec = estimateBallSpinRadPerSec(launchSpeedMetersPerSec);
+
+    double x = 0.0;
+    double z = 0.0;
+    double vx = launchSpeedMetersPerSec * Math.cos(thetaAboveHorizontalRad);
+    double vz = launchSpeedMetersPerSec * Math.sin(thetaAboveHorizontalRad);
+    double t = 0.0;
+
+    double prevX = x;
+    double prevZ = z;
+    double prevT = t;
+    while (t < maxTime) {
+      if (x >= horizontalDistanceM) {
+        break;
+      }
+      if (vx <= ShooterConstants.ShooterCalculatorConstants.EPSILON_SURFACE_SPEED_MPS && x < horizontalDistanceM) {
+        return new TrajectoryAtDistance(false, Double.NaN, Double.NaN);
+      }
+      if (z < -1.5) {
+        return new TrajectoryAtDistance(false, Double.NaN, Double.NaN);
+      }
+
+      prevX = x;
+      prevZ = z;
+      prevT = t;
+
+      double speed = Math.hypot(vx, vz);
+      double dragAx = -dragFactor * speed * vx;
+      double dragAz = -dragFactor * speed * vz;
+      double magnusAz = magnusFactor * speed * omegaBallRadPerSec;
+
+      double ax = dragAx;
+      double az = -g + dragAz + magnusAz;
+
+      vx += ax * dt;
+      vz += az * dt;
+      x += vx * dt;
+      z += vz * dt;
+      t += dt;
+    }
+
+    if (x < horizontalDistanceM) {
+      return new TrajectoryAtDistance(false, Double.NaN, Double.NaN);
+    }
+
+    double segmentDx = x - prevX;
+    if (Math.abs(segmentDx) < ShooterConstants.ShooterCalculatorConstants.EPSILON_DENOMINATOR) {
+      return new TrajectoryAtDistance(true, z, t);
+    }
+    double lerp = (horizontalDistanceM - prevX) / segmentDx;
+    lerp = MathUtil.clamp(lerp, 0.0, 1.0);
+    double zAtDistance = prevZ + (z - prevZ) * lerp;
+    double tAtDistance = prevT + (t - prevT) * lerp;
+    return new TrajectoryAtDistance(true, zAtDistance, tAtDistance);
+  }
+
   /** Vacuum minimum-speed estimate used as baseline command speed. */
   public static double minimumExitVelocity(double horizontalDistanceM, double heightDeltaM) {
     double d = Math.max(horizontalDistanceM, ShooterConstants.ShooterCalculatorConstants.EPSILON_METERS);
@@ -101,26 +203,70 @@ public class ShooterCalculator {
       double horizontalDistanceM,
       double heightDeltaM,
       ShooterState.ShootingArc shootingArc) {
-    double v = Math.max(surfaceVelocityMetersPerSec, ShooterConstants.ShooterCalculatorConstants.EPSILON_SURFACE_SPEED_MPS);
+    double v =
+        Math.max(
+            surfaceVelocityMetersPerSec, ShooterConstants.ShooterCalculatorConstants.EPSILON_SURFACE_SPEED_MPS);
     double d = Math.max(horizontalDistanceM, ShooterConstants.ShooterCalculatorConstants.EPSILON_METERS);
-    double h = heightDeltaM;
-    double g = ShooterConstants.GRAVITY;
+    double targetHeightM = heightDeltaM;
 
-    double v2 = v * v;
-    double disc = (v2 * v2) - g * (g * d * d + 2.0 * h * v2);
-    if (!Double.isFinite(disc) || disc < 0.0) {
-      return Double.NaN;
+    double thetaMin =
+        physicsThetaRadFromMechanicalHoodDeg(ShooterConstants.ComponentsConstants.Hood.MAX_DEGREE);
+    double thetaMax =
+        physicsThetaRadFromMechanicalHoodDeg(ShooterConstants.ComponentsConstants.Hood.MIN_DEGREE);
+    if (!Double.isFinite(thetaMin) || !Double.isFinite(thetaMax) || thetaMax <= thetaMin) {
+      thetaMin = Units.degreesToRadians(ShooterConstants.ShooterCalculatorConstants.FALLBACK_THETA_MIN_DEG);
+      thetaMax = Units.degreesToRadians(ShooterConstants.ShooterCalculatorConstants.FALLBACK_THETA_MAX_DEG);
     }
 
-    double sqrtDisc = Math.sqrt(disc);
-    double denom = g * d;
-    if (Math.abs(denom) < ShooterConstants.ShooterCalculatorConstants.EPSILON_DENOMINATOR) {
-      return Double.NaN;
+    int samples = ShooterConstants.ShooterCalculatorConstants.TRAJECTORY_THETA_SCAN_SAMPLES;
+    int bisectMax = ShooterConstants.ShooterCalculatorConstants.TRAJECTORY_BISECTION_MAX_ITERS;
+    double step = (thetaMax - thetaMin) / Math.max(1, samples - 1);
+    double lowRoot = Double.NaN;
+    double highRoot = Double.NaN;
+
+    double prevTheta = thetaMin;
+    TrajectoryAtDistance prevShot = simulateTrajectoryToDistance(v, prevTheta, d);
+    double prevErr = prevShot.isValid() ? prevShot.heightMeters() - targetHeightM : Double.NaN;
+
+    for (int i = 1; i < samples; i++) {
+      double theta = thetaMin + step * i;
+      TrajectoryAtDistance shot = simulateTrajectoryToDistance(v, theta, d);
+      double err = shot.isValid() ? shot.heightMeters() - targetHeightM : Double.NaN;
+      if (Double.isFinite(prevErr) && Double.isFinite(err) && (prevErr == 0.0 || prevErr * err <= 0.0)) {
+        double lo = prevTheta;
+        double hi = theta;
+        double loErr = prevErr;
+        for (int iter = 0; iter < bisectMax; iter++) {
+          double mid = 0.5 * (lo + hi);
+          TrajectoryAtDistance midShot = simulateTrajectoryToDistance(v, mid, d);
+          double midErr = midShot.isValid() ? midShot.heightMeters() - targetHeightM : Double.NaN;
+          if (!Double.isFinite(midErr)) {
+            break;
+          }
+          if (Math.abs(midErr) < 1e-4) {
+            lo = mid;
+            hi = mid;
+            break;
+          }
+          if (loErr * midErr <= 0.0) {
+            hi = mid;
+          } else {
+            lo = mid;
+            loErr = midErr;
+          }
+        }
+        double root = 0.5 * (lo + hi);
+        if (!Double.isFinite(lowRoot) || root < lowRoot) lowRoot = root;
+        if (!Double.isFinite(highRoot) || root > highRoot) highRoot = root;
+      }
+      prevTheta = theta;
+      prevErr = err;
     }
 
-    double low = Math.atan((v2 - sqrtDisc) / denom);
-    double high = Math.atan((v2 + sqrtDisc) / denom);
-    return shootingArc == ShooterState.ShootingArc.LOW ? low : high;
+    if (shootingArc == ShooterState.ShootingArc.LOW) {
+      return lowRoot;
+    }
+    return highRoot;
   }
 
   public static double mechanicalHoodAngleRadFromPhysicsTheta(double thetaAboveHorizontalRad) {
@@ -148,26 +294,57 @@ public class ShooterCalculator {
   private static double exitSpeedForFixedTheta(
       double horizontalDistanceM, double heightDeltaM, double thetaAboveHorizontalRad) {
     double d = Math.max(horizontalDistanceM, ShooterConstants.ShooterCalculatorConstants.EPSILON_METERS);
-    double h = heightDeltaM;
-    double g = ShooterConstants.GRAVITY;
-    double cosT = Math.cos(thetaAboveHorizontalRad);
-    if (Math.abs(cosT) < ShooterConstants.ShooterCalculatorConstants.EPSILON_DENOMINATOR) {
-      return Double.NaN;
+    double targetHeightM = heightDeltaM;
+
+    double vMin = ShooterConstants.ShooterCalculatorConstants.EPSILON_SURFACE_SPEED_MPS;
+    double vMax = ShooterConstants.ShooterCalculatorConstants.TRAJECTORY_MAX_LAUNCH_SPEED_MPS;
+    int samples = ShooterConstants.ShooterCalculatorConstants.TRAJECTORY_THETA_SCAN_SAMPLES;
+    int bisectMax = ShooterConstants.ShooterCalculatorConstants.TRAJECTORY_BISECTION_MAX_ITERS;
+
+    double prevV = vMin;
+    TrajectoryAtDistance prevShot = simulateTrajectoryToDistance(prevV, thetaAboveHorizontalRad, d);
+    double prevErr = prevShot.isValid() ? prevShot.heightMeters() - targetHeightM : Double.NaN;
+    for (int i = 1; i < samples; i++) {
+      double ratio = (double) i / (double) (samples - 1);
+      double v = vMin + (vMax - vMin) * ratio;
+      TrajectoryAtDistance shot = simulateTrajectoryToDistance(v, thetaAboveHorizontalRad, d);
+      double err = shot.isValid() ? shot.heightMeters() - targetHeightM : Double.NaN;
+
+      if (Double.isFinite(prevErr) && Double.isFinite(err) && (prevErr == 0.0 || prevErr * err <= 0.0)) {
+        double loV = prevV;
+        double hiV = v;
+        double loErr = prevErr;
+        for (int iter = 0; iter < bisectMax; iter++) {
+          double midV = 0.5 * (loV + hiV);
+          TrajectoryAtDistance midShot = simulateTrajectoryToDistance(midV, thetaAboveHorizontalRad, d);
+          double midErr = midShot.isValid() ? midShot.heightMeters() - targetHeightM : Double.NaN;
+          if (!Double.isFinite(midErr)) {
+            break;
+          }
+          if (Math.abs(midErr) < 1e-4) {
+            return midV;
+          }
+          if (loErr * midErr <= 0.0) {
+            hiV = midV;
+          } else {
+            loV = midV;
+            loErr = midErr;
+          }
+        }
+        return 0.5 * (loV + hiV);
+      }
+      prevV = v;
+      prevErr = err;
     }
-    double denom = 2.0 * cosT * cosT * (d * Math.tan(thetaAboveHorizontalRad) - h);
-    if (denom <= ShooterConstants.ShooterCalculatorConstants.EPSILON_DENOMINATOR) {
-      return Double.NaN;
-    }
-    return Math.sqrt((g * d * d) / denom);
+    return Double.NaN;
   }
 
   private static double timeToReachDistanceSeconds(
       double surfaceVelocityMetersPerSec, double thetaAboveHorizontalRad, double horizontalDistanceM) {
-    double vx = surfaceVelocityMetersPerSec * Math.cos(thetaAboveHorizontalRad);
-    if (vx < ShooterConstants.ShooterCalculatorConstants.EPSILON_SURFACE_SPEED_MPS) {
-      return Double.NaN;
-    }
-    return horizontalDistanceM / vx;
+    double d = Math.max(horizontalDistanceM, 0.0);
+    TrajectoryAtDistance shot =
+        simulateTrajectoryToDistance(surfaceVelocityMetersPerSec, thetaAboveHorizontalRad, d);
+    return shot.isValid() ? shot.timeSeconds() : Double.NaN;
   }
 
   private void computeCommandRpmShoot(

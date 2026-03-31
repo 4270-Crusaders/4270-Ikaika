@@ -257,6 +257,59 @@ public class ShooterConstants {
   }
 
   /**
+   * Fuel (game piece) and atmosphere constants for drag/Magnus projectile models.
+   *
+   * <p>These are intentionally centralized so solver experiments can reuse one source of truth.
+   */
+  public static final class ProjectileConstants {
+    /** Fuel ball mass in kilograms (team-measured nominal). */
+    public static final double FUEL_MASS_KG = 0.215;
+    /** Fuel ball diameter in meters (nominal). */
+    public static final double FUEL_DIAMETER_METERS = ComponentsConstants.Flywheel.BALL_DIAMETER_METERS;
+    /** Fuel ball radius in meters. */
+    public static final double FUEL_RADIUS_METERS = FUEL_DIAMETER_METERS * 0.5;
+    /** Cross-sectional area in square meters for quadratic drag. */
+    public static final double FUEL_CROSS_SECTIONAL_AREA_M2 =
+        Math.PI * FUEL_RADIUS_METERS * FUEL_RADIUS_METERS;
+
+    /** Air density (kg/m^3) near sea level, room-temperature baseline. */
+    public static final double AIR_DENSITY_KG_PER_M3 = 1.225;
+    /** Drag coefficient for a smooth sphere baseline. */
+    public static final double DRAG_COEFFICIENT_SMOOTH_SPHERE = 0.47;
+    /**
+     * Magnus lift coefficient baseline (unitless, lumped).
+     *
+     * <p>Typical tuned range is roughly 0.05..0.30 depending on spin ratio/Reynolds regime.
+     */
+    public static final double MAGNUS_LIFT_COEFFICIENT = 0.12;
+
+    /** Drag acceleration factor (1/m): 0.5 * rho * Cd * A / m. */
+    public static final double DRAG_ACCEL_FACTOR_PER_M =
+        0.5
+            * AIR_DENSITY_KG_PER_M3
+            * DRAG_COEFFICIENT_SMOOTH_SPHERE
+            * FUEL_CROSS_SECTIONAL_AREA_M2
+            / FUEL_MASS_KG;
+    /** Magnus acceleration factor (1/m): 0.5 * rho * Cl * A / m. */
+    public static final double MAGNUS_ACCEL_FACTOR_PER_M =
+        0.5 * AIR_DENSITY_KG_PER_M3 * MAGNUS_LIFT_COEFFICIENT * FUEL_CROSS_SECTIONAL_AREA_M2 / FUEL_MASS_KG;
+
+    /** Slip-ratio fallback for spin estimate: omega ~= (v / r) * slipRatio. */
+    public static final double SPIN_SLIP_RATIO = 0.55;
+    /** Lower clamp for geometry-based spin scale. */
+    public static final double SPIN_GEOMETRY_SCALE_MIN = 0.20;
+    /** Upper clamp for geometry-based spin scale. */
+    public static final double SPIN_GEOMETRY_SCALE_MAX = 1.20;
+    /**
+     * Optional signed wheel-delta term used by geometry spin model.
+     *
+     * <p>0.0 means neutral average-speed spin estimate. Positive values increase backspin as top/bottom
+     * wheel surface mismatch grows.
+     */
+    public static final double WHEEL_DELTA_SPIN_GAIN = 0.0;
+  }
+
+  /**
    * Ballistic solver tuning for {@link frc.robot.subsystems.shooter.ShooterCalculator}.
    *
    * <p><b>WPILib note:</b> {@link Units} handles length/angle conversions. There is no WPILib constant
@@ -288,8 +341,8 @@ public class ShooterConstants {
     public static final double EPSILON_TIME_AND_RATIO = 1e-6;
 
     /** Fallback shot-angle limits (deg) if hood mechanical limits are non-finite or inverted. */
-    public static final double FALLBACK_THETA_MIN_DEG = 5.0;
-    public static final double FALLBACK_THETA_MAX_DEG = 85.0;
+    public static final double FALLBACK_THETA_MIN_DEG = 0.0;
+    public static final double FALLBACK_THETA_MAX_DEG = 80.0;
 
     /**
      * Applied after {@link frc.robot.subsystems.shooter.ShooterCalculator#minimumExitVelocity} when
@@ -302,6 +355,17 @@ public class ShooterConstants {
      * fixed-point lead (20); drag theta solve is heavier than vacuum discriminant.
      */
     public static final int MOVING_TARGET_LEAD_ITERATIONS = 20;
+
+    /** Trajectory simulation integration step (seconds). */
+    public static final double TRAJECTORY_SIM_DT_SEC = 0.01;
+    /** Hard cap on ballistic simulation horizon (seconds). */
+    public static final double TRAJECTORY_SIM_MAX_TIME_SEC = 2.0;
+    /** Max bisection iterations for numeric speed/angle solves. */
+    public static final int TRAJECTORY_BISECTION_MAX_ITERS = 24;
+    /** Theta scan samples used before selecting and refining low/high-arc candidate. */
+    public static final int TRAJECTORY_THETA_SCAN_SAMPLES = 31;
+    /** Max launch speed considered by numeric speed solves (m/s). */
+    public static final double TRAJECTORY_MAX_LAUNCH_SPEED_MPS = 45.0;
 
     /**
      * Reference angle (deg): with hood offset {@code k} (positive), {@code theta = 90 - m - k}.
