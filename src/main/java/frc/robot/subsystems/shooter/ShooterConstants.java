@@ -3,7 +3,6 @@ package frc.robot.subsystems.shooter;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -45,22 +44,28 @@ public class ShooterConstants {
       public static final double MAIN_WHEEL_DIAMETER_METERS = Units.inchesToMeters(3.0);
       /** Hood shooter wheel diameter (meters). */
       public static final double HOOD_WHEEL_DIAMETER_METERS = Units.inchesToMeters(2.0);
+
+      public static final double AVERAGE_WHEEL_RADIUS_METERS =
+          ((MAIN_WHEEL_DIAMETER_METERS*0.5) + (HOOD_WHEEL_DIAMETER_METERS*0.5)) * 0.5;
       /**
        * Ball geometry/properties:
-       * Diameter: 5.91 in, material: high-density polyurethane foam.
+       * Diameter: 150mm, material: high-density polyurethane foam.
        */
-      public static final double BALL_DIAMETER_METERS = Units.inchesToMeters(5.91);
+      public static final double BALL_DIAMETER_METERS = 0.15;
       public static final double BALL_COMPRESSION_METERS = Units.inchesToMeters(0.625);
       /**
        * Exit transfer efficiency from wheel-surface speed to ball exit speed.
        * Derived from compression ratio as a conservative first-order estimate.
        */
-      public static final double BALL_EXIT_TRANSFER_EFFICIENCY =
-          MathUtil.clamp(
-              1.0 - 0.7 * (BALL_COMPRESSION_METERS / BALL_DIAMETER_METERS),
-              0.75,
-              1.0);
 
+      public static final class ShotConstants {
+        public static final double BALL_EXIT_TRANSFER_EFFICIENCY = 0.9;
+        /**
+         * Shared flywheel speed when not shooting (auto and tele use the same idle for consistent
+         * warm-up).
+         */
+        public static final double FLYWHEEL_GOAL_IDLE_RPM = 2000.0;
+      }
     }
 
     // Hood
@@ -89,12 +94,6 @@ public class ShooterConstants {
        */
       public static final double MECHANICAL_ANGLE_OFFSET_DEG = 14;
 
-      /**
-       * Extra vertical rise (m) in the drag ballistic hood solve only (above geometric target
-       * height). Ported from {@code physics-way} {@code LaunchCalculator}.
-       */
-      public static final double BALLISTIC_EXTRA_HEIGHT_METERS = Units.feetToMeters(1.5);
-
       public static final int HOOD_ENCODER_CAN_ID = 23;
       public static final double sensorToMechanismRatio = -21.1428571; // 296/14
       public static final double rotorToSensorRatio = -5.25000001; // 42/8
@@ -106,6 +105,7 @@ public class ShooterConstants {
       public static final InvertedValue HoodInvertedValue = InvertedValue.CounterClockwise_Positive;
       public static final boolean HoodSupplyCurrentLimitEnable = true;
       public static final NeutralModeValue HoodNeutralModeValue = NeutralModeValue.Brake;
+      // Control Gains
       public static final class Gains {
         public static final double kP = 1500;
         public static final double kI = 100;
@@ -121,6 +121,11 @@ public class ShooterConstants {
           public static final double expo_kA = 0.1;
           public static final double expo_kV = 0.12;
         }
+      }
+
+      public static final class shootingConstants {
+        /** Max hood angle (deg) for shooting; if hood is above this, shooting is suppressed. */
+        public static final double PASS_ANGLE_DEG = 24.0;
       }
     }
 
@@ -166,17 +171,8 @@ public class ShooterConstants {
     }
   }
 
-  /**
-   * Talon hood setpoint range (deg). Prefer these over {@code ComponentsConstants.Hood.MIN/MAX_DEGREE}
-   * from {@link frc.robot.subsystems.shooter.hood.Hood} (avoids {@code .Hood.*} name clashes with that
-   * class in some parsers).
-   */
-  public static final double SHOOTER_HOOD_SETPOINT_MIN_DEG = ComponentsConstants.Hood.MIN_DEGREE;
-
-  public static final double SHOOTER_HOOD_SETPOINT_MAX_DEG = ComponentsConstants.Hood.MAX_DEGREE;
-
   // General Constants
-  public static final double GRAVITY = 9.81;
+  public static final double GRAVITY = 9.80665;
   /** Base half-width RPM window for flywheel {@code nearGoal}. */
   public static final double READY_TO_SHOOT_FLYWHEEL_RPM_TOLERANCE = 450;
   public static final double READY_TO_SHOOT_HOOD_DEG_TOLERANCE = 1.0;
@@ -185,7 +181,7 @@ public class ShooterConstants {
 
   public static final double READY_TO_SHOOT_TURRET_DEG_TOLERANCE = 20;
   /** Max |turret slew rate| (deg/s) to still count as "settled" during slow aim tracking. */
-  public static final double READY_TO_SHOOT_TURRET_MAX_DEG_PER_SEC = 35;
+  public static final double READY_TO_SHOOT_TURRET_MAX_DEG_PER_SEC = 60;
 
   /** Field aim geometry (turret offset, pass targets, trench protection). */
   public static final class ShooterAimConstants {
@@ -230,7 +226,7 @@ public class ShooterConstants {
        * Hood angle threshold (mechanical deg, Talon setpoint frame) for folded/safe trench crossing.
        * Not physics theta; compare to {@link ComponentsConstants.Hood#MIN_DEGREE} / measured position.
        */
-      public static final double SAFE_HOOD_ANGLE_DEG = ShooterConstants.SHOOTER_HOOD_SETPOINT_MIN_DEG;
+      public static final double SAFE_HOOD_ANGLE_DEG = ShooterConstants.ComponentsConstants.Hood.MIN_DEGREE;
       /** X start for alliance trench overhang protection (meters, blue-frame). */
       public static final double START_X_METERS =
           FieldConstants.LinesVertical.hubCenter
@@ -282,6 +278,7 @@ public class ShooterConstants {
     public static final double ANGLE_VELOCITY_FILTER_WINDOW_SEC = 0.1;
 
     public static final double EPSILON_SURFACE_SPEED_MPS = 1e-6;
+    
     /**
      * Near-zero threshold for horizontal range, height tolerances, and similar geometry checks (m).
      */
@@ -294,62 +291,21 @@ public class ShooterConstants {
     public static final double FALLBACK_THETA_MIN_DEG = 5.0;
     public static final double FALLBACK_THETA_MAX_DEG = 85.0;
 
-    /** Default shot angle above horizontal (deg) when the discriminant solve fails. */
-    public static final double DEFAULT_SOLVE_THETA_DEG = 45.0;
+    /**
+     * Applied after {@link frc.robot.subsystems.shooter.ShooterCalculator#minimumExitVelocity} when
+     * solving SHOOT/HUB trajectories (not PASS fixed-angle). Example: 0.10 = +10% speed headroom.
+     */
+    public static final double MIN_EXIT_VELOCITY_HEADROOM_RATIO = 0.10;
 
     /**
      * Iterations for moving-target lead (successive ballistic refinement). Match {@code physics-way}
-     * fixed-point lead (10); drag theta solve is heavier than vacuum discriminant.
+     * fixed-point lead (20); drag theta solve is heavier than vacuum discriminant.
      */
-    public static final int MOVING_TARGET_LEAD_ITERATIONS = 10;
-
-    /**
-     * Clamp magnitude of finite-difference robot-frame linear acceleration (m/s^2) used for moving
-     * target lead (reduces derivative noise).
-     */
-    // TODO(PHYSICS_TUNE): raise if you command harder sprints while shooting.
-    public static final double ROBOT_ACCEL_CLAMP_LINEAR_MPS2 = 14.0;
-
-    /**
-     * Clamp magnitude of finite-difference angular acceleration (rad/s^2) for shooter-offset lead.
-     */
-    public static final double ROBOT_ACCEL_CLAMP_ANGULAR_RAD_PER_SEC2 = 28.0;
-
-    /**
-     * Low-pass on field-frame shooter-point acceleration: {@code a += alpha * (a_meas - a)} per loop.
-     * 1.0 = no smoothing; lower = less noise, more lag.
-     */
-    public static final double SHOOTER_LEAD_ACCEL_LOWPASS_ALPHA = 0.45;
+    public static final int MOVING_TARGET_LEAD_ITERATIONS = 20;
 
     /**
      * Reference angle (deg): with hood offset {@code k} (positive), {@code theta = 90 - m - k}.
      */
     public static final double MECHANICAL_RIGHT_ANGLE_DEG = 90.0;
-
-    /** Equal blend between main and hood wheel contributions to effective surface speed. */
-    public static final double DUAL_WHEEL_SURFACE_BLEND = 0.5;
-  }
-
-  /** Linear air drag + simplified backspin lift (ported from {@code physics-way}). */
-  public static final class BallisticDragConstants {
-    public static final double AIR_DRAG_LINEAR_COEFF_1_PER_S = 0.35;
-    public static final double BACKSPIN_MAGNUS_LIFT_COEFF = 0.00027;
-    public static final double BACKSPIN_SPIN_RATE_RATIO = 1.0;
-    /** Scales vacuum minimum exit speed before θ / RPM solve. */
-    public static final double AIR_DRAG_EXIT_VELOCITY_MULTIPLIER = 1.08;
-    /** Ball radius for Magnus spin-rate term (m). */
-    public static final double BALL_RADIUS_METERS =
-        ComponentsConstants.Flywheel.BALL_DIAMETER_METERS / 2.0;
-  }
-
-  public static final class FlywheelShotConstants {
-    /**
-     * Shared flywheel speed when not shooting (auto and tele use the same idle for consistent
-     * warm-up).
-     */
-    public static final double FLYWHEEL_GOAL_IDLE_RPM = 3000.0;
-
-    /** Default custom goal - TODO(PHYSICS_TUNE). */
-    public static final double FLYWHEEL_GOAL_CUSTOM_RPM = 2300.0;
   }
 }

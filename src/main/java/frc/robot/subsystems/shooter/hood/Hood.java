@@ -4,6 +4,7 @@
 package frc.robot.subsystems.shooter.hood;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.shooter.ShooterCalculator;
 import frc.robot.subsystems.shooter.ShooterConstants;
@@ -72,7 +73,7 @@ public class Hood extends FullSubsystem {
   }
 
   public enum HoodGoal {
-    ZERO(new LoggedTunableNumber("Shooter/Hood/Goals/Zero", ShooterConstants.SHOOTER_HOOD_SETPOINT_MIN_DEG)),
+    ZERO(new LoggedTunableNumber("Shooter/Hood/Goals/Zero", 0)),
     TEST(new LoggedTunableNumber("Shooter/Hood/Goals/Test", 15)),
     CUSTOM(new LoggedTunableNumber("Shooter/Hood/Goals/Custom", 9.25));
 
@@ -95,22 +96,22 @@ public class Hood extends FullSubsystem {
   private double goalDeg = 0.0;
 
   public boolean nearGoal = false;
-  public boolean settled = false;
-  private double lastMeasuredDeg = Double.NaN;
+
+  private double clampHoodAngleDeg(double angleDeg) {
+    return MathUtil.clamp(
+        angleDeg,
+        ShooterConstants.ComponentsConstants.Hood.MIN_DEGREE,
+        ShooterConstants.ComponentsConstants.Hood.MAX_DEGREE);
+  }
 
   public void setGoalSetPoint(double goal) {
     setpointMode = false;
     this.goalDeg =
-        MathUtil.clamp(
-            goal, ShooterConstants.SHOOTER_HOOD_SETPOINT_MIN_DEG, ShooterConstants.SHOOTER_HOOD_SETPOINT_MAX_DEG);
+    clampHoodAngleDeg(goal);
   }
 
   public void setGoalSetPoint(HoodGoal hoodGoal) {
-    double clamped =
-        MathUtil.clamp(
-            hoodGoal.getDegrees(),
-            ShooterConstants.SHOOTER_HOOD_SETPOINT_MIN_DEG,
-            ShooterConstants.SHOOTER_HOOD_SETPOINT_MAX_DEG);
+    double clamped = clampHoodAngleDeg(hoodGoal.getDegrees());
     if (clamped == hoodGoal.getDegrees()) {
       setpointMode = true;
       this.goalSetpoint = hoodGoal;
@@ -128,11 +129,7 @@ public class Hood extends FullSubsystem {
     if (setpointMode) {
       goalDeg = goalSetpoint.getDegrees();
     }
-    goalDeg =
-        MathUtil.clamp(
-            goalDeg,
-            ShooterConstants.SHOOTER_HOOD_SETPOINT_MIN_DEG,
-            ShooterConstants.SHOOTER_HOOD_SETPOINT_MAX_DEG);
+    goalDeg = clampHoodAngleDeg(goalDeg);
   }
 
   @Override
@@ -169,11 +166,8 @@ public class Hood extends FullSubsystem {
     if (setpointMode) {
       goalDeg = goalSetpoint.getDegrees();
     }
-    goalDeg =
-        MathUtil.clamp(
-            goalDeg,
-            ShooterConstants.SHOOTER_HOOD_SETPOINT_MIN_DEG,
-            ShooterConstants.SHOOTER_HOOD_SETPOINT_MAX_DEG);
+
+    goalDeg = clampHoodAngleDeg(goalDeg);
 
     Logger.recordOutput("Shooter/Hood/GoalDegrees", goalDeg, Degrees);
 
@@ -183,17 +177,11 @@ public class Hood extends FullSubsystem {
             goalDeg,
             ShooterConstants.READY_TO_SHOOT_HOOD_DEG_TOLERANCE);
     double hoodVelDegPerSec = 0.0;
-    if (Double.isFinite(lastMeasuredDeg)) {
-      hoodVelDegPerSec =
-          Math.abs((inputs.measuredPostionDeg - lastMeasuredDeg) / frc.robot.Constants.loopPeriodSecs);
-    }
-    settled = hoodVelDegPerSec < ShooterConstants.READY_TO_SHOOT_HOOD_MAX_DEG_PER_SEC;
-    lastMeasuredDeg = inputs.measuredPostionDeg;
+    
     Logger.recordOutput("Shooter/Hood/VelocityDegPerSec", hoodVelDegPerSec);
     Logger.recordOutput("Shooter/Hood/nearGoal", nearGoal);
-    Logger.recordOutput("Shooter/Hood/settled", settled);
     ShooterState.getInstance()
-        .recordShooterHoodMeasuredAngleRad(Units.degreesToRadians(inputs.measuredPostionDeg));
+        .recordShooterHoodMeasuredAngle(Rotation2d.fromDegrees(inputs.measuredPostionDeg));
   }
 
   @Override
@@ -212,7 +200,7 @@ public class Hood extends FullSubsystem {
             return;
           }
           if (ShooterState.getInstance().isShooterTrenchProtectionActive()) {
-            setGoalSetPoint(ShooterConstants.SHOOTER_HOOD_SETPOINT_MIN_DEG);
+            setGoalSetPoint(ShooterConstants.ComponentsConstants.Hood.MIN_DEGREE);
           } else {
             setGoalSetPoint(Units.radiansToDegrees(p.hoodAngle()));
           }

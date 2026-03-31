@@ -11,6 +11,7 @@ import frc.robot.subsystems.shooter.ShooterState;
 import frc.robot.util.EqualsUtil;
 import frc.robot.util.FullSubsystem;
 import frc.robot.util.LoggedTunableNumber;
+import frc.robot.util.SpeedUtil;
 
 import static edu.wpi.first.units.Units.RPM;
 
@@ -54,18 +55,14 @@ public class Flywheel extends FullSubsystem {
 
   public enum FlyWheelGoal {
     ZERO(new LoggedTunableNumber("Shooter/Flywheel/Goals/Zero", 0.0)),
-    AUTOIDLE(
+    IDLE(
         new LoggedTunableNumber(
-            "Shooter/Flywheel/Goals/AutoIdle",
-            ShooterConstants.FlywheelShotConstants.FLYWHEEL_GOAL_IDLE_RPM)),
-    TELEIDLE(
-        new LoggedTunableNumber(
-            "Shooter/Flywheel/Goals/TeleIdle",
-            ShooterConstants.FlywheelShotConstants.FLYWHEEL_GOAL_IDLE_RPM)),
+            "Shooter/Flywheel/Goals/Idle",
+            ShooterConstants.ComponentsConstants.Flywheel.ShotConstants.FLYWHEEL_GOAL_IDLE_RPM)),
     CUSTOM(
         new LoggedTunableNumber(
             "Shooter/Flywheel/Goals/Custom",
-            ShooterConstants.FlywheelShotConstants.FLYWHEEL_GOAL_CUSTOM_RPM));
+            2000));
 
     private final DoubleSupplier SHOOTER_SET_POINT_SUPPLIER;
 
@@ -138,8 +135,7 @@ public class Flywheel extends FullSubsystem {
     Logger.recordOutput("Shooter/Flywheel/GoalRPM", goalRPM, RPM);
     double toleranceBase = nearGoalRpmTolerance.get();
     double measuredRpm =
-        ShooterConstants.ShooterCalculatorConstants.DUAL_WHEEL_SURFACE_BLEND
-            * (inputs.motorMeasuredVelocityRpm[0] + inputs.motorMeasuredVelocityRpm[1]);
+        0.5 * (inputs.motorMeasuredVelocityRpm[0] + inputs.motorMeasuredVelocityRpm[1]);
 
     nearGoal =
         EqualsUtil.epsilonEquals(
@@ -181,8 +177,7 @@ public class Flywheel extends FullSubsystem {
   }
 
   public double getMotorVelocityRPM() {
-    return ShooterConstants.ShooterCalculatorConstants.DUAL_WHEEL_SURFACE_BLEND
-        * (inputs.motorMeasuredVelocityRpm[0] + inputs.motorMeasuredVelocityRpm[1]);
+    return 0.5 * (inputs.motorMeasuredVelocityRpm[0] + inputs.motorMeasuredVelocityRpm[1]);
   }
 
   public double getMainFlyWheelVelocityRPM() {
@@ -195,8 +190,7 @@ public class Flywheel extends FullSubsystem {
 
   /** Average top/bottom wheel RPM in wheel space (after reductions). */
   public double getAverageWheelVelocityRPM() {
-    return ShooterConstants.ShooterCalculatorConstants.DUAL_WHEEL_SURFACE_BLEND
-        * (getMainFlyWheelVelocityRPM() + getHoodFlyWheelVelocityRPM());
+    return 0.5 * (getMainFlyWheelVelocityRPM() + getHoodFlyWheelVelocityRPM());
   }
 
   /** Average top/bottom wheel surface speed in meters per second. */
@@ -209,8 +203,7 @@ public class Flywheel extends FullSubsystem {
         (getHoodFlyWheelVelocityRPM() / 60.0)
             * Math.PI
             * ShooterConstants.ComponentsConstants.Flywheel.HOOD_WHEEL_DIAMETER_METERS;
-    return ShooterConstants.ShooterCalculatorConstants.DUAL_WHEEL_SURFACE_BLEND
-        * (mainWheelSurfaceMps + hoodWheelSurfaceMps);
+    return 0.5 * (mainWheelSurfaceMps + hoodWheelSurfaceMps);
   }
 
   /**
@@ -220,6 +213,6 @@ public class Flywheel extends FullSubsystem {
    * expected by {@link ShooterCalculator}.
    */
   public double getAverageWheelVelocityMotorEquivalentRPM() {
-    return ShooterCalculator.rpmFromSurfaceVelocity(getAverageWheelSurfaceVelocityMetersPerSec());
+    return SpeedUtil.rpmFromMetersPerSecond(getAverageWheelSurfaceVelocityMetersPerSec(),ShooterConstants.ComponentsConstants.Flywheel.AVERAGE_WHEEL_RADIUS_METERS);
   }
 }

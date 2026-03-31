@@ -3,7 +3,6 @@
 
 package frc.robot.subsystems.shooter.turret;
 
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -101,8 +100,6 @@ public class Turret extends FullSubsystem {
 
   /** True when turret angular speed is low (not slewing / wrapping). */
   public boolean settled = false;
-  /** True when desired aim is being clipped by soft-limits (unsafe to fire). */
-  public boolean constrainedBySoftLimit = false;
 
   private static double wrapDeg(double originalDeg) {
     double minDeg = ShooterConstants.ComponentsConstants.Turret.TURRET_MIN_DEGREE;
@@ -146,10 +143,6 @@ public class Turret extends FullSubsystem {
       goalDeg = goalSetpoint.getDegrees();
     }
     commandedDeg = getLimitedDeg(wrapDeg(goalDeg));
-    double desiredNormDeg = wrapDeg(goalDeg);
-    constrainedBySoftLimit =
-        Math.abs(MathUtil.inputModulus(desiredNormDeg - commandedDeg, -180.0, 180.0))
-            > ShooterConstants.ComponentsConstants.Turret.SOFT_LIMIT_CONSTRAINT_TOLERANCE_DEG;
   }
 
   @Override
@@ -188,15 +181,9 @@ public class Turret extends FullSubsystem {
     }
 
     commandedDeg = getLimitedDeg(wrapDeg(goalDeg));
-    double desiredNormDeg = wrapDeg(goalDeg);
-    constrainedBySoftLimit =
-        Math.abs(MathUtil.inputModulus(desiredNormDeg - commandedDeg, -180.0, 180.0))
-            > ShooterConstants.ComponentsConstants.Turret.SOFT_LIMIT_CONSTRAINT_TOLERANCE_DEG;
 
     Logger.recordOutput("Shooter/Turret/GoalDegreesRaw", goalDeg, Degrees);
-    Logger.recordOutput("Shooter/Turret/GoalDegreesNormalized", desiredNormDeg, Degrees);
     Logger.recordOutput("Shooter/Turret/CommandedDegrees", commandedDeg, Degrees);
-    Logger.recordOutput("Shooter/Turret/ConstrainedBySoftLimit", constrainedBySoftLimit);
     nearGoal =
         EqualsUtil.epsilonEquals(
             inputs.measuredPostionDeg,
@@ -205,9 +192,10 @@ public class Turret extends FullSubsystem {
 
     double velDegPerSec = Math.abs(Units.radiansToDegrees(inputs.velocityRadPerSec));
     settled = velDegPerSec < ShooterConstants.READY_TO_SHOOT_TURRET_MAX_DEG_PER_SEC;
-    Logger.recordOutput("Shooter/Turret/VelocityDegPerSec", velDegPerSec, DegreesPerSecond);
-    Logger.recordOutput("Shooter/Turret/nearGoal", nearGoal);
-    Logger.recordOutput("Shooter/Turret/settled", settled);
+
+    Logger.recordOutput("Shooter/Turret/Velocity", velDegPerSec, DegreesPerSecond);
+    Logger.recordOutput("Shooter/Turret/NearGoal", nearGoal);
+    Logger.recordOutput("Shooter/Turret/Settled", settled);
 
     if (DriverStation.isEnabled()) {
       RobotState.getInstance()

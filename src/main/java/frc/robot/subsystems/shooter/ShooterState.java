@@ -3,6 +3,7 @@
 package frc.robot.subsystems.shooter;
 
 import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import frc.robot.FieldConstants;
 import frc.robot.util.geometry.AllianceFlipUtil;
@@ -11,7 +12,7 @@ import lombok.Setter;
 import org.littletonrobotics.junction.AutoLogOutput;
 
 /**
- * Shooter-specific runtime state and telemetry. Robot pose, velocity, and acceleration remain on {@link
+ * Shooter-specific runtime state and telemetry. Robot pose, velocity remain on {@link
  * frc.robot.RobotState}; {@link ShooterCalculator} reads those and publishes solve inputs here.
  */
 public class ShooterState {
@@ -24,6 +25,11 @@ public class ShooterState {
     POINT_3D
   }
 
+  public enum ShootingArc {
+    HIGH,
+    LOW
+  }
+
   private static ShooterState instance;
 
   public static ShooterState getInstance() {
@@ -33,18 +39,18 @@ public class ShooterState {
 
   private ShooterState() {}
 
-  @Getter @Setter @AutoLogOutput private boolean shooterReadyToShoot = false;
+  @Getter @Setter @AutoLogOutput(key = "Shooter/State/ReadyToShoot") private boolean shooterReadyToShoot = false;
 
-  @Getter @Setter private ShooterMode shooterMode = ShooterMode.IDLE;
+  @Getter @Setter @AutoLogOutput(key = "Shooter/State/Mode") private ShooterMode shooterMode = ShooterMode.IDLE;
 
   /**
    * Field-consistent 3D aim point for {@link ShooterMode#POINT_3D} (blue perspective via {@link
    * #applyShooterPoint3dTargetBlue}).
    */
-  @Getter @Setter private Translation3d shooterPoint3dTarget =
+  @Getter @Setter @AutoLogOutput(key = "Shooter/State/Point3dTarget") private Translation3d shooterPoint3dTarget =
       AllianceFlipUtil.apply(FieldConstants.Hub.innerCenterPoint);
 
-  public boolean isShooterTracking() {
+  @AutoLogOutput(key = "Shooter/State/Tracking") public boolean isShooterTracking() {
     return shooterMode == ShooterMode.HUB
         || shooterMode == ShooterMode.PASS
         || shooterMode == ShooterMode.POINT_3D;
@@ -63,40 +69,38 @@ public class ShooterState {
    * Measured average flywheel surface speed (m/s); updated from {@link
    * frc.robot.subsystems.shooter.flywheel.Flywheel#periodic}.
    */
-  @Getter @AutoLogOutput private double shooterFlywheelSurfaceSpeedMps = 0.0;
+  @Getter @AutoLogOutput(key = "Shooter/State/FlywheelSurfaceSpeedMps") private double shooterFlywheelSurfaceSpeedMps = 0.0;
 
   /**
-   * Measured hood angle (rad, mechanical Talon/CANcoder frame); updated from {@link
+   * Measured hood angle (deg, mechanical Talon/CANcoder frame); updated from {@link
    * frc.robot.subsystems.shooter.hood.Hood#periodic}.
    */
-  @Getter @AutoLogOutput private double shooterHoodMeasuredAngleRad = 0.0;
+  @Getter @AutoLogOutput(key = "Shooter/State/HoodMeasuredAngleDeg") private double shooterHoodMeasuredAngleDeg = 0.0;
 
   /** Internal ballistics inputs for {@link ShooterCalculator#refreshCachedParameters}. */
   @Getter private boolean shooterSolveInputsValid = false;
 
   @Getter private Pose3d shooterSolvePose3d = Pose3d.kZero;
   @Getter private Translation3d shooterSolveVelocity3d = Translation3d.kZero;
-  @Getter private Translation3d shooterSolveAcceleration3d = Translation3d.kZero;
   @Getter private Translation3d shooterSolveTarget3d = Translation3d.kZero;
 
   /**
    * Geometric Δz (shooter to target) non-positive; combined in {@link ShooterCalculator} with hood-height
    * heuristic for low vs high drag root.
    */
-  @Getter private boolean shooterSolveUseLowArc = false;
+  @Getter private ShootingArc shootingArc = ShootingArc.HIGH;
 
-  @Getter @AutoLogOutput private boolean shooterFlywheelNearGoal = false;
-  @Getter @AutoLogOutput private boolean shooterHoodNearGoal = false;
-  @Getter @AutoLogOutput private boolean shooterTurretNearGoal = false;
-  @Getter @AutoLogOutput private boolean shooterTurretConstrained = false;
-  @Getter @AutoLogOutput private boolean shooterTrenchProtectionActive = false;
+  @Getter @AutoLogOutput(key = "Shooter/State/FlywheelNearGoal") private boolean shooterFlywheelNearGoal = false;
+  @Getter @AutoLogOutput(key = "Shooter/State/HoodNearGoal") private boolean shooterHoodNearGoal = false;
+  @Getter @AutoLogOutput(key = "Shooter/State/TurretNearGoal") private boolean shooterTurretNearGoal = false;
+  @Getter @AutoLogOutput(key = "Shooter/State/TrenchProtectionActive") private boolean shooterTrenchProtectionActive = false;
 
   public void recordShooterFlywheelSurfaceSpeedMps(double flywheelSurfaceSpeedMps) {
     this.shooterFlywheelSurfaceSpeedMps = flywheelSurfaceSpeedMps;
   }
 
-  public void recordShooterHoodMeasuredAngleRad(double hoodAngleRad) {
-    this.shooterHoodMeasuredAngleRad = hoodAngleRad;
+  public void recordShooterHoodMeasuredAngle(Rotation2d hoodAngle) {
+    this.shooterHoodMeasuredAngleDeg = hoodAngle.getDegrees();
   }
 
   /**
@@ -105,14 +109,12 @@ public class ShooterState {
   public void setShooterSolveInputs(
       Pose3d shooterPose3d,
       Translation3d shooterVelocity3d,
-      Translation3d shooterAcceleration3d,
       Translation3d target3d,
-      boolean useLowArc) {
+      ShootingArc shootingArc) {
     this.shooterSolvePose3d = shooterPose3d;
     this.shooterSolveVelocity3d = shooterVelocity3d;
-    this.shooterSolveAcceleration3d = shooterAcceleration3d;
     this.shooterSolveTarget3d = target3d;
-    this.shooterSolveUseLowArc = useLowArc;
+    this.shootingArc = shootingArc;
     this.shooterSolveInputsValid = true;
   }
 
@@ -124,12 +126,10 @@ public class ShooterState {
       boolean flywheelNearGoal,
       boolean hoodNearGoal,
       boolean turretNearGoal,
-      boolean turretConstrained,
       boolean trenchProtectionActive) {
     this.shooterFlywheelNearGoal = flywheelNearGoal;
     this.shooterHoodNearGoal = hoodNearGoal;
     this.shooterTurretNearGoal = turretNearGoal;
-    this.shooterTurretConstrained = turretConstrained;
     this.shooterTrenchProtectionActive = trenchProtectionActive;
   }
 }
