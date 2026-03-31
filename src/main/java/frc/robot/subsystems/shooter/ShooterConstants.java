@@ -17,7 +17,7 @@ public class ShooterConstants {
       public static final int FLYWHEEL_LEAD_CAN_ID = 20;
       public static final int FLYWHEEL_FOLLOW_CAN_ID = 21;
 
-      public static final double FLYWHEEL_MAX_RPM = 6500;
+      public static final double FLYWHEEL_MAX_RPM = 7000;
       public static final boolean FLYWHEEL_CURRENT_LIMIT_ENABLE = true;
       public static final double FLYWHEEL_CURRENT_LIMIT = 75;
       public static final InvertedValue MAIN_FLYWHEEL_INVERTED_VALUE =
@@ -59,12 +59,12 @@ public class ShooterConstants {
        */
 
       public static final class ShotConstants {
-        public static final double BALL_EXIT_TRANSFER_EFFICIENCY = 0.9;
+        public static final double BALL_EXIT_TRANSFER_EFFICIENCY = 0.8;
         /**
          * Shared flywheel speed when not shooting (auto and tele use the same idle for consistent
          * warm-up).
          */
-        public static final double FLYWHEEL_GOAL_IDLE_RPM = 2000.0;
+        public static final double FLYWHEEL_GOAL_IDLE_RPM = 2500.0;
       }
     }
 
@@ -175,13 +175,14 @@ public class ShooterConstants {
   public static final double GRAVITY = 9.80665;
   /** Base half-width RPM window for flywheel {@code nearGoal}. */
   public static final double READY_TO_SHOOT_FLYWHEEL_RPM_TOLERANCE = 450;
-  public static final double READY_TO_SHOOT_HOOD_DEG_TOLERANCE = 1.0;
+  
+  public static final double READY_TO_SHOOT_HOOD_DEG_TOLERANCE = 2.0;
   /** Max |hood slew rate| (deg/s) to still count as settled. */
-  public static final double READY_TO_SHOOT_HOOD_MAX_DEG_PER_SEC = 25.0;
+  public static final double READY_TO_SHOOT_HOOD_MAX_DEG_PER_SEC = 50.0;
 
   public static final double READY_TO_SHOOT_TURRET_DEG_TOLERANCE = 20;
   /** Max |turret slew rate| (deg/s) to still count as "settled" during slow aim tracking. */
-  public static final double READY_TO_SHOOT_TURRET_MAX_DEG_PER_SEC = 60;
+  public static final double READY_TO_SHOOT_TURRET_MAX_DEG_PER_SEC = 80;
 
   /** Field aim geometry (turret offset, pass targets, trench protection). */
   public static final class ShooterAimConstants {
@@ -248,12 +249,15 @@ public class ShooterConstants {
   }
 
   public static final class Logging {
-    public static boolean SHOOTER_VERBOSE_AIMING = false;
-    public static boolean SHOOTER_VERBOSE_TRENCH = false;
-    /** When false, skips AdvantageKit outputs on the shooter calculator hot path (hood-comp channels). */
-    public static boolean LOG_SHOOTER_CALC_HOOD_COMP = false;
+    public static boolean SHOOTER_VERBOSE_AIMING = true;
+    public static boolean SHOOTER_VERBOSE_TRENCH = true;
+    /**
+     * When false (and {@link #SHOOTER_VERBOSE_AIMING} is false), skips calculator trajectory/hood
+     * diagnostic channels in {@link frc.robot.subsystems.shooter.ShooterCalculator}.
+     */
+    public static boolean LOG_SHOOTER_CALC_HOOD_COMP = true;
     /** When false, skips verbose per-loop Shooter dashboard logging (shoot mode, trench, etc.). */
-    public static boolean LOG_SHOOTER_COORD_EVERY_CYCLE = false;
+    public static boolean LOG_SHOOTER_COORD_EVERY_CYCLE = true;
   }
 
   /**
@@ -295,13 +299,13 @@ public class ShooterConstants {
      * Applied after {@link frc.robot.subsystems.shooter.ShooterCalculator#minimumExitVelocity} when
      * solving SHOOT/HUB trajectories (not PASS fixed-angle). Example: 0.10 = +10% speed headroom.
      */
-    public static final double MIN_EXIT_VELOCITY_HEADROOM_RATIO = 0.10;
+    public static final double MIN_EXIT_VELOCITY_HEADROOM_RATIO = 0.30;
 
     /**
      * Iterations for moving-target lead (successive ballistic refinement). Match {@code physics-way}
      * fixed-point lead (20); drag theta solve is heavier than vacuum discriminant.
      */
-    public static final int MOVING_TARGET_LEAD_ITERATIONS = 20;
+    public static final int MOVING_TARGET_LEAD_ITERATIONS = 8;
 
     /**
      * Reference angle (deg): with hood offset {@code k} (positive), {@code theta = 90 - m - k}.

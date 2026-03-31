@@ -45,6 +45,8 @@ public class ShooterCalculator {
 
   private double scratchExitSpeedMps = 0.0;
   private double scratchThetaRad = 0.0;
+  /** Ballistic physics theta above horizontal before {@link #clampThetaToHoodLimits(double)}. */
+  private double scratchThetaUnclampedRad = Double.NaN;
   private double scratchRpmWheel = 0.0;
   private double scratchTofSec = 0.0;
 
@@ -83,6 +85,22 @@ public class ShooterCalculator {
 
   public static double surfaceVelocityFromRpm(double rpm) {
     return SpeedUtil.metersPerSecondFromRpm(rpm, averageWheelRadiusMeters());
+  }
+
+  private static double getExitTransferEfficiency() {
+    return Math.max(
+        ShooterConstants.ShooterCalculatorConstants.EPSILON_TIME_AND_RATIO,
+        ShooterConstants.ComponentsConstants.Flywheel.ShotConstants.BALL_EXIT_TRANSFER_EFFICIENCY);
+  }
+
+  /** Ball exit speed predicted from wheel surface speed and slip/transfer efficiency. */
+  private static double predictedBallSpeedFromWheelSurfaceSpeed(double wheelSurfaceSpeedMps) {
+    return wheelSurfaceSpeedMps * getExitTransferEfficiency();
+  }
+
+  /** Wheel surface speed required for a desired ball exit speed. */
+  private static double requiredWheelSurfaceSpeedForBallSpeed(double desiredBallSpeedMps) {
+    return desiredBallSpeedMps / getExitTransferEfficiency();
   }
 
   /** Vacuum minimum-speed estimate used as baseline command speed. */
@@ -129,11 +147,6 @@ public class ShooterCalculator {
         ShooterConstants.ShooterCalculatorConstants.MECHANICAL_RIGHT_ANGLE_DEG
             - thetaDeg
             - ShooterConstants.ComponentsConstants.Hood.MECHANICAL_ANGLE_OFFSET_DEG;
-    hoodDeg =
-        MathUtil.clamp(
-            hoodDeg,
-            ShooterConstants.ComponentsConstants.Hood.MIN_DEGREE,
-            ShooterConstants.ComponentsConstants.Hood.MAX_DEGREE);
     return Units.degreesToRadians(hoodDeg);
   }
 
@@ -172,31 +185,39 @@ public class ShooterCalculator {
 
   private void computeCommandRpmShoot(
       double horizontalDistanceM, double heightDeltaM, ShooterState.ShootingArc shootingArc) {
-    double vMin = minimumExitVelocity(horizontalDistanceM, heightDeltaM);
-    double vCmd =
-        vMin * (1.0 + ShooterConstants.ShooterCalculatorConstants.MIN_EXIT_VELOCITY_HEADROOM_RATIO);
-    double theta = ballisticThetaAboveHorizontalRad(vCmd, horizontalDistanceM, heightDeltaM, shootingArc);
+    double vMinBall = minimumExitVelocity(horizontalDistanceM, heightDeltaM);
+    double vCmdBall =
+        vMinBall * (1.0 + ShooterConstants.ShooterCalculatorConstants.MIN_EXIT_VELOCITY_HEADROOM_RATIO);
+    double theta =
+        ballisticThetaAboveHorizontalRad(vCmdBall, horizontalDistanceM, heightDeltaM, shootingArc);
     if (!Double.isFinite(theta)) {
+      scratchThetaUnclampedRad = Double.NaN;
       scratchThetaRad = Double.NaN;
       scratchRpmWheel = 0.0;
       scratchExitSpeedMps = 0.0;
       scratchTofSec = Double.NaN;
       return;
     }
+    scratchThetaUnclampedRad = theta;
     theta = clampThetaToHoodLimits(theta);
     scratchThetaRad = theta;
+    double wheelSurfaceCmdMps = requiredWheelSurfaceSpeedForBallSpeed(vCmdBall);
     scratchRpmWheel =
         MathUtil.clamp(
-            rpmFromSurfaceVelocity(vCmd), 0.0, ShooterConstants.ComponentsConstants.Flywheel.FLYWHEEL_MAX_RPM);
-    scratchExitSpeedMps = surfaceVelocityFromRpm(scratchRpmWheel);
+            rpmFromSurfaceVelocity(wheelSurfaceCmdMps),
+            0.0,
+            ShooterConstants.ComponentsConstants.Flywheel.FLYWHEEL_MAX_RPM);
+    scratchExitSpeedMps =
+        predictedBallSpeedFromWheelSurfaceSpeed(surfaceVelocityFromRpm(scratchRpmWheel));
     scratchTofSec = timeToReachDistanceSeconds(scratchExitSpeedMps, scratchThetaRad, horizontalDistanceM);
   }
 
   private void computeCommandRpmPass(
       double horizontalDistanceM, double heightDeltaM, double passThetaFixedRad) {
+    scratchThetaUnclampedRad = passThetaFixedRad;
     double theta = clampThetaToHoodLimits(passThetaFixedRad);
-    double vCmd = exitSpeedForFixedTheta(horizontalDistanceM, heightDeltaM, theta);
-    if (!Double.isFinite(vCmd) || vCmd <= 0.0) {
+    double vCmdBall = exitSpeedForFixedTheta(horizontalDistanceM, heightDeltaM, theta);
+    if (!Double.isFinite(vCmdBall) || vCmdBall <= 0.0) {
       scratchThetaRad = theta;
       scratchRpmWheel = 0.0;
       scratchExitSpeedMps = 0.0;
@@ -204,10 +225,14 @@ public class ShooterCalculator {
       return;
     }
     scratchThetaRad = theta;
+    double wheelSurfaceCmdMps = requiredWheelSurfaceSpeedForBallSpeed(vCmdBall);
     scratchRpmWheel =
         MathUtil.clamp(
-            rpmFromSurfaceVelocity(vCmd), 0.0, ShooterConstants.ComponentsConstants.Flywheel.FLYWHEEL_MAX_RPM);
-    scratchExitSpeedMps = surfaceVelocityFromRpm(scratchRpmWheel);
+            rpmFromSurfaceVelocity(wheelSurfaceCmdMps),
+            0.0,
+            ShooterConstants.ComponentsConstants.Flywheel.FLYWHEEL_MAX_RPM);
+    scratchExitSpeedMps =
+        predictedBallSpeedFromWheelSurfaceSpeed(surfaceVelocityFromRpm(scratchRpmWheel));
     scratchTofSec = timeToReachDistanceSeconds(scratchExitSpeedMps, scratchThetaRad, horizontalDistanceM);
   }
 
@@ -299,6 +324,35 @@ public class ShooterCalculator {
             hoodAngleRad,
             hoodVelocityRadPerSec,
             scratchRpmWheel);
+
+    if (ShooterConstants.Logging.LOG_SHOOTER_CALC_HOOD_COMP
+        || ShooterConstants.Logging.SHOOTER_VERBOSE_AIMING) {
+      double mechHoodFromTrajectoryThetaRad =
+          mechanicalHoodAngleRadFromPhysicsTheta(scratchThetaRad);
+      double mechHoodFromUnclampedThetaRad =
+          Double.isFinite(scratchThetaUnclampedRad)
+              ? mechanicalHoodAngleRadFromPhysicsTheta(scratchThetaUnclampedRad)
+              : Double.NaN;
+      Logger.recordOutput(
+          "Shooter/Calculator/Diagnostics/TrajectoryPhysicsThetaDeg",
+          Units.radiansToDegrees(scratchThetaRad));
+      Logger.recordOutput(
+          "Shooter/Calculator/Diagnostics/TrajectoryPhysicsThetaUnclampedDeg",
+          Units.radiansToDegrees(scratchThetaUnclampedRad));
+      Logger.recordOutput(
+          "Shooter/Calculator/Diagnostics/MechanicalHoodFromPhysicsThetaRad", hoodAngleRad);
+      Logger.recordOutput(
+          "Shooter/Calculator/Diagnostics/MechanicalHoodFromPhysicsThetaDeg",
+          Units.radiansToDegrees(hoodAngleRad));
+      Logger.recordOutput(
+          "Shooter/Calculator/Diagnostics/MechanicalHoodFromTrajectoryThetaRad",
+          mechHoodFromTrajectoryThetaRad);
+      Logger.recordOutput(
+          "Shooter/Calculator/Diagnostics/MechanicalHoodFromUnclampedPhysicsThetaDeg",
+          Units.radiansToDegrees(mechHoodFromUnclampedThetaRad));
+      Logger.recordOutput("Shooter/Calculator/Diagnostics/TrajectoryExitSpeedMps", scratchExitSpeedMps);
+      Logger.recordOutput("Shooter/Calculator/Diagnostics/TrajectoryTimeOfFlightSec", scratchTofSec);
+    }
   }
 
   public void clearShootingParameters() {
