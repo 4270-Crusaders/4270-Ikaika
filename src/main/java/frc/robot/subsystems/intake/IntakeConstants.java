@@ -47,9 +47,9 @@ public class IntakeConstants {
     public static final double kI = 0.00;
     public static final double kD = 0;
     public static final double kA = 0;
-    public static final double kV = 0.12146;
-    public static final double kS = 0.495659;
+    public static final double kV = 0.0961953;
+    public static final double kS = 0.528147;
 
-    public static final double NEAR_GOAL_RPM_TOLERANCE = 150.0;
+    public static final double NEAR_GOAL_RPM_TOLERANCE = 300.0;
   }
 }

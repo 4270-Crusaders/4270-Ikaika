@@ -12,6 +12,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.RobotState;
 import frc.robot.subsystems.shooter.ShooterCalculator;
 import frc.robot.subsystems.shooter.ShooterConstants;
+import frc.robot.subsystems.shooter.ShooterState;
 import frc.robot.util.EqualsUtil;
 import frc.robot.util.FullSubsystem;
 import frc.robot.util.LoggedTunableNumber;
@@ -103,42 +104,27 @@ public class Turret extends FullSubsystem {
   /** True when desired aim is being clipped by soft-limits (unsafe to fire). */
   public boolean constrainedBySoftLimit = false;
 
-  /**
-   * Wraps an absolute field/robot-relative goal into a 360° window {@code [mid - 180, mid + 180)} so
-   * the branch cut sits in the turret's mechanical gap (not through {@code [MIN, MAX]} travel).
-   */
-  private static double normalizeGoalDeg(double angleDeg) {
+  private static double wrapDeg(double originalDeg) {
     double minDeg = ShooterConstants.ComponentsConstants.Turret.TURRET_MIN_DEGREE;
     double maxDeg = ShooterConstants.ComponentsConstants.Turret.TURRET_MAX_DEGREE;
-    double midDeg = 0.5 * (minDeg + maxDeg);
-    return MathUtil.inputModulus(angleDeg, midDeg - 180.0, midDeg + 180.0);
-  }
-
-  /** Shortest signed angular difference in degrees (for errors / tolerance checks). */
-  private static double normalizeDeltaDeg(double deltaDeg) {
-    return MathUtil.inputModulus(deltaDeg, -180.0, 180.0);
-  }
-
-  private double getNearestLegalGoalDeg(double desiredGoalDeg, double currentMeasuredDeg) {
-    double minDeg = ShooterConstants.ComponentsConstants.Turret.TURRET_MIN_DEGREE;
-    double maxDeg = ShooterConstants.ComponentsConstants.Turret.TURRET_MAX_DEGREE;
-    double fullTurnDeg = 360.0;
-
-    double desiredNormDeg = normalizeGoalDeg(desiredGoalDeg);
-
-    double[] candidates =
-        new double[] {desiredNormDeg - fullTurnDeg, desiredNormDeg, desiredNormDeg + fullTurnDeg};
-    double bestCommandedDeg = MathUtil.clamp(desiredNormDeg, minDeg, maxDeg);
-    double bestErrorToCurrentDeg = Math.abs(bestCommandedDeg - currentMeasuredDeg);
-    for (double candidateDeg : candidates) {
-      double clampedCandidateDeg = MathUtil.clamp(candidateDeg, minDeg, maxDeg);
-      double errorToCurrentDeg = Math.abs(clampedCandidateDeg - currentMeasuredDeg);
-      if (errorToCurrentDeg < bestErrorToCurrentDeg) {
-        bestErrorToCurrentDeg = errorToCurrentDeg;
-        bestCommandedDeg = clampedCandidateDeg;
-      }
+    double overlapPoint = ((360.0 + minDeg) + maxDeg) / 2.0;
+    if (originalDeg > overlapPoint) {
+      return 180.0 - originalDeg;
+    } else {
+      return originalDeg;
     }
-    return bestCommandedDeg;
+  }
+
+  private static double getLimitedDeg(double goalDeg) {
+    double minDeg = ShooterConstants.ComponentsConstants.Turret.TURRET_MIN_DEGREE;
+    double maxDeg = ShooterConstants.ComponentsConstants.Turret.TURRET_MAX_DEGREE;
+    if (goalDeg >= maxDeg) {
+      return maxDeg;
+    } else if (goalDeg < minDeg) {
+      return minDeg;
+    } else {
+      return goalDeg;
+    }
   }
 
   public void setGoalSetPoint(double goal) {
@@ -159,10 +145,10 @@ public class Turret extends FullSubsystem {
     if (setpointMode) {
       goalDeg = goalSetpoint.getDegrees();
     }
-    commandedDeg = getNearestLegalGoalDeg(goalDeg, inputs.measuredPostionDeg);
-    double desiredNormDeg = normalizeGoalDeg(goalDeg);
+    commandedDeg = getLimitedDeg(wrapDeg(goalDeg));
+    double desiredNormDeg = wrapDeg(goalDeg);
     constrainedBySoftLimit =
-        Math.abs(normalizeDeltaDeg(desiredNormDeg - commandedDeg))
+        Math.abs(MathUtil.inputModulus(desiredNormDeg - commandedDeg, -180.0, 180.0))
             > ShooterConstants.ComponentsConstants.Turret.SOFT_LIMIT_CONSTRAINT_TOLERANCE_DEG;
   }
 
@@ -201,10 +187,10 @@ public class Turret extends FullSubsystem {
       goalDeg = goalSetpoint.getDegrees();
     }
 
-    commandedDeg = getNearestLegalGoalDeg(goalDeg, inputs.measuredPostionDeg);
-    double desiredNormDeg = normalizeGoalDeg(goalDeg);
+    commandedDeg = getLimitedDeg(wrapDeg(goalDeg));
+    double desiredNormDeg = wrapDeg(goalDeg);
     constrainedBySoftLimit =
-        Math.abs(normalizeDeltaDeg(desiredNormDeg - commandedDeg))
+        Math.abs(MathUtil.inputModulus(desiredNormDeg - commandedDeg, -180.0, 180.0))
             > ShooterConstants.ComponentsConstants.Turret.SOFT_LIMIT_CONSTRAINT_TOLERANCE_DEG;
 
     Logger.recordOutput("Shooter/Turret/GoalDegreesRaw", goalDeg, Degrees);
@@ -239,15 +225,14 @@ public class Turret extends FullSubsystem {
   public Command runTrackTargetCommand() {
     return runEnd(
         () -> {
-          RobotState rs = RobotState.getInstance();
-          if (!rs.isShooterTracking() && !rs.isShooterIdleTurretAiming()) {
+          if (!ShooterState.getInstance().isShooterTracking()) {
             return;
           }
           ShooterCalculator.ShootingParameters p = ShooterCalculator.getInstance().getParameters();
           if (!p.isValid()) {
             return;
           }
-          if (RobotState.getInstance().isShooterTrenchProtectionActive()) {
+          if (ShooterState.getInstance().isShooterTrenchProtectionActive()) {
             setGoalSetPoint(0.0);
           } else {
             Rotation2d robotAngle = RobotState.getInstance().getEstimatedPose().getRotation();

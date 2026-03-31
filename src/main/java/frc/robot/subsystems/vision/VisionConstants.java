@@ -10,7 +10,7 @@ import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.util.Units;
 
 public class VisionConstants {
-  public static final boolean logDetailedPoses = false;
+  public static final boolean logDetailedPoses = true;
 
   // AprilTag layout
   public static AprilTagFieldLayout aprilTagLayout =

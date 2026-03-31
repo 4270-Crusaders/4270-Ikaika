@@ -5,9 +5,9 @@ package frc.robot.subsystems.shooter.hood;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.RobotState;
 import frc.robot.subsystems.shooter.ShooterCalculator;
 import frc.robot.subsystems.shooter.ShooterConstants;
+import frc.robot.subsystems.shooter.ShooterState;
 import frc.robot.util.EqualsUtil;
 import frc.robot.util.FullSubsystem;
 import frc.robot.util.LoggedTunableNumber;
@@ -192,7 +192,7 @@ public class Hood extends FullSubsystem {
     Logger.recordOutput("Shooter/Hood/VelocityDegPerSec", hoodVelDegPerSec);
     Logger.recordOutput("Shooter/Hood/nearGoal", nearGoal);
     Logger.recordOutput("Shooter/Hood/settled", settled);
-    RobotState.getInstance()
+    ShooterState.getInstance()
         .recordShooterHoodMeasuredAngleRad(Units.degreesToRadians(inputs.measuredPostionDeg));
   }
 
@@ -204,14 +204,14 @@ public class Hood extends FullSubsystem {
   public Command runTrackTargetCommand() {
     return runEnd(
         () -> {
-          if (!RobotState.getInstance().isShooterTracking()) {
+          if (!ShooterState.getInstance().isShooterTracking()) {
             return;
           }
           ShooterCalculator.ShootingParameters p = ShooterCalculator.getInstance().getParameters();
           if (!p.isValid()) {
             return;
           }
-          if (RobotState.getInstance().isShooterTrenchProtectionActive()) {
+          if (ShooterState.getInstance().isShooterTrenchProtectionActive()) {
             setGoalSetPoint(ShooterConstants.SHOOTER_HOOD_SETPOINT_MIN_DEG);
           } else {
             setGoalSetPoint(Units.radiansToDegrees(p.hoodAngle()));

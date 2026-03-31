@@ -6,7 +6,7 @@ package frc.robot.subsystems.indexer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.RobotState;
+import frc.robot.subsystems.shooter.ShooterState;
 import frc.robot.subsystems.indexer.indexerAgitator.IndexerAgitator;
 import frc.robot.subsystems.indexer.indexerAgitator.IndexerAgitator.IndexerAgitatorGoal;
 import frc.robot.subsystems.indexer.indexerAgitator.IndexerAgitatorIO;
@@ -61,7 +61,7 @@ public class Indexer extends SubsystemBase {
 
   @Override
   public void periodic() {
-    boolean readyToShoot = RobotState.getInstance().isShooterReadyToShoot();
+    boolean readyToShoot = ShooterState.getInstance().isShooterReadyToShoot();
     switch (currentIndexerState) {
       case INTAKE:
         indexerAgitator.setGoalSetPoint(IndexerAgitatorGoal.ZERO);

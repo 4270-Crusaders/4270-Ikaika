@@ -56,12 +56,12 @@ public class IndexerConstants {
     public static final InvertedValue INVERTED = InvertedValue.Clockwise_Positive;
 
     public static final class Gains {
-      public static final double kP = 11;
+      public static final double kP = 0.025;
       public static final double kI = 0.001;
       public static final double kD = 0.0;
       public static final double kA = 0.0;
-      public static final double kV = 0.0;
-      public static final double kS = 1.0;
+      public static final double kV = 0.117283;
+      public static final double kS = 0.0756768;
     }
   }
 

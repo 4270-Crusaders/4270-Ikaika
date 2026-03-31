@@ -7,8 +7,8 @@ import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
-import frc.robot.RobotState;
 import frc.robot.subsystems.shooter.ShooterCalculator;
+import frc.robot.subsystems.shooter.ShooterState;
 import frc.robot.subsystems.shooter.flywheel.Flywheel;
 import frc.robot.subsystems.shooter.hood.Hood;
 import frc.robot.subsystems.shooter.turret.Turret;
@@ -18,15 +18,15 @@ public final class ShooterCommands {
 
   private ShooterCommands() {}
 
-  public static Command getSetStateCommand(RobotState.ShooterMode mode, Flywheel flywheel) {
-    return Commands.runOnce(() -> RobotState.getInstance().setShooterMode(mode), flywheel);
+  public static Command getSetStateCommand(ShooterState.ShooterMode mode, Flywheel flywheel) {
+    return Commands.runOnce(() -> ShooterState.getInstance().setShooterMode(mode), flywheel);
   }
 
   public static Command getTrackHubCommand(Flywheel flywheel) {
     return Commands.startEnd(
-        () -> RobotState.getInstance().setShooterMode(RobotState.ShooterMode.HUB),
+        () -> ShooterState.getInstance().setShooterMode(ShooterState.ShooterMode.HUB),
         () -> {
-          RobotState.getInstance().setShooterMode(RobotState.ShooterMode.IDLE);
+          ShooterState.getInstance().setShooterMode(ShooterState.ShooterMode.IDLE);
           ShooterCalculator.getInstance().clearShootingParameters();
         },
         flywheel);
@@ -34,9 +34,9 @@ public final class ShooterCommands {
 
   public static Command getTrackPassCommand(Flywheel flywheel) {
     return Commands.startEnd(
-        () -> RobotState.getInstance().setShooterMode(RobotState.ShooterMode.PASS),
+        () -> ShooterState.getInstance().setShooterMode(ShooterState.ShooterMode.PASS),
         () -> {
-          RobotState.getInstance().setShooterMode(RobotState.ShooterMode.IDLE);
+          ShooterState.getInstance().setShooterMode(ShooterState.ShooterMode.IDLE);
           ShooterCalculator.getInstance().clearShootingParameters();
         },
         flywheel);
@@ -44,8 +44,8 @@ public final class ShooterCommands {
 
   public static Command getManualCommand(Flywheel flywheel) {
     return Commands.startEnd(
-        () -> RobotState.getInstance().setShooterMode(RobotState.ShooterMode.CUSTOM),
-        () -> RobotState.getInstance().setShooterMode(RobotState.ShooterMode.CUSTOM),
+        () -> ShooterState.getInstance().setShooterMode(ShooterState.ShooterMode.CUSTOM),
+        () -> ShooterState.getInstance().setShooterMode(ShooterState.ShooterMode.CUSTOM),
         flywheel);
   }
 
@@ -58,7 +58,7 @@ public final class ShooterCommands {
   public static Command getAimAtTranslation3dCommand(
       Translation3d targetFieldBluePerspective, Flywheel flywheel) {
     return Commands.runOnce(
-        () -> RobotState.getInstance().applyShooterPoint3dTargetBlue(targetFieldBluePerspective),
+        () -> ShooterState.getInstance().applyShooterPoint3dTargetBlue(targetFieldBluePerspective),
         flywheel);
   }
 }

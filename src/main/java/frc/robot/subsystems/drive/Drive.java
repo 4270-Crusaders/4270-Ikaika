@@ -15,20 +15,14 @@ import com.pathplanner.lib.util.PathPlannerLogging;
 import edu.wpi.first.hal.FRCNetComm.tInstances;
 import edu.wpi.first.hal.FRCNetComm.tResourceType;
 import edu.wpi.first.hal.HAL;
-import edu.wpi.first.math.Matrix;
-import edu.wpi.first.math.VecBuilder;
-import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.math.util.Units;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.math.numbers.N1;
-import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
@@ -97,27 +91,6 @@ public class Drive extends SubsystemBase {
         new SwerveModulePosition()
       };
 
-  /**
-   * Pose estimator process standard deviations (m, m, rad). WPILib default is 0.1 for each;
-   * slightly lower here trusts wheel+gyro integration between vision updates when modules are
-   * calibrated.
-   */
-  private static final Matrix<N3, N1> poseEstimatorStateStdDevs =
-      VecBuilder.fill(0.05, 0.05, 0.07);
-
-  /** Fallback vision std devs (m, m, rad); per-frame values from Vision usually override. */
-  private static final Matrix<N3, N1> poseEstimatorVisionStdDevs =
-      VecBuilder.fill(0.02, 0.02, Units.degreesToRadians(1.5));
-
-  private SwerveDrivePoseEstimator poseEstimator =
-      new SwerveDrivePoseEstimator(
-          kinematics,
-          rawGyroRotation,
-          lastModulePositions,
-          Pose2d.kZero,
-          poseEstimatorStateStdDevs,
-          poseEstimatorVisionStdDevs);
-
   public Drive(
       GyroIO gyroIO,
       ModuleIO flModuleIO,
@@ -136,9 +109,9 @@ public class Drive extends SubsystemBase {
     // Start odometry thread
     PhoenixOdometryThread.getInstance().start();
 
-    // Configure AutoBuilder for PathPlanner
+    // Configure AutoBuilder for PathPlanner (pose from RobotState: wheels + gyro + vision).
     AutoBuilder.configure(
-        this::getPose,
+        () -> RobotState.getInstance().getEstimatedPose(),
         this::setPose,
         this::getChassisSpeeds,
         this::runVelocity,
@@ -224,8 +197,6 @@ public class Drive extends SubsystemBase {
         rawGyroRotation = rawGyroRotation.plus(new Rotation2d(twist.dtheta));
       }
 
-      // Apply update
-      poseEstimator.updateWithTime(sampleTimestamps[i], rawGyroRotation, modulePositions);
       RobotState.getInstance()
           .addOdometryObservation(
               new RobotState.OdometryObservation(
@@ -344,10 +315,13 @@ public class Drive extends SubsystemBase {
     return output;
   }
 
-  /** Returns the current odometry pose. */
-  @AutoLogOutput(key = "Odometry/Robot")
+  /**
+   * Field pose for subsystem helpers; same as {@link RobotState#getEstimatedPose()} (logged as {@code
+   * Odometry/Robot}).
+   */
+  @AutoLogOutput(key = "Drive/PoseEstimator")
   public Pose2d getPose() {
-    return poseEstimator.getEstimatedPosition();
+    return RobotState.getInstance().getEstimatedPose();
   }
 
   /** Returns the current odometry rotation. */
@@ -357,17 +331,11 @@ public class Drive extends SubsystemBase {
 
   /** Resets the current odometry pose. */
   public void setPose(Pose2d pose) {
-    poseEstimator.resetPosition(rawGyroRotation, getModulePositions(), pose);
-    RobotState.getInstance().resetPose(pose);
-  }
-
-  /** Adds a new timestamped vision measurement. */
-  public void addVisionMeasurement(
-      Pose2d visionRobotPoseMeters,
-      double timestampSeconds,
-      Matrix<N3, N1> visionMeasurementStdDevs) {
-    poseEstimator.addVisionMeasurement(
-        visionRobotPoseMeters, timestampSeconds, visionMeasurementStdDevs);
+    SwerveModulePosition[] positions = getModulePositions();
+    RobotState.getInstance().resetPose(pose, positions);
+    for (int i = 0; i < 4; i++) {
+      lastModulePositions[i] = positions[i];
+    }
   }
 
   /** Returns the maximum linear speed in meters per sec. */

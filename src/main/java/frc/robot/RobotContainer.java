@@ -98,10 +98,16 @@ public class RobotContainer {
                 new ModuleIOTalonFX(TunerConstants.BackLeft),
                 new ModuleIOTalonFX(TunerConstants.BackRight));
         vision =
-        new Vision(
-            new VisionIOLimelight(cameraFrontName, drive::getRotation),
-            new VisionIOLimelight(cameraLeftName, drive::getRotation),
-            new VisionIOLimelight(cameraRightName, drive::getRotation));
+            new Vision(
+                new VisionIOLimelight(
+                    cameraFrontName,
+                    () -> frc.robot.RobotState.getInstance().getEstimatedPose().getRotation()),
+                new VisionIOLimelight(
+                    cameraLeftName,
+                    () -> frc.robot.RobotState.getInstance().getEstimatedPose().getRotation()),
+                new VisionIOLimelight(
+                    cameraRightName,
+                    () -> frc.robot.RobotState.getInstance().getEstimatedPose().getRotation()));
         configureShooterMechanismDefaults(
             new Flywheel(new FlywheelIOTalonFX()),
             new Turret(new TurretIOTalonFX()),
@@ -127,9 +133,18 @@ public class RobotContainer {
                 new ModuleIOSim(TunerConstants.BackRight));
         vision =
             new Vision(
-                new VisionIOPhotonVisionSim(cameraFrontName, robotToFrontCam, drive::getPose),
-                new VisionIOPhotonVisionSim(cameraLeftName, robotToLeftCam, drive::getPose),
-                new VisionIOPhotonVisionSim(cameraRightName, robotToRightCam, drive::getPose));
+                new VisionIOPhotonVisionSim(
+                    cameraFrontName,
+                    robotToFrontCam,
+                    () -> frc.robot.RobotState.getInstance().getEstimatedPose()),
+                new VisionIOPhotonVisionSim(
+                    cameraLeftName,
+                    robotToLeftCam,
+                    () -> frc.robot.RobotState.getInstance().getEstimatedPose()),
+                new VisionIOPhotonVisionSim(
+                    cameraRightName,
+                    robotToRightCam,
+                    () -> frc.robot.RobotState.getInstance().getEstimatedPose()));
         configureShooterMechanismDefaults(
             new Flywheel(new FlywheelIO() {}),
             new Turret(new TurretIO() {}),

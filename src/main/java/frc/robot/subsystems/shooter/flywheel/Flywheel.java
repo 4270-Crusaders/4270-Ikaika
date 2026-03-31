@@ -5,9 +5,9 @@ package frc.robot.subsystems.shooter.flywheel;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.RobotState;
 import frc.robot.subsystems.shooter.ShooterCalculator;
 import frc.robot.subsystems.shooter.ShooterConstants;
+import frc.robot.subsystems.shooter.ShooterState;
 import frc.robot.util.EqualsUtil;
 import frc.robot.util.FullSubsystem;
 import frc.robot.util.LoggedTunableNumber;
@@ -42,11 +42,7 @@ public class Flywheel extends FullSubsystem {
       new LoggedTunableNumber(
           "Shooter/Flywheel/Gains/kS", ShooterConstants.ComponentsConstants.Flywheel.Gains.kS);
 
-  /**
-   * Base half-width of the RPM window around goal for {@link #nearGoal}. Effective tolerance is
-   * this tunable times {@link #physicsShotEfficiencyScale} (constant {@code 1.0} while aiming with
-   * the current {@link ShooterCalculator}).
-   */
+  /** Base half-width of the RPM window around goal for {@link #nearGoal}. */
   private static final LoggedTunableNumber nearGoalRpmTolerance =
       new LoggedTunableNumber(
           "Shooter/Flywheel/Ready/NearGoalRpmTolerance",
@@ -89,20 +85,6 @@ public class Flywheel extends FullSubsystem {
 
   private double goalRPM = 0.0;
   public boolean nearGoal = false;
-
-  /**
-   * Extra multiplier on RPM tolerance from shot physics (ideal min / empirical map). Set from
-   * {@link frc.robot.subsystems.shooter.ShooterCalculator} while aiming; default {@code 1.0}.
-   */
-  private double physicsShotEfficiencyScale = 1.0;
-
-  public void setPhysicsShotEfficiencyScale(double scale) {
-    this.physicsShotEfficiencyScale =
-        MathUtil.clamp(
-            scale,
-            ShooterConstants.FlywheelShotConstants.PHYSICS_SHOT_EFFICIENCY_INPUT_MIN,
-            ShooterConstants.FlywheelShotConstants.PHYSICS_SHOT_EFFICIENCY_INPUT_MAX);
-  }
 
   public void setGoalSetPoint(double goalRPM) {
     setpointMode = false;
@@ -155,7 +137,6 @@ public class Flywheel extends FullSubsystem {
 
     Logger.recordOutput("Shooter/Flywheel/GoalRPM", goalRPM, RPM);
     double toleranceBase = nearGoalRpmTolerance.get();
-    double effectiveRpmTolerance = toleranceBase * physicsShotEfficiencyScale;
     double measuredRpm =
         ShooterConstants.ShooterCalculatorConstants.DUAL_WHEEL_SURFACE_BLEND
             * (inputs.motorMeasuredVelocityRpm[0] + inputs.motorMeasuredVelocityRpm[1]);
@@ -164,13 +145,11 @@ public class Flywheel extends FullSubsystem {
         EqualsUtil.epsilonEquals(
             measuredRpm,
             goalRPM,
-            effectiveRpmTolerance);
-    Logger.recordOutput("Shooter/Flywheel/Ready/PhysicsShotEfficiencyScale", physicsShotEfficiencyScale);
+            toleranceBase);
     Logger.recordOutput("Shooter/Flywheel/Ready/NearGoalRpmTolerance", toleranceBase);
-    Logger.recordOutput("Shooter/Flywheel/Ready/NearGoalRpmToleranceEffective", effectiveRpmTolerance);
     Logger.recordOutput("Shooter/Flywheel/NearGoal", nearGoal);
     Logger.recordOutput("Shooter/Flywheel/MeasuredRpm", measuredRpm);
-    RobotState.getInstance()
+    ShooterState.getInstance()
         .recordShooterFlywheelSurfaceSpeedMps(getAverageWheelSurfaceVelocityMetersPerSec());
   }
 
@@ -186,7 +165,7 @@ public class Flywheel extends FullSubsystem {
   public Command runTrackTargetCommand() {
     return runEnd(
         () -> {
-          if (!RobotState.getInstance().isShooterTracking()) {
+          if (!ShooterState.getInstance().isShooterTracking()) {
             return;
           }
           ShooterCalculator.ShootingParameters p = ShooterCalculator.getInstance().getParameters();

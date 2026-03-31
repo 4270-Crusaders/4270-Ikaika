@@ -53,6 +53,9 @@ public class Vision extends SubsystemBase {
 
   @Override
   public void periodic() {
+    int totalAcceptedCount = 0;
+    int totalRejectedCount = 0;
+    int totalRawPoseCount = 0;
     for (int i = 0; i < io.length; i++) {
       io[i].updateInputs(inputs[i]);
       Logger.processInputs("Vision/Camera" + Integer.toString(i), inputs[i]);
@@ -86,6 +89,7 @@ public class Vision extends SubsystemBase {
 
       // Loop over pose observations
       for (var observation : inputs[cameraIndex].poseObservations) {
+        totalRawPoseCount++;
         // Check whether to reject pose
         boolean rejectPose =
             observation.tagCount() == 0 // Must have at least one tag
@@ -104,8 +108,10 @@ public class Vision extends SubsystemBase {
         robotPoses.add(observation.pose());
         if (rejectPose) {
           robotPosesRejected.add(observation.pose());
+          totalRejectedCount++;
         } else {
           robotPosesAccepted.add(observation.pose());
+          totalAcceptedCount++;
         }
 
         // Skip if rejected
@@ -151,6 +157,12 @@ public class Vision extends SubsystemBase {
         allRobotPosesAccepted.addAll(robotPosesAccepted);
         allRobotPosesRejected.addAll(robotPosesRejected);
       }
+      Logger.recordOutput(
+          "Vision/Camera" + cameraIndex + "/PoseObservationCount", inputs[cameraIndex].poseObservations.length);
+      Logger.recordOutput(
+          "Vision/Camera" + cameraIndex + "/AcceptedCount", robotPosesAccepted.size());
+      Logger.recordOutput(
+          "Vision/Camera" + cameraIndex + "/RejectedCount", robotPosesRejected.size());
     }
 
     if (VisionConstants.logDetailedPoses) {
@@ -164,6 +176,10 @@ public class Vision extends SubsystemBase {
 
     // Apply observations in timestamp order so fusion is deterministic across cameras.
     robotStateVisionObservations.sort(Comparator.comparingDouble(RobotState.VisionObservation::timestamp));
+    Logger.recordOutput("Vision/Summary/RawPoseCount", totalRawPoseCount);
+    Logger.recordOutput("Vision/Summary/AcceptedCount", totalAcceptedCount);
+    Logger.recordOutput("Vision/Summary/RejectedCount", totalRejectedCount);
+    Logger.recordOutput("Vision/Summary/SentToRobotStateCount", robotStateVisionObservations.size());
     for (RobotState.VisionObservation observation : robotStateVisionObservations) {
       RobotState.getInstance().addVisionObservation(observation);
     }
