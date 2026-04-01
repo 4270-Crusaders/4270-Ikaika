@@ -73,7 +73,7 @@ public class Turret extends FullSubsystem {
   }
 
   public enum TurretGoal {
-    ZERO(new LoggedTunableNumber("Shooter/Turret/Goals/Zero", 0.0)),
+    ZERO(new LoggedTunableNumber("Shooter/Turret/Goals/Zero", -22)),
     CUSTOM(new LoggedTunableNumber("Shooter/Turret/Goals/Custom", 0.0));
 
     private final DoubleSupplier TURRET_DOUBLE_SUPPLIER;

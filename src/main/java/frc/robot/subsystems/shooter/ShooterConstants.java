@@ -59,12 +59,12 @@ public class ShooterConstants {
        */
 
       public static final class ShotConstants {
-        public static final double BALL_EXIT_TRANSFER_EFFICIENCY = 0.8;
+        public static final double BALL_EXIT_TRANSFER_EFFICIENCY = 0.98;
         /**
          * Shared flywheel speed when not shooting (auto and tele use the same idle for consistent
          * warm-up).
          */
-        public static final double FLYWHEEL_GOAL_IDLE_RPM = 2500.0;
+        public static final double FLYWHEEL_GOAL_IDLE_RPM = 2800.0;
       }
     }
 
@@ -92,7 +92,7 @@ public class ShooterConstants {
        * frc.robot.subsystems.shooter.ShooterCalculator#mechanicalHoodAngleRadFromPhysicsTheta} so limits
        * and ballistics stay consistent.
        */
-      public static final double MECHANICAL_ANGLE_OFFSET_DEG = 14;
+      public static final double MECHANICAL_ANGLE_OFFSET_DEG = 0;
 
       public static final int HOOD_ENCODER_CAN_ID = 23;
       public static final double sensorToMechanismRatio = -21.1428571; // 296/14
@@ -138,7 +138,7 @@ public class ShooterConstants {
       public static final int TURRET_ENCODER_CAN_ID = 25;
       public static final double sensorToMechanismRatio = 1;
       public static final double rotorToSensorRatio = 62.5;
-      public static final double TurretEncoderMagnetOffset = 0.378662109375;
+      public static final double TurretEncoderMagnetOffset = 0.38671875;
       public static final SensorDirectionValue turretEncoderDirection =
           SensorDirectionValue.CounterClockwise_Positive;
       public static final double TurretEncoderAbsoluteSensorDiscontinuityPoint = 0.5;
@@ -180,7 +180,7 @@ public class ShooterConstants {
   /** Max |hood slew rate| (deg/s) to still count as settled. */
   public static final double READY_TO_SHOOT_HOOD_MAX_DEG_PER_SEC = 50.0;
 
-  public static final double READY_TO_SHOOT_TURRET_DEG_TOLERANCE = 20;
+  public static final double READY_TO_SHOOT_TURRET_DEG_TOLERANCE = 40;
   /** Max |turret slew rate| (deg/s) to still count as "settled" during slow aim tracking. */
   public static final double READY_TO_SHOOT_TURRET_MAX_DEG_PER_SEC = 80;
 
@@ -217,12 +217,12 @@ public class ShooterConstants {
 
     public static final class Trench {
       /** Shrinks trench fold-protection zone so shooting can occur closer to trench edges. */
-      public static final double PROTECTION_MARGIN_METERS = 0.2;
+      public static final double PROTECTION_MARGIN_METERS = 0.3;
       /**
        * Predictive horizon for trench protection. If the lookahead X position enters trench and hood
        * is not yet folded, shooter will suppress fire and fold.
        */
-      public static final double LOOKAHEAD_TIME_SEC = 0.35;
+      public static final double LOOKAHEAD_TIME_SEC = 0.25;
       /**
        * Hood angle threshold (mechanical deg, Talon setpoint frame) for folded/safe trench crossing.
        * Not physics theta; compare to {@link ComponentsConstants.Hood#MIN_DEGREE} / measured position.
@@ -256,8 +256,11 @@ public class ShooterConstants {
      * diagnostic channels in {@link frc.robot.subsystems.shooter.ShooterCalculator}.
      */
     public static boolean LOG_SHOOTER_CALC_HOOD_COMP = true;
-    /** When false, skips verbose per-loop Shooter dashboard logging (shoot mode, trench, etc.). */
-    public static boolean LOG_SHOOTER_COORD_EVERY_CYCLE = true;
+    /**
+     * Compact one-screen fields under {@code Shooter/Calculator/Sanity/} for quick field checks (distances,
+     * θ, hood, RPM, arc, TOF). Independent of verbose {@link #SHOOTER_VERBOSE_AIMING}.
+     */
+    public static boolean LOG_SHOOTER_SANITY_BUNDLE = true;
   }
 
   /**
@@ -299,13 +302,13 @@ public class ShooterConstants {
      * Applied after {@link frc.robot.subsystems.shooter.ShooterCalculator#minimumExitVelocity} when
      * solving SHOOT/HUB trajectories (not PASS fixed-angle). Example: 0.10 = +10% speed headroom.
      */
-    public static final double MIN_EXIT_VELOCITY_HEADROOM_RATIO = 0.30;
+    public static final double MIN_EXIT_VELOCITY_HEADROOM_RATIO = 0.25;
 
     /**
      * Iterations for moving-target lead (successive ballistic refinement). Match {@code physics-way}
      * fixed-point lead (20); drag theta solve is heavier than vacuum discriminant.
      */
-    public static final int MOVING_TARGET_LEAD_ITERATIONS = 8;
+    public static final int MOVING_TARGET_LEAD_ITERATIONS = 15;
 
     /**
      * Reference angle (deg): with hood offset {@code k} (positive), {@code theta = 90 - m - k}.

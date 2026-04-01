@@ -85,8 +85,8 @@ public class ShooterState {
   @Getter private Translation3d shooterSolveTarget3d = Translation3d.kZero;
 
   /**
-   * Geometric Δz (shooter to target) non-positive; combined in {@link ShooterCalculator} with hood-height
-   * heuristic for low vs high drag root.
+   * LOW vs HIGH vacuum arc root for {@link ShooterCalculator}; set each solve in {@link
+   * ShooterCalculator#runTrackingForTarget}. HIGH when target Z is above shooter Z; else LOW.
    */
   @Getter private ShootingArc shootingArc = ShootingArc.HIGH;
 
