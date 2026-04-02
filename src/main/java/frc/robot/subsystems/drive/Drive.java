@@ -81,6 +81,12 @@ public class Drive extends SubsystemBase {
   private final Alert gyroDisconnectedAlert =
       new Alert("Disconnected gyro, using kinematics as fallback.", AlertType.kError);
 
+  /**
+   * When true, neutral open-loop commands were already sent this disabled episode. Re-sending every
+   * {@code periodic()} floods CAN (eight Talons at 50 Hz) and contributes to loop overrun / transmit errors.
+   */
+  private boolean swerveNeutralSentWhileDisabled = false;
+
   private SwerveDriveKinematics kinematics = new SwerveDriveKinematics(getModuleTranslations());
   private Rotation2d rawGyroRotation = Rotation2d.kZero;
   private SwerveModulePosition[] lastModulePositions = // For delta tracking
@@ -110,6 +116,7 @@ public class Drive extends SubsystemBase {
     PhoenixOdometryThread.getInstance().start();
 
     // Configure AutoBuilder for PathPlanner (pose from RobotState: wheels + gyro + vision).
+    // Paths authored in blue frame mirror on red so autos match driver station.
     AutoBuilder.configure(
         () -> RobotState.getInstance().getEstimatedPose(),
         this::setPose,
@@ -156,11 +163,16 @@ public class Drive extends SubsystemBase {
     }
     odometryLock.unlock();
 
-    // Stop moving when disabled
+    // Stop moving when disabled (once per disable; avoid repeating setControl every 20 ms).
     if (DriverStation.isDisabled()) {
-      for (var module : modules) {
-        module.stop();
+      if (!swerveNeutralSentWhileDisabled) {
+        for (var module : modules) {
+          module.stop();
+        }
+        swerveNeutralSentWhileDisabled = true;
       }
+    } else {
+      swerveNeutralSentWhileDisabled = false;
     }
 
     // Log empty setpoint states when disabled
@@ -220,6 +232,11 @@ public class Drive extends SubsystemBase {
    * @param speeds Speeds in meters/sec
    */
   public void runVelocity(ChassisSpeeds speeds) {
+    // Default commands still run while disabled; avoid re-sending closed-loop setpoints every tick (CAN).
+    if (!DriverStation.isEnabled()) {
+      return;
+    }
+
     // Calculate module setpoints
     ChassisSpeeds discreteSpeeds = ChassisSpeeds.discretize(speeds, 0.02);
     SwerveModuleState[] setpointStates = kinematics.toSwerveModuleStates(discreteSpeeds);

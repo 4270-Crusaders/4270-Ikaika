@@ -40,6 +40,16 @@ public class DriveCommands {
 
   private DriveCommands() {}
 
+  /**
+   * Converts joystick "field relative" into the same frame as PathPlanner blue paths: on red, rotate by
+   * π so forward on stick matches downfield from the red driver wall. Robot pose stays blue-origin.
+   */
+  private static Rotation2d joystickFieldRelativeHeading(Drive drive) {
+    return DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red
+        ? drive.getRotation().plus(Rotation2d.kPi)
+        : drive.getRotation();
+  }
+
   private static Translation2d getLinearVelocityFromJoysticks(double x, double y) {
     // Apply deadband
     double linearMagnitude = MathUtil.applyDeadband(Math.hypot(x, y), DEADBAND);
@@ -54,9 +64,7 @@ public class DriveCommands {
         .getTranslation();
   }
 
-  /**
-   * Field relative drive command using two joysticks (controlling linear and angular velocities).
-   */
+  /** Field-relative drive (linear + omega); red alliance uses π offset on heading for driver convention. */
   public static Command joystickDrive(
       Drive drive,
       DoubleSupplier xSupplier,
@@ -80,15 +88,8 @@ public class DriveCommands {
                   linearVelocity.getX() * drive.getMaxLinearSpeedMetersPerSec(),
                   linearVelocity.getY() * drive.getMaxLinearSpeedMetersPerSec(),
                   omega * drive.getMaxAngularSpeedRadPerSec());
-          boolean isFlipped =
-              DriverStation.getAlliance().isPresent()
-                  && DriverStation.getAlliance().get() == Alliance.Red;
           drive.runVelocity(
-              ChassisSpeeds.fromFieldRelativeSpeeds(
-                  speeds,
-                  isFlipped
-                      ? drive.getRotation().plus(new Rotation2d(Math.PI))
-                      : drive.getRotation()));
+              ChassisSpeeds.fromFieldRelativeSpeeds(speeds, joystickFieldRelativeHeading(drive)));
         },
         drive);
   }
@@ -131,15 +132,8 @@ public class DriveCommands {
                       linearVelocity.getX() * drive.getMaxLinearSpeedMetersPerSec(),
                       linearVelocity.getY() * drive.getMaxLinearSpeedMetersPerSec(),
                       omega);
-              boolean isFlipped =
-                  DriverStation.getAlliance().isPresent()
-                      && DriverStation.getAlliance().get() == Alliance.Red;
               drive.runVelocity(
-                  ChassisSpeeds.fromFieldRelativeSpeeds(
-                      speeds,
-                      isFlipped
-                          ? drive.getRotation().plus(new Rotation2d(Math.PI))
-                          : drive.getRotation()));
+                  ChassisSpeeds.fromFieldRelativeSpeeds(speeds, joystickFieldRelativeHeading(drive)));
             },
             drive)
 
@@ -183,24 +177,11 @@ public class DriveCommands {
                   (Math.abs(linearVelocity.getY())>0.2)?Math.copySign(velocity, linearVelocity.getY()):0,
 
                   omega * drive.getMaxAngularSpeedRadPerSec());
-
-
-          boolean isFlipped =
-              DriverStation.getAlliance().isPresent()
-                  && DriverStation.getAlliance().get() == Alliance.Red;
           drive.runVelocity(
-              ChassisSpeeds.fromFieldRelativeSpeeds(
-                  speeds,
-                  isFlipped
-                      ? drive.getRotation().plus(new Rotation2d(Math.PI))
-                      : drive.getRotation()));
+              ChassisSpeeds.fromFieldRelativeSpeeds(speeds, joystickFieldRelativeHeading(drive)));
         },
         drive);
   }
-
-
-
-
 
   /**
    * Measures the velocity feedforward constants for the drive motors.

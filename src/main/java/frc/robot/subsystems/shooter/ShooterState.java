@@ -2,9 +2,12 @@
 
 package frc.robot.subsystems.shooter;
 
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.util.Units;
 import frc.robot.FieldConstants;
 import frc.robot.util.geometry.AllianceFlipUtil;
 import lombok.Getter;
@@ -39,16 +42,84 @@ public class ShooterState {
 
   private ShooterState() {}
 
+  /**
+   * Hub shot aim (blue WPILib field frame, same as {@link frc.robot.RobotState#getEstimatedPose()}).
+   * Blue aims at {@link FieldConstants.Hub#topCenterPoint}; red at {@link FieldConstants.Hub#oppTopCenterPoint}.
+   */
+  public static Translation3d hubShootTargetTranslation3d() {
+    Translation3d hubTop =
+        AllianceFlipUtil.shouldFlip()
+            ? FieldConstants.Hub.oppTopCenterPoint
+            : FieldConstants.Hub.topCenterPoint;
+    return hubTop.minus(new Translation3d(0.0, 0.0, Units.inchesToMeters(2.0)));
+  }
+
+  /**
+   * Pass target in blue-origin field frame (same as robot pose). Longitudinal X is always {@link
+   * FieldConstants.Pass#AIM_X_METERS} for both alliances (red-side pass lane in blue coordinates). Chooses
+   * field-left vs field-right Y from robot pose and {@link FieldConstants.Pass} trench lanes.
+   */
+  public static Translation3d passShootTargetTranslation3d(Pose2d robotEstimatedPose) {
+    double halfWidth = FieldConstants.fieldWidth * 0.5;
+    double robotY = robotEstimatedPose.getY();
+    double laneYMeters =
+        robotY > halfWidth
+            ? FieldConstants.Pass.LEFT_LANE_Y_METERS
+            : FieldConstants.Pass.RIGHT_LANE_Y_METERS;
+    return new Translation3d(
+        FieldConstants.Pass.AIM_X_METERS,
+        laneYMeters,
+        ShooterConstants.ShooterAimConstants.PASS_TARGET_Z_METERS);
+  }
+
+  /**
+   * Teleop shoot (right trigger): {@link ShooterMode#HUB} while the robot is on <em>our</em> alliance
+   * side, {@link ShooterMode#PASS} in the neutral band or opponent half. Pose is blue WPILib field
+   * frame (same as {@link frc.robot.RobotState#getEstimatedPose()}); alliance side uses {@link
+   * AllianceFlipUtil#shouldFlip()} (red vs blue).
+   */
+  public static ShooterMode teleopAimModeForOwnFieldSide(Pose2d poseBlueField) {
+    double x = poseBlueField.getX();
+    if (!AllianceFlipUtil.shouldFlip()) {
+      return x < FieldConstants.LinesVertical.neutralZoneNear ? ShooterMode.HUB : ShooterMode.PASS;
+    }
+    return x > FieldConstants.LinesVertical.neutralZoneFar ? ShooterMode.HUB : ShooterMode.PASS;
+  }
+
+  /** Alliance hub hole center (blue frame); use for default 3D aim when not overridden. */
+  public static Translation3d allianceHubInnerCenterAim() {
+    return AllianceFlipUtil.shouldFlip()
+        ? FieldConstants.Hub.oppInnerCenterPoint
+        : FieldConstants.Hub.innerCenterPoint;
+  }
+
   @Getter @Setter @AutoLogOutput(key = "Shooter/State/ReadyToShoot") private boolean shooterReadyToShoot = false;
 
   @Getter @Setter @AutoLogOutput(key = "Shooter/State/Mode") private ShooterMode shooterMode = ShooterMode.IDLE;
 
   /**
-   * Field-consistent 3D aim point for {@link ShooterMode#POINT_3D} (blue perspective via {@link
-   * #applyShooterPoint3dTargetBlue}).
+   * Blue-field aim for {@link ShooterMode#POINT_3D}; set via {@link #applyShooterPoint3dTargetBlue}.
+   * {@link #getPoint3dTargetPose()} logs a full {@link Pose3d} (identity rotation) to AdvantageKit.
    */
-  @Getter @Setter @AutoLogOutput(key = "Shooter/State/Point3dTarget") private Translation3d shooterPoint3dTarget =
-      AllianceFlipUtil.apply(FieldConstants.Hub.innerCenterPoint);
+  @Getter @Setter private Translation3d shooterPoint3dTarget = FieldConstants.Hub.innerCenterPoint;
+
+  @AutoLogOutput(key = "Shooter/State/Point3dTarget")
+  public Pose3d getPoint3dTargetPose() {
+    return new Pose3d(shooterPoint3dTarget, new Rotation3d());
+  }
+
+  /**
+   * When {@link ShooterMode#POINT_3D} is active and the aim point is above the shooter height, the
+   * solver may use the high (lob) arc instead of the default low arc. Hub, pass, and other modes always
+   * use the low arc.
+   */
+  @Setter @AutoLogOutput(key = "Shooter/State/Point3dUseHighArc")
+  private boolean point3dUseHighArc = false;
+
+  /** @see #point3dUseHighArc */
+  public boolean isPoint3dUseHighArc() {
+    return point3dUseHighArc;
+  }
 
   @AutoLogOutput(key = "Shooter/State/Tracking") public boolean isShooterTracking() {
     return shooterMode == ShooterMode.HUB
@@ -57,11 +128,11 @@ public class ShooterState {
   }
 
   /**
-   * Blue-field target in meters; alliance flip applied to match {@link frc.robot.RobotState}, then
-   * {@link ShooterMode#POINT_3D}.
+   * Sets the point-3d aim target in blue field coordinates (do not alliance-flip; matches {@link
+   * frc.robot.RobotState} pose frame).
    */
   public void applyShooterPoint3dTargetBlue(Translation3d targetFieldBluePerspective) {
-    this.shooterPoint3dTarget = AllianceFlipUtil.apply(targetFieldBluePerspective);
+    this.shooterPoint3dTarget = targetFieldBluePerspective;
     this.shooterMode = ShooterMode.POINT_3D;
   }
 
@@ -70,6 +141,16 @@ public class ShooterState {
    * frc.robot.subsystems.shooter.flywheel.Flywheel#periodic}.
    */
   @Getter @AutoLogOutput(key = "Shooter/State/FlywheelSurfaceSpeedMps") private double shooterFlywheelSurfaceSpeedMps = 0.0;
+
+  /**
+   * Measured hood minus main wheel surface speed (m/s), both at the ball contact. Positive when the
+   * hood wheel is faster; flip {@link ShooterPhysicsTunables#wheelDeltaSpinGain()} sign if your
+   * mechanical top wheel is main. Updated from {@link
+   * frc.robot.subsystems.shooter.flywheel.Flywheel#periodic}.
+   */
+  @Getter
+  @AutoLogOutput(key = "Shooter/State/FlywheelTopBottomSurfaceDeltaMps")
+  private double shooterFlywheelTopBottomSurfaceDeltaMps = 0.0;
 
   /**
    * Measured hood angle (deg, mechanical Talon/CANcoder frame); updated from {@link
@@ -85,10 +166,13 @@ public class ShooterState {
   @Getter private Translation3d shooterSolveTarget3d = Translation3d.kZero;
 
   /**
-   * LOW vs HIGH vacuum arc root for {@link ShooterCalculator}; set each solve in {@link
-   * ShooterCalculator#runTrackingForTarget}. HIGH when target Z is above shooter Z; else LOW.
+   * LOW vs HIGH ballistic arc selected for the last solve. Pass uses the same ballistic hood/RPM solve
+   * as hub but always {@link ShootingArc#LOW} (no hub lookahead-distance HIGH rule). Hub uses HIGH
+   * inside {@link ShooterConstants.ShooterAimConstants.Hub#HIGH_ARC_LOOKAHEAD_DISTANCE_METERS} or when
+   * the calculator falls back after a failed LOW solve. {@link ShooterMode#POINT_3D} uses HIGH when
+   * {@link #point3dUseHighArc} is true and the target is above the shooter.
    */
-  @Getter private ShootingArc shootingArc = ShootingArc.HIGH;
+  @Getter private ShootingArc shootingArc = ShootingArc.LOW;
 
   @Getter @AutoLogOutput(key = "Shooter/State/FlywheelNearGoal") private boolean shooterFlywheelNearGoal = false;
   @Getter @AutoLogOutput(key = "Shooter/State/HoodNearGoal") private boolean shooterHoodNearGoal = false;
@@ -99,12 +183,21 @@ public class ShooterState {
     this.shooterFlywheelSurfaceSpeedMps = flywheelSurfaceSpeedMps;
   }
 
+  /**
+   * @param flywheelTopBottomSurfaceDeltaMps hood minus main surface speed (m/s); see field
+   *     {@code shooterFlywheelTopBottomSurfaceDeltaMps}.
+   */
+  public void recordShooterFlywheelTopBottomSurfaceDeltaMps(double flywheelTopBottomSurfaceDeltaMps) {
+    this.shooterFlywheelTopBottomSurfaceDeltaMps = flywheelTopBottomSurfaceDeltaMps;
+  }
+
   public void recordShooterHoodMeasuredAngle(Rotation2d hoodAngle) {
     this.shooterHoodMeasuredAngleDeg = hoodAngle.getDegrees();
   }
 
   /**
-   * @param useLowArc low vs high arc when two drag roots exist.
+   * @param shootingArc which drag root to prefer when both arcs are feasible ({@link ShootingArc#LOW}
+   *     vs {@link ShootingArc#HIGH}).
    */
   public void setShooterSolveInputs(
       Pose3d shooterPose3d,

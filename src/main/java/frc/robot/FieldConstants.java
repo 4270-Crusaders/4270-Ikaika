@@ -44,7 +44,13 @@ public class FieldConstants {
     public static final double allianceZone = starting;
     public static final double hubCenter =
         AprilTagLayoutType.OFFICIAL.getLayout().getTagPose(26).get().getX() + Hub.width / 2.0;
+    /**
+     * Blue-origin X: blue alliance side is {@code x < neutralZoneNear}; neutral is {@code [near, far]};
+     * red side is {@code x > neutralZoneFar}. Used for teleop auto hub vs pass (see {@link
+     * frc.robot.subsystems.shooter.ShooterState#teleopAimModeForOwnFieldSide}).
+     */
     public static final double neutralZoneNear = center - Units.inchesToMeters(120);
+    /** @see #neutralZoneNear */
     public static final double neutralZoneFar = center + Units.inchesToMeters(120);
     public static final double oppHubCenter =
         AprilTagLayoutType.OFFICIAL.getLayout().getTagPose(4).get().getX() + Hub.width / 2.0;
@@ -165,6 +171,12 @@ public class FieldConstants {
             AprilTagLayoutType.OFFICIAL.getLayout().getTagPose(4).get().getX() + width / 2.0,
             fieldWidth / 2.0,
             height);
+
+    /** Scoring hole center on the opposite-alliance hub (blue frame); same Z as {@link #innerCenterPoint}. */
+    public static final Translation3d oppInnerCenterPoint =
+        new Translation3d(
+            oppTopCenterPoint.getX(), oppTopCenterPoint.getY(), innerHeight);
+
     public static final Translation2d oppNearLeftCorner =
         new Translation2d(oppTopCenterPoint.getX() - width / 2.0, fieldWidth / 2.0 + width / 2.0);
     public static final Translation2d oppNearRightCorner =
@@ -276,6 +288,38 @@ public class FieldConstants {
         new Translation3d(LinesVertical.oppHubCenter, openingWidth, openingHeight);
     public static final Translation3d oppOpeningTopRight =
         new Translation3d(LinesVertical.oppHubCenter, 0, openingHeight);
+  }
+
+  /**
+   * Pass / alley partner-shot aim points in the <b>blue-origin</b> field frame (same as {@link
+   * frc.robot.RobotState}).
+   *
+   * <p>Longitudinal X is past {@link LinesVertical#neutralZoneFar} for <em>both</em> alliances (same
+   * field waypoint in blue coordinates). Do not use {@link
+   * frc.robot.util.geometry.AllianceFlipUtil#apply(Translation3d)} for passes—it mirrors into the wrong
+   * half. Y uses {@link LinesHorizontal} trench band (field left vs right).
+   */
+  public static final class Pass {
+    /** Past neutral toward +X (red wall in blue frame). Used for pass aim for blue and red alliance. */
+    public static final double AIM_X_METERS =
+        LinesVertical.neutralZoneFar + Units.inchesToMeters(24.0);
+
+    /** Lateral aim toward left trench opening side (high Y, blue-left). */
+    public static final double LEFT_LANE_Y_METERS =
+        LinesHorizontal.leftTrenchOpenEnd - Units.inchesToMeters(18.0);
+
+    /** Lateral aim toward right trench opening side (low Y, blue-right). */
+    public static final double RIGHT_LANE_Y_METERS =
+        LinesHorizontal.rightTrenchOpenStart + Units.inchesToMeters(18.0);
+
+    /** Ground plane / geometric pass height for ballistics-only Z (m). */
+    public static final double TARGET_Z_METERS = 0.0;
+
+    public static final Translation3d LEFT_TARGET_BLUE =
+        new Translation3d(AIM_X_METERS, LEFT_LANE_Y_METERS, TARGET_Z_METERS);
+
+    public static final Translation3d RIGHT_TARGET_BLUE =
+        new Translation3d(AIM_X_METERS, RIGHT_LANE_Y_METERS, TARGET_Z_METERS);
   }
 
   /** Tower related constants */

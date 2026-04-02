@@ -132,7 +132,6 @@ public class Flywheel extends FullSubsystem {
               ShooterConstants.ComponentsConstants.Flywheel.FLYWHEEL_MAX_RPM);
     }
 
-    Logger.recordOutput("Shooter/Flywheel/GoalRPM", goalRPM, RPM);
     double toleranceBase = nearGoalRpmTolerance.get();
     double measuredRpm =
         0.5 * (inputs.motorMeasuredVelocityRpm[0] + inputs.motorMeasuredVelocityRpm[1]);
@@ -142,11 +141,16 @@ public class Flywheel extends FullSubsystem {
             measuredRpm,
             goalRPM,
             toleranceBase);
-    Logger.recordOutput("Shooter/Flywheel/Ready/NearGoalRpmTolerance", toleranceBase);
-    Logger.recordOutput("Shooter/Flywheel/NearGoal", nearGoal);
-    Logger.recordOutput("Shooter/Flywheel/MeasuredRpm", measuredRpm);
-    ShooterState.getInstance()
-        .recordShooterFlywheelSurfaceSpeedMps(getAverageWheelSurfaceVelocityMetersPerSec());
+    if (ShooterConstants.Logging.LOG_SHOOTER_MECHANISM_TELEM) {
+      Logger.recordOutput("Shooter/Flywheel/GoalRPM", goalRPM, RPM);
+      Logger.recordOutput("Shooter/Flywheel/Ready/NearGoalRpmTolerance", toleranceBase);
+      Logger.recordOutput("Shooter/Flywheel/NearGoal", nearGoal);
+      Logger.recordOutput("Shooter/Flywheel/MeasuredRpm", measuredRpm);
+    }
+    ShooterState state = ShooterState.getInstance();
+    state.recordShooterFlywheelSurfaceSpeedMps(getAverageWheelSurfaceVelocityMetersPerSec());
+    state.recordShooterFlywheelTopBottomSurfaceDeltaMps(
+        getHoodWheelSurfaceVelocityMetersPerSec() - getMainWheelSurfaceVelocityMetersPerSec());
   }
 
   @Override
@@ -193,17 +197,23 @@ public class Flywheel extends FullSubsystem {
     return 0.5 * (getMainFlyWheelVelocityRPM() + getHoodFlyWheelVelocityRPM());
   }
 
+  /** Main (typically lower) wheel surface speed at the ball, meters per second. */
+  public double getMainWheelSurfaceVelocityMetersPerSec() {
+    return (getMainFlyWheelVelocityRPM() / 60.0)
+        * Math.PI
+        * ShooterConstants.ComponentsConstants.Flywheel.MAIN_WHEEL_DIAMETER_METERS;
+  }
+
+  /** Hood (typically upper) wheel surface speed at the ball, meters per second. */
+  public double getHoodWheelSurfaceVelocityMetersPerSec() {
+    return (getHoodFlyWheelVelocityRPM() / 60.0)
+        * Math.PI
+        * ShooterConstants.ComponentsConstants.Flywheel.HOOD_WHEEL_DIAMETER_METERS;
+  }
+
   /** Average top/bottom wheel surface speed in meters per second. */
   public double getAverageWheelSurfaceVelocityMetersPerSec() {
-    double mainWheelSurfaceMps =
-        (getMainFlyWheelVelocityRPM() / 60.0)
-            * Math.PI
-            * ShooterConstants.ComponentsConstants.Flywheel.MAIN_WHEEL_DIAMETER_METERS;
-    double hoodWheelSurfaceMps =
-        (getHoodFlyWheelVelocityRPM() / 60.0)
-            * Math.PI
-            * ShooterConstants.ComponentsConstants.Flywheel.HOOD_WHEEL_DIAMETER_METERS;
-    return 0.5 * (mainWheelSurfaceMps + hoodWheelSurfaceMps);
+    return 0.5 * (getMainWheelSurfaceVelocityMetersPerSec() + getHoodWheelSurfaceVelocityMetersPerSec());
   }
 
   /**

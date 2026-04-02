@@ -3,6 +3,7 @@
 
 package frc.robot.util;
 
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,8 +28,14 @@ public abstract class FullSubsystem extends SubsystemBase {
   /** Apply motor/controller outputs; invoked once per loop after the scheduler. */
   public abstract void periodicAfterScheduler();
 
-  /** Invoke {@link #periodicAfterScheduler()} on every registered full subsystem. */
+  /**
+   * Invokes {@link #periodicAfterScheduler()} on every registered full subsystem when the robot is
+   * enabled. While disabled, skips hardware writes to reduce CAN load and main-loop time.
+   */
   public static void runAllPeriodicAfterScheduler() {
+    if (DriverStation.isDisabled()) {
+      return;
+    }
     for (FullSubsystem instance : instances) {
       instance.periodicAfterScheduler();
     }

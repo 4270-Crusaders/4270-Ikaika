@@ -4,6 +4,7 @@
 package frc.robot.commands.states;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import frc.robot.RobotContainer;
 import frc.robot.commands.shooter.ShooterCommands;
@@ -27,7 +28,7 @@ public final class RobotStateCommands {
     AUTO_START_SHOOT,
     HUB_FOCUS,
 
-    /** Teleop: intake + indexer shoot + shooter aim (right trigger). */
+    /** Teleop shoot: hub vs pass from field pose; see {@code ShooterState.teleopAimModeForOwnFieldSide}. */
     TELE_SHOOT,
     CUSTOM,
     PASS_FOCUS,
@@ -107,12 +108,23 @@ public final class RobotStateCommands {
             ShooterState.ShooterMode.PASS, RobotContainer.flywheel));
   }
 
+  /**
+   * Teleop shoot (driver right trigger): intake, continuous hub/pass mode from field pose, and indexer
+   * {@code AUTOSHOOT} (same as auto) so balls feed while holding without readyToShoot gating. Bind with
+   * {@code whileTrue} so release cancels this group and {@code DEFAULT} can set {@link
+   * ShooterState.ShooterMode#IDLE}.
+   */
   public static Command teleShootState() {
     return new ParallelCommandGroup(
         Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake),
-        Indexer.getSetStateCommand(INDEXER_STATE.SHOOT, RobotContainer.indexer),
-        ShooterCommands.getSetStateCommand(
-            ShooterState.ShooterMode.HUB, RobotContainer.flywheel));
+        Indexer.getSetStateCommand(INDEXER_STATE.AUTOSHOOT, RobotContainer.indexer),
+        // No subsystem requirements: requiring flywheel would cancel runTrackTargetCommand.
+        Commands.run(
+            () ->
+                ShooterState.getInstance()
+                    .setShooterMode(
+                        ShooterState.teleopAimModeForOwnFieldSide(
+                            frc.robot.RobotState.getInstance().getEstimatedPose()))));
   }
 
   public static Command customShootState() {

@@ -73,7 +73,8 @@ public class Turret extends FullSubsystem {
   }
 
   public enum TurretGoal {
-    ZERO(new LoggedTunableNumber("Shooter/Turret/Goals/Zero", -22)),
+    START(new LoggedTunableNumber("Shooter/Turret/Goals/Zero", -22)),
+    ZERO(new LoggedTunableNumber("Shooter/Turret/Goals/Zero", 0)),
     CUSTOM(new LoggedTunableNumber("Shooter/Turret/Goals/Custom", 0.0));
 
     private final DoubleSupplier TURRET_DOUBLE_SUPPLIER;
@@ -88,7 +89,7 @@ public class Turret extends FullSubsystem {
   }
 
   @AutoLogOutput(key = "Shooter/Turret/GoalSetpoint")
-  private TurretGoal goalSetpoint = TurretGoal.ZERO;
+  private TurretGoal goalSetpoint = TurretGoal.START;
 
   private boolean setpointMode = true;
 
@@ -182,20 +183,22 @@ public class Turret extends FullSubsystem {
 
     commandedDeg = getLimitedDeg(wrapDeg(goalDeg));
 
-    Logger.recordOutput("Shooter/Turret/GoalDegreesRaw", goalDeg, Degrees);
-    Logger.recordOutput("Shooter/Turret/CommandedDegrees", commandedDeg, Degrees);
     nearGoal =
         EqualsUtil.epsilonEquals(
             inputs.measuredPostionDeg,
-            commandedDeg,
+            wrapDeg(goalDeg),
             ShooterConstants.READY_TO_SHOOT_TURRET_DEG_TOLERANCE);
 
     double velDegPerSec = Math.abs(Units.radiansToDegrees(inputs.velocityRadPerSec));
     settled = velDegPerSec < ShooterConstants.READY_TO_SHOOT_TURRET_MAX_DEG_PER_SEC;
 
-    Logger.recordOutput("Shooter/Turret/Velocity", velDegPerSec, DegreesPerSecond);
-    Logger.recordOutput("Shooter/Turret/NearGoal", nearGoal);
-    Logger.recordOutput("Shooter/Turret/Settled", settled);
+    if (ShooterConstants.Logging.LOG_SHOOTER_MECHANISM_TELEM) {
+      Logger.recordOutput("Shooter/Turret/GoalDegreesRaw", goalDeg, Degrees);
+      Logger.recordOutput("Shooter/Turret/CommandedDegrees", commandedDeg, Degrees);
+      Logger.recordOutput("Shooter/Turret/Velocity", velDegPerSec, DegreesPerSecond);
+      Logger.recordOutput("Shooter/Turret/NearGoal", nearGoal);
+      Logger.recordOutput("Shooter/Turret/Settled", settled);
+    }
 
     if (DriverStation.isEnabled()) {
       RobotState.getInstance()
@@ -216,16 +219,16 @@ public class Turret extends FullSubsystem {
           if (!ShooterState.getInstance().isShooterTracking()) {
             return;
           }
+          if (ShooterState.getInstance().isShooterTrenchProtectionActive()) {
+            setGoalSetPoint(0.0);
+            return;
+          }
           ShooterCalculator.ShootingParameters p = ShooterCalculator.getInstance().getParameters();
           if (!p.isValid()) {
             return;
           }
-          if (ShooterState.getInstance().isShooterTrenchProtectionActive()) {
-            setGoalSetPoint(0.0);
-          } else {
-            Rotation2d robotAngle = RobotState.getInstance().getEstimatedPose().getRotation();
-            setGoalSetPoint(robotAngle.minus(p.turretAngle()).getDegrees());
-          }
+          Rotation2d robotAngle = RobotState.getInstance().getEstimatedPose().getRotation();
+          setGoalSetPoint(robotAngle.minus(p.turretAngle()).getDegrees());
         },
         () -> setGoalSetPoint(TurretGoal.ZERO));
   }

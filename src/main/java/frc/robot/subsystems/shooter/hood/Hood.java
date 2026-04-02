@@ -169,17 +169,17 @@ public class Hood extends FullSubsystem {
 
     goalDeg = clampHoodAngleDeg(goalDeg);
 
-    Logger.recordOutput("Shooter/Hood/GoalDegrees", goalDeg, Degrees);
-
     nearGoal =
         EqualsUtil.epsilonEquals(
             inputs.measuredPostionDeg,
             goalDeg,
             ShooterConstants.READY_TO_SHOOT_HOOD_DEG_TOLERANCE);
     double hoodVelDegPerSec = 0.0;
-    
-    Logger.recordOutput("Shooter/Hood/VelocityDegPerSec", hoodVelDegPerSec);
-    Logger.recordOutput("Shooter/Hood/nearGoal", nearGoal);
+    if (ShooterConstants.Logging.LOG_SHOOTER_MECHANISM_TELEM) {
+      Logger.recordOutput("Shooter/Hood/GoalDegrees", goalDeg, Degrees);
+      Logger.recordOutput("Shooter/Hood/VelocityDegPerSec", hoodVelDegPerSec);
+      Logger.recordOutput("Shooter/Hood/nearGoal", nearGoal);
+    }
     ShooterState.getInstance()
         .recordShooterHoodMeasuredAngle(Rotation2d.fromDegrees(inputs.measuredPostionDeg));
   }
@@ -195,15 +195,15 @@ public class Hood extends FullSubsystem {
           if (!ShooterState.getInstance().isShooterTracking()) {
             return;
           }
+          if (ShooterState.getInstance().isShooterTrenchProtectionActive()) {
+            setGoalSetPoint(ShooterConstants.ComponentsConstants.Hood.MIN_DEGREE);
+            return;
+          }
           ShooterCalculator.ShootingParameters p = ShooterCalculator.getInstance().getParameters();
           if (!p.isValid()) {
             return;
           }
-          if (ShooterState.getInstance().isShooterTrenchProtectionActive()) {
-            setGoalSetPoint(ShooterConstants.ComponentsConstants.Hood.MIN_DEGREE);
-          } else {
-            setGoalSetPoint(Units.radiansToDegrees(p.hoodAngle()));
-          }
+          setGoalSetPoint(Units.radiansToDegrees(p.hoodAngle()));
         },
         () -> setGoalSetPoint(HoodGoal.ZERO));
   }

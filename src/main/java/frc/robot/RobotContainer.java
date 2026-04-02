@@ -19,6 +19,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import java.util.Set;
 import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.commands.DriveCommands;
 import frc.robot.commands.states.RobotStateCommands;
 import frc.robot.commands.states.RobotStateCommands.RobotState;
@@ -243,19 +244,21 @@ public class RobotContainer {
         .leftTrigger()
         .onTrue(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.INTAKE), Set.of()))
         .onFalse(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.DEFAULT), Set.of()));
-    driverController
-        .rightTrigger()
-        .onTrue(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.TELE_SHOOT), Set.of()))
+    // whileTrue cancels TELE_SHOOT when released; the mode RunCommand has no requirements so onTrue/onFalse
+    // alone would never interrupt it and would keep overriding IDLE after DEFAULT.
+    Trigger teleopShoot = new Trigger(() -> driverController.getRightTriggerAxis() > 0.12);
+    teleopShoot
+        .whileTrue(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.TELE_SHOOT), Set.of()))
         .onFalse(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.DEFAULT), Set.of()));
     driverController
         .povRight()
         .onTrue(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.OUTTAKE), Set.of()))
         .onFalse(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.DEFAULT), Set.of()));
-
     driverController
         .a()
         .onTrue(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.AGITATE), Set.of()))
         .onFalse(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.UN_AGITATE), Set.of()));
+
     operatorController
         .button(3)
         .onTrue(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.AGITATE), Set.of()))
