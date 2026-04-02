@@ -310,7 +310,7 @@ public class ShooterConstants {
      * ShooterPhysicsTunables} {@code MagnusLiftCoefficientCl}. Tune after Cd: increase if shots land
      * low while range already matches; typical final band often ~0.03–0.15 for FRC-scale speeds.
      */
-    public static final double MAGNUS_LIFT_COEFFICIENT = 0.001;
+    public static final double MAGNUS_LIFT_COEFFICIENT = 0.01;
 
     /** Drag acceleration factor (1/m): 0.5 * rho * Cd * A / m. */
     public static final double DRAG_ACCEL_FACTOR_PER_M =
