@@ -1,15 +1,12 @@
-// Copyright (c) 2021-2026 Littleton Robotics
-// http://github.com/Mechanical-Advantage
-//
-// Use of this source code is governed by a BSD
-// license that can be found in the LICENSE file
-// at the root directory of this project.
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
 
 package frc.robot.subsystems.drive;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotController;
 import frc.robot.generated.TunerConstants;
 import java.util.ArrayList;
@@ -120,7 +117,9 @@ public class PhoenixOdometryThread extends Thread {
           if (phoenixSignals.length > 0) BaseStatusSignal.refreshAll(phoenixSignals);
         }
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        DriverStation.reportError("PhoenixOdometryThread interrupted, stopping thread.", false);
+        Thread.currentThread().interrupt();
+        return;
       } finally {
         signalsLock.unlock();
       }

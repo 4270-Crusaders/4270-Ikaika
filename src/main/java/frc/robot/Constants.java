@@ -1,9 +1,5 @@
-// Copyright (c) 2021-2026 Littleton Robotics
-// http://github.com/Mechanical-Advantage
-//
-// Use of this source code is governed by a BSD
-// license that can be found in the LICENSE file
-// at the root directory of this project.
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
 
 package frc.robot;
 
@@ -16,11 +12,11 @@ import edu.wpi.first.wpilibj.RobotBase;
  */
 public final class Constants {
   public static final double loopPeriodSecs = 0.02;
+  public static final double loopOverrunThresholdScale = 1.5;
+  public static final boolean logLoopTimingVerbose = false;
   public static final Mode simMode = Mode.SIM;
   public static final Mode currentMode = RobotBase.isReal() ? Mode.REAL : simMode;
 
-  public static final boolean tuningMode = true;
-  
   public static enum Mode {
     /** Running on a real robot. */
     REAL,
@@ -40,5 +36,17 @@ public final class Constants {
 
   public static void disableHAL() {
     disableHAL = true;
+  }
+
+  /**
+   * Defaults for Phoenix 6 Talon FX / CANcoder config retries and status-frame rates in subsystem IO
+   * implementations.
+   */
+  public static final class TalonFxIo {
+    public static final int CONFIG_RETRY_COUNT = 5;
+    public static final double CONFIG_APPLY_TIMEOUT_SEC = 0.25;
+    public static final double STATUS_SIGNAL_UPDATE_HZ = 50.0;
+
+    private TalonFxIo() {}
   }
 }

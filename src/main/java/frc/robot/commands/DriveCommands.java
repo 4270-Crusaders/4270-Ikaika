@@ -1,9 +1,5 @@
-// Copyright (c) 2021-2026 Littleton Robotics
-// http://github.com/Mechanical-Advantage
-//
-// Use of this source code is governed by a BSD
-// license that can be found in the LICENSE file
-// at the root directory of this project.
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
 
 package frc.robot.commands;
 
@@ -29,6 +25,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
+import org.littletonrobotics.junction.Logger;
 
 public class DriveCommands {
   private static final double DEADBAND = 0.1;
@@ -42,6 +39,16 @@ public class DriveCommands {
   private static final double WHEEL_RADIUS_RAMP_RATE = 0.05; // Rad/Sec^2
 
   private DriveCommands() {}
+
+  /**
+   * Converts joystick "field relative" into the same frame as PathPlanner blue paths: on red, rotate by
+   * π so forward on stick matches downfield from the red driver wall. Robot pose stays blue-origin.
+   */
+  private static Rotation2d joystickFieldRelativeHeading(Drive drive) {
+    return DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red
+        ? drive.getRotation().plus(Rotation2d.kPi)
+        : drive.getRotation();
+  }
 
   private static Translation2d getLinearVelocityFromJoysticks(double x, double y) {
     // Apply deadband
@@ -57,9 +64,7 @@ public class DriveCommands {
         .getTranslation();
   }
 
-  /**
-   * Field relative drive command using two joysticks (controlling linear and angular velocities).
-   */
+  /** Field-relative drive (linear + omega); red alliance uses π offset on heading for driver convention. */
   public static Command joystickDrive(
       Drive drive,
       DoubleSupplier xSupplier,
@@ -83,15 +88,8 @@ public class DriveCommands {
                   linearVelocity.getX() * drive.getMaxLinearSpeedMetersPerSec(),
                   linearVelocity.getY() * drive.getMaxLinearSpeedMetersPerSec(),
                   omega * drive.getMaxAngularSpeedRadPerSec());
-          boolean isFlipped =
-              DriverStation.getAlliance().isPresent()
-                  && DriverStation.getAlliance().get() == Alliance.Red;
           drive.runVelocity(
-              ChassisSpeeds.fromFieldRelativeSpeeds(
-                  speeds,
-                  isFlipped
-                      ? drive.getRotation().plus(new Rotation2d(Math.PI))
-                      : drive.getRotation()));
+              ChassisSpeeds.fromFieldRelativeSpeeds(speeds, joystickFieldRelativeHeading(drive)));
         },
         drive);
   }
@@ -134,15 +132,8 @@ public class DriveCommands {
                       linearVelocity.getX() * drive.getMaxLinearSpeedMetersPerSec(),
                       linearVelocity.getY() * drive.getMaxLinearSpeedMetersPerSec(),
                       omega);
-              boolean isFlipped =
-                  DriverStation.getAlliance().isPresent()
-                      && DriverStation.getAlliance().get() == Alliance.Red;
               drive.runVelocity(
-                  ChassisSpeeds.fromFieldRelativeSpeeds(
-                      speeds,
-                      isFlipped
-                          ? drive.getRotation().plus(new Rotation2d(Math.PI))
-                          : drive.getRotation()));
+                  ChassisSpeeds.fromFieldRelativeSpeeds(speeds, joystickFieldRelativeHeading(drive)));
             },
             drive)
 
@@ -186,24 +177,11 @@ public class DriveCommands {
                   (Math.abs(linearVelocity.getY())>0.2)?Math.copySign(velocity, linearVelocity.getY()):0,
 
                   omega * drive.getMaxAngularSpeedRadPerSec());
-
-
-          boolean isFlipped =
-              DriverStation.getAlliance().isPresent()
-                  && DriverStation.getAlliance().get() == Alliance.Red;
           drive.runVelocity(
-              ChassisSpeeds.fromFieldRelativeSpeeds(
-                  speeds,
-                  isFlipped
-                      ? drive.getRotation().plus(new Rotation2d(Math.PI))
-                      : drive.getRotation()));
+              ChassisSpeeds.fromFieldRelativeSpeeds(speeds, joystickFieldRelativeHeading(drive)));
         },
         drive);
   }
-
-
-
-
 
   /**
    * Measures the velocity feedforward constants for the drive motors.
@@ -244,7 +222,7 @@ public class DriveCommands {
                 },
                 drive)
 
-            // When cancelled, calculate and print results
+            // When cancelled, calculate and log results
             .finallyDo(
                 () -> {
                   int n = velocitySamples.size();
@@ -262,9 +240,14 @@ public class DriveCommands {
                   double kV = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
 
                   NumberFormat formatter = new DecimalFormat("#0.00000");
-                  System.out.println("********** Drive FF Characterization Results **********");
-                  System.out.println("\tkS: " + formatter.format(kS));
-                  System.out.println("\tkV: " + formatter.format(kV));
+                  Logger.recordOutput("Drive/Characterization/Feedforward/kS", kS);
+                  Logger.recordOutput("Drive/Characterization/Feedforward/kV", kV);
+                  DriverStation.reportWarning(
+                      "Drive FF characterization complete: kS="
+                          + formatter.format(kS)
+                          + ", kV="
+                          + formatter.format(kV),
+                      false);
                 }));
   }
 
@@ -311,7 +294,7 @@ public class DriveCommands {
                       state.lastAngle = rotation;
                     })
 
-                // When cancelled, calculate and print results
+                // When cancelled, calculate and log results
                 .finallyDo(
                     () -> {
                       double[] positions = drive.getWheelRadiusCharacterizationPositions();
@@ -322,18 +305,23 @@ public class DriveCommands {
                       double wheelRadius = (state.gyroDelta * Drive.DRIVE_BASE_RADIUS) / wheelDelta;
 
                       NumberFormat formatter = new DecimalFormat("#0.000");
-                      System.out.println(
-                          "********** Wheel Radius Characterization Results **********");
-                      System.out.println(
-                          "\tWheel Delta: " + formatter.format(wheelDelta) + " radians");
-                      System.out.println(
-                          "\tGyro Delta: " + formatter.format(state.gyroDelta) + " radians");
-                      System.out.println(
-                          "\tWheel Radius: "
+                      Logger.recordOutput(
+                          "Drive/Characterization/WheelRadius/WheelDeltaRadians", wheelDelta);
+                      Logger.recordOutput(
+                          "Drive/Characterization/WheelRadius/GyroDeltaRadians", state.gyroDelta);
+                      Logger.recordOutput(
+                          "Drive/Characterization/WheelRadius/Meters", wheelRadius);
+                      DriverStation.reportWarning(
+                          "Wheel radius characterization complete: wheelDelta="
+                              + formatter.format(wheelDelta)
+                              + " rad, gyroDelta="
+                              + formatter.format(state.gyroDelta)
+                              + " rad, wheelRadius="
                               + formatter.format(wheelRadius)
-                              + " meters, "
+                              + " m ("
                               + formatter.format(Units.metersToInches(wheelRadius))
-                              + " inches");
+                              + " in)",
+                          false);
                     })));
   }
 

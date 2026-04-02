@@ -1,67 +1,80 @@
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
+
 package frc.robot.subsystems.shooter.turret;
 
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.RobotState;
+import frc.robot.subsystems.shooter.ShooterCalculator;
 import frc.robot.subsystems.shooter.ShooterConstants;
+import frc.robot.subsystems.shooter.ShooterState;
 import frc.robot.util.EqualsUtil;
+import frc.robot.util.FullSubsystem;
 import frc.robot.util.LoggedTunableNumber;
 
 import static edu.wpi.first.units.Units.Degrees;
+import static edu.wpi.first.units.Units.DegreesPerSecond;
 
 import java.util.function.DoubleSupplier;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
-/**
- * Turret subsystem
- *
- * <p>Mirrors the structure of the Hood subsystem: provides tunable PID and motion-magic parameters
- * (via LoggedTunableNumber), maintains a desired goal angle (goalDeg), updates hardware inputs each
- * loop, logs values, and exposes simple setpoint commands that complete when the turret is near the
- * requested position.
- */
-public class Turret {
+public class Turret extends FullSubsystem {
   private final TurretIO io;
   private final TurretIOInputsAutoLogged inputs = new TurretIOInputsAutoLogged();
 
-  // Tunable PID/feedforward values (visible in the robot log/dashboard)
   private static final LoggedTunableNumber kP =
-      new LoggedTunableNumber("Shooter/Turret/kP", ShooterConstants.TurretConstants.TurretkP);
+      new LoggedTunableNumber(
+          "Shooter/Turret/Gains/kP", ShooterConstants.ComponentsConstants.Turret.Gains.kP);
   private static final LoggedTunableNumber kI =
-      new LoggedTunableNumber("Shooter/Turret/kI", ShooterConstants.TurretConstants.TurretkI);
+      new LoggedTunableNumber(
+          "Shooter/Turret/Gains/kI", ShooterConstants.ComponentsConstants.Turret.Gains.kI);
   private static final LoggedTunableNumber kD =
-      new LoggedTunableNumber("Shooter/Turret/kD", ShooterConstants.TurretConstants.TurretkD);
+      new LoggedTunableNumber(
+          "Shooter/Turret/Gains/kD", ShooterConstants.ComponentsConstants.Turret.Gains.kD);
   private static final LoggedTunableNumber kA =
-      new LoggedTunableNumber("Shooter/Turret/kA", ShooterConstants.TurretConstants.TurretkA);
+      new LoggedTunableNumber(
+          "Shooter/Turret/Gains/kA", ShooterConstants.ComponentsConstants.Turret.Gains.kA);
   private static final LoggedTunableNumber kV =
       new LoggedTunableNumber(
-          "Shooter/Turret/kV", ShooterConstants.TurretConstants.TurretMotionMagickV);
-  private static final LoggedTunableNumber kS = new LoggedTunableNumber("Shooter/Turret/kS", 0.0);
+          "Shooter/Turret/Gains/kV", ShooterConstants.ComponentsConstants.Turret.Gains.kV);
+  private static final LoggedTunableNumber kS = new LoggedTunableNumber("Shooter/Turret/Gains/kS", 0.0);
   private static final LoggedTunableNumber kG =
-      new LoggedTunableNumber("Shooter/Turret/kG", ShooterConstants.TurretConstants.TurretkG);
+      new LoggedTunableNumber(
+          "Shooter/Turret/Gains/kG", ShooterConstants.ComponentsConstants.Turret.Gains.kG);
 
-  // Motion-magic tunables
   private static final LoggedTunableNumber MOTION_MAGIC_JERK =
       new LoggedTunableNumber(
-          "Shooter/Turret/MMJerk", ShooterConstants.TurretConstants.TurretMotionMagicJerk);
+          "Shooter/Turret/MotionMagic/Jerk",
+          ShooterConstants.ComponentsConstants.Turret.Gains.MotionMagic.jerk);
   private static final LoggedTunableNumber MOTION_MAGIC_ACCELERATION =
       new LoggedTunableNumber(
-          "Shooter/Turret/MMAcceleration",
-          ShooterConstants.TurretConstants.TurretMotionMagicAcceleration);
+          "Shooter/Turret/MotionMagic/Acceleration",
+          ShooterConstants.ComponentsConstants.Turret.Gains.MotionMagic.acceleration);
   private static final LoggedTunableNumber MOTION_MAGIC_VELOCITY =
       new LoggedTunableNumber(
-          "Shooter/Turret/MMVelocity", ShooterConstants.TurretConstants.TurretMotionMagicVelocity);
+          "Shooter/Turret/MotionMagic/Velocity",
+          ShooterConstants.ComponentsConstants.Turret.Gains.MotionMagic.velocity);
   private static final LoggedTunableNumber MOTION_MAGIC_EXPO_kV =
       new LoggedTunableNumber(
-          "Shooter/Turret/MMExpokV", ShooterConstants.TurretConstants.TurretMotionMagickV);
+          "Shooter/Turret/MotionMagic/ExpoKv",
+          ShooterConstants.ComponentsConstants.Turret.Gains.MotionMagic.expo_kV);
   private static final LoggedTunableNumber MOTION_MAGIC_EXPO_kA =
       new LoggedTunableNumber(
-          "Shooter/Turret/MMExpokA", ShooterConstants.TurretConstants.TurretMotionMagickA);
+          "Shooter/Turret/MotionMagic/ExpoKa",
+          ShooterConstants.ComponentsConstants.Turret.Gains.MotionMagic.expo_kA);
 
   public Turret(TurretIO io) {
     this.io = io;
   }
 
   public enum TurretGoal {
-    ZERO(new LoggedTunableNumber("Shooter/Turret/Goals/Zero", 0.0)),
+    START(new LoggedTunableNumber("Shooter/Turret/Goals/Zero", -22)),
+    ZERO(new LoggedTunableNumber("Shooter/Turret/Goals/Zero", 0)),
     CUSTOM(new LoggedTunableNumber("Shooter/Turret/Goals/Custom", 0.0));
 
     private final DoubleSupplier TURRET_DOUBLE_SUPPLIER;
@@ -75,36 +88,40 @@ public class Turret {
     }
   }
 
-  @AutoLogOutput(key="Shooter/Turret/GoalSetpoint") private TurretGoal goalSetpoint = TurretGoal.ZERO;
+  @AutoLogOutput(key = "Shooter/Turret/GoalSetpoint")
+  private TurretGoal goalSetpoint = TurretGoal.START;
 
   private boolean setpointMode = true;
 
   private double goalDeg = 0.0;
+  /** Commanded position after soft limits (sent to hardware in {@link #periodicAfterScheduler}). */
+  private double commandedDeg = 0.0;
 
   public boolean nearGoal = false;
 
-  private double wrapDeg(double orginalDeg) {
-    double overlapPoint =
-        ((360 + ShooterConstants.TurretConstants.TURRET_MIN_DEGREE)
-                + ShooterConstants.TurretConstants.TURRET_MAX_DEGREE)
-            / 2;
+  /** True when turret angular speed is low (not slewing / wrapping). */
+  public boolean settled = false;
 
-    if (orginalDeg > overlapPoint) {
-      return 180 - orginalDeg;
+  private static double wrapDeg(double originalDeg) {
+    double minDeg = ShooterConstants.ComponentsConstants.Turret.TURRET_MIN_DEGREE;
+    double maxDeg = ShooterConstants.ComponentsConstants.Turret.TURRET_MAX_DEGREE;
+    double overlapPoint = ((360.0 + minDeg) + maxDeg) / 2.0;
+    if (originalDeg > overlapPoint) {
+      return 180.0 - originalDeg;
     } else {
-      return orginalDeg;
+      return originalDeg;
     }
   }
 
-  private double getLimitedDeg(double goal) {
-    if (goal
-        >= ShooterConstants.TurretConstants.TURRET_MAX_DEGREE) {
-      return ShooterConstants.TurretConstants.TURRET_MAX_DEGREE;
-    } else if (goal
-        < ShooterConstants.TurretConstants.TURRET_MIN_DEGREE) {
-      return ShooterConstants.TurretConstants.TURRET_MIN_DEGREE;
+  private static double getLimitedDeg(double goalDeg) {
+    double minDeg = ShooterConstants.ComponentsConstants.Turret.TURRET_MIN_DEGREE;
+    double maxDeg = ShooterConstants.ComponentsConstants.Turret.TURRET_MAX_DEGREE;
+    if (goalDeg >= maxDeg) {
+      return maxDeg;
+    } else if (goalDeg < minDeg) {
+      return minDeg;
     } else {
-      return goal;
+      return goalDeg;
     }
   }
 
@@ -118,11 +135,22 @@ public class Turret {
     this.goalSetpoint = goal;
   }
 
+  /**
+   * Call when turret goal enums change after {@link #periodic()} so {@link #periodicAfterScheduler()}
+   * uses the new {@code commandedDeg}.
+   */
+  public void applySetpointForOutput() {
+    if (setpointMode) {
+      goalDeg = goalSetpoint.getDegrees();
+    }
+    commandedDeg = getLimitedDeg(wrapDeg(goalDeg));
+  }
+
+  @Override
   public void periodic() {
     io.updateInputs(inputs);
     Logger.processInputs("Shooter/Turret", inputs);
 
-    // If any tunable changes, push updated PID/gains to the hardware io
     LoggedTunableNumber.ifChanged(
         hashCode(),
         () -> io.setPID(kP.get(), kI.get(), kD.get(), kS.get(), kV.get(), kA.get(), kG.get()),
@@ -134,7 +162,6 @@ public class Turret {
         kA,
         kG);
 
-    // Update motion-magic constraints when tunables change
     LoggedTunableNumber.ifChanged(
         hashCode(),
         () ->
@@ -154,13 +181,56 @@ public class Turret {
       goalDeg = goalSetpoint.getDegrees();
     }
 
-    io.runSetpointDegree(getLimitedDeg(wrapDeg(goalDeg)));
+    commandedDeg = getLimitedDeg(wrapDeg(goalDeg));
 
-    // Diagnostics
-    Logger.recordOutput("Shooter/Turret/GoalDegrees", goalDeg, Degrees);
-    nearGoal = EqualsUtil.epsilonEquals(inputs.measuredPostionDeg, goalDeg, 10);
+    nearGoal =
+        EqualsUtil.epsilonEquals(
+            inputs.measuredPostionDeg,
+            wrapDeg(goalDeg),
+            ShooterConstants.READY_TO_SHOOT_TURRET_DEG_TOLERANCE);
 
-    Logger.recordOutput("Shooter/Turret/nearGoal", nearGoal);
+    double velDegPerSec = Math.abs(Units.radiansToDegrees(inputs.velocityRadPerSec));
+    settled = velDegPerSec < ShooterConstants.READY_TO_SHOOT_TURRET_MAX_DEG_PER_SEC;
+
+    if (ShooterConstants.Logging.LOG_SHOOTER_MECHANISM_TELEM) {
+      Logger.recordOutput("Shooter/Turret/GoalDegreesRaw", goalDeg, Degrees);
+      Logger.recordOutput("Shooter/Turret/CommandedDegrees", commandedDeg, Degrees);
+      Logger.recordOutput("Shooter/Turret/Velocity", velDegPerSec, DegreesPerSecond);
+      Logger.recordOutput("Shooter/Turret/NearGoal", nearGoal);
+      Logger.recordOutput("Shooter/Turret/Settled", settled);
+    }
+
+    if (DriverStation.isEnabled()) {
+      RobotState.getInstance()
+          .addTurretObservation(
+              new RobotState.TurretObservation(
+                  Timer.getFPGATimestamp(), Rotation2d.fromDegrees(inputs.measuredPostionDeg)));
+    }
+  }
+
+  @Override
+  public void periodicAfterScheduler() {
+    io.runSetpointDegree(commandedDeg);
+  }
+
+  public Command runTrackTargetCommand() {
+    return runEnd(
+        () -> {
+          if (!ShooterState.getInstance().isShooterTracking()) {
+            return;
+          }
+          if (ShooterState.getInstance().isShooterTrenchProtectionActive()) {
+            setGoalSetPoint(0.0);
+            return;
+          }
+          ShooterCalculator.ShootingParameters p = ShooterCalculator.getInstance().getParameters();
+          if (!p.isValid()) {
+            return;
+          }
+          Rotation2d robotAngle = RobotState.getInstance().getEstimatedPose().getRotation();
+          setGoalSetPoint(robotAngle.minus(p.turretAngle()).getDegrees());
+        },
+        () -> setGoalSetPoint(TurretGoal.ZERO));
   }
 
   public void setPID(double kP, double kI, double kD, double kS, double kV, double kA, double kG) {
@@ -168,7 +238,6 @@ public class Turret {
   }
 
   public double getPositionDeg() {
-    // Return the most recent closed-loop set position reported by the motor controller
     return inputs.setPostionDeg;
   }
 }

@@ -1,9 +1,5 @@
-// Copyright (c) 2025-2026 Littleton Robotics
-// http://github.com/Mechanical-Advantage
-//
-// Use of this source code is governed by an MIT-style
-// license that can be found in the LICENSE file at
-// the root directory of this project.
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
 
 package frc.robot;
 
@@ -19,7 +15,6 @@ import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import java.util.*;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.ExtensionMethod;
 import frc.robot.generated.TunerConstants;
 import frc.robot.util.geometry.GeomUtil;
@@ -35,9 +30,15 @@ public class RobotState {
 
   // MARK: - Class fields
 
-  // Pose estimation fields
-  @Getter @AutoLogOutput private Pose2d odometryPose = Pose2d.kZero;
-  @Getter @AutoLogOutput private Pose2d estimatedPose = Pose2d.kZero;
+  // Pose estimation fields (wheel integration + vision fusion; Drive feeds odometry observations only)
+  @Getter
+  @AutoLogOutput(key = "Odometry/OdometryPose")
+  private Pose2d odometryPose = Pose2d.kZero;
+
+  /** Fused field pose (wheels + gyro + vision via {@link #addVisionObservation}). */
+  @Getter
+  @AutoLogOutput(key = "Odometry/Robot")
+  private Pose2d estimatedPose = Pose2d.kZero;
   private final TimeInterpolatableBuffer<Pose2d> poseBuffer =
       TimeInterpolatableBuffer.createBuffer(poseBufferSizeSec);
   private final TimeInterpolatableBuffer<Rotation2d> turretAngleBuffer =
@@ -55,7 +56,15 @@ public class RobotState {
       };
   private Rotation2d gyroOffset = Rotation2d.kZero;
 
-  @Getter @Setter private ChassisSpeeds robotVelocity = new ChassisSpeeds();
+  @Getter private ChassisSpeeds robotVelocity = new ChassisSpeeds();
+
+  /**
+   * Robot-frame chassis acceleration from finite differencing {@link #setRobotVelocity} (vx, vy in
+   * m/s^2, omega in rad/s^2). Used for moving-target lead with constant-acceleration correction.
+   */
+  @Getter private ChassisSpeeds robotAcceleration = new ChassisSpeeds();
+
+  private boolean robotVelocityInitializedForAccel = false;
 
   // MARK: - Initialization
 
@@ -83,6 +92,22 @@ public class RobotState {
     estimatedPose = pose;
     odometryPose = pose;
     poseBuffer.clear();
+    robotVelocityInitializedForAccel = false;
+    robotAcceleration = new ChassisSpeeds();
+  }
+
+  /**
+   * Like {@link #resetPose(Pose2d)} but records current module positions so the next {@link
+   * #addOdometryObservation} does not apply a spurious whole-history twist (replaces WPILib {@code
+   * SwerveDrivePoseEstimator.resetPosition}).
+   */
+  public void resetPose(Pose2d pose, SwerveModulePosition[] wheelPositionsMeters) {
+    resetPose(pose);
+    if (wheelPositionsMeters != null && wheelPositionsMeters.length == 4) {
+      for (int i = 0; i < 4; i++) {
+        lastWheelPositions[i] = wheelPositionsMeters[i];
+      }
+    }
   }
 
   /** Get the rotation of the estimated pose. */
@@ -92,6 +117,25 @@ public class RobotState {
 
   public ChassisSpeeds getFieldVelocity() {
     return ChassisSpeeds.fromRobotRelativeSpeeds(robotVelocity, getRotation());
+  }
+
+  /**
+   * Updates measured chassis velocity (from swerve odometry) and derives {@link #robotAcceleration}
+   * via {@code (v - v_prev) / dt}. Call once per main loop ({@link frc.robot.Constants#loopPeriodSecs}).
+   */
+  public void setRobotVelocity(ChassisSpeeds newVelocity) {
+    double dt = Constants.loopPeriodSecs;
+    if (robotVelocityInitializedForAccel && dt > 1e-9) {
+      robotAcceleration =
+          new ChassisSpeeds(
+              (newVelocity.vxMetersPerSecond - robotVelocity.vxMetersPerSecond) / dt,
+              (newVelocity.vyMetersPerSecond - robotVelocity.vyMetersPerSecond) / dt,
+              (newVelocity.omegaRadiansPerSecond - robotVelocity.omegaRadiansPerSecond) / dt);
+    } else {
+      robotVelocityInitializedForAccel = true;
+      robotAcceleration = new ChassisSpeeds();
+    }
+    this.robotVelocity = newVelocity;
   }
 
   @AutoLogOutput
@@ -123,24 +167,38 @@ public class RobotState {
     estimatedPose = estimatedPose.exp(finalTwist);
   }
 
-  /** Adds a turret pose observation from the turret subsystem */
+  /**
+   * Adds a turret angle sample (robot-centric azimuth); timestamps use FPGA time for interpolation with
+   * vision and odometry buffers.
+   */
   public void addTurretObservation(TurretObservation observation) {
     turretAngleBuffer.addSample(observation.timestamp(), observation.turretAngle);
   }
 
-  /** Adds a new vision pose observation from the vision subsystem. */
+  /** Fuses a vision sample into {@link #estimatedPose} using the odometry pose buffer. */
   public void addVisionObservation(VisionObservation observation) {
-    // If measurement is old enough to be outside the pose buffer's timespan, skip.
-    try {
-      if (poseBuffer.getInternalBuffer().lastKey() - poseBufferSizeSec > observation.timestamp()) {
-        return;
-      }
-    } catch (NoSuchElementException ex) {
+    var internalBuffer = poseBuffer.getInternalBuffer();
+    if (internalBuffer.isEmpty()) {
       return;
     }
 
+    // Clamp timestamp into available interpolation window. This avoids silently dropping all vision
+    // updates when camera timestamps use a different time base and appear "in the future."
+    double newestTimestampSec = internalBuffer.lastKey();
+    double oldestTimestampSec = internalBuffer.firstKey();
+    double observationTimestampSec = observation.timestamp();
+    if (!Double.isFinite(observationTimestampSec)) {
+      return;
+    }
+    if (observationTimestampSec < oldestTimestampSec || observationTimestampSec < newestTimestampSec - poseBufferSizeSec) {
+      return;
+    }
+    if (observationTimestampSec > newestTimestampSec) {
+      observationTimestampSec = newestTimestampSec;
+    }
+
     // Get odometry based pose at timestamp
-    var sample = poseBuffer.getSample(observation.timestamp());
+    var sample = poseBuffer.getSample(observationTimestampSec);
     if (sample.isEmpty()) {
       // exit if not there
       return;

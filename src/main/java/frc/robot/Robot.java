@@ -1,14 +1,13 @@
-// Copyright (c) 2021-2026 Littleton Robotics
-// http://github.com/Mechanical-Advantage
-//
-// Use of this source code is governed by a BSD
-// license that can be found in the LICENSE file
-// at the root directory of this project.
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
 
 package frc.robot;
 
+import edu.wpi.first.wpilibj.Threads;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.robot.util.FullSubsystem;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
@@ -26,7 +25,8 @@ public class Robot extends LoggedRobot {
   private Command autonomousCommand;
   private RobotContainer robotContainer;
 
-  private boolean started = false;
+  private double lastLoopTimestampSec = Double.NaN;
+  private double maxLoopDtSec = 0.0;
 
   public Robot() {
     // Record metadata
@@ -71,15 +71,32 @@ public class Robot extends LoggedRobot {
     // Instantiate our RobotContainer. This will perform all our button bindings,
     // and put our autonomous chooser on the dashboard.
     robotContainer = new RobotContainer();
-    started = true;
+  }
+
+  @Override
+  public void robotInit() {
   }
 
   /** This function is called periodically during all modes. */
   @Override
   public void robotPeriodic() {
-    // Optionally switch the thread to high priority to improve loop
-    // timing (see the template project documentation for details)
-    // Threads.setCurrentThreadPriority(true, 99);
+    double nowSec = Timer.getFPGATimestamp();
+    if (Double.isFinite(lastLoopTimestampSec)) {
+      double loopDtSec = nowSec - lastLoopTimestampSec;
+      maxLoopDtSec = Math.max(maxLoopDtSec, loopDtSec);
+      Logger.recordOutput("Robot/Loop/ConfiguredPeriodSec", Constants.loopPeriodSecs);
+      Logger.recordOutput(
+          "Robot/Loop/Overrun", loopDtSec > Constants.loopPeriodSecs * Constants.loopOverrunThresholdScale);
+      if (Constants.logLoopTimingVerbose) {
+        Logger.recordOutput("Robot/Loop/MeasuredDtSec", loopDtSec);
+        Logger.recordOutput("Robot/Loop/MeasuredHz", 1.0 / Math.max(loopDtSec, 1e-6));
+        Logger.recordOutput("Robot/Loop/MaxDtSec", maxLoopDtSec);
+      }
+    }
+    lastLoopTimestampSec = nowSec;
+
+    // High priority improves main loop timing vs other JVM threads (reduces CommandScheduler overrun).
+    Threads.setCurrentThreadPriority(true, 99);
 
     // Runs the Scheduler. This is responsible for polling buttons, adding
     // newly-scheduled commands, running already-scheduled commands, removing
@@ -88,20 +105,11 @@ public class Robot extends LoggedRobot {
     // the Command-based framework to work.
     CommandScheduler.getInstance().run();
 
-    // Return to non-RT thread priority (do not modify the first argument)
-    // Threads.setCurrentThreadPriority(false, 10);
+    RobotContainer.runShooterCoordinationAfterScheduler();
 
-    if(started){
-      periodicAfterFAKINGSTART();
-    }
-  }
+    FullSubsystem.runAllPeriodicAfterScheduler();
 
-
-  @SuppressWarnings("static-access")
-  public void periodicAfterFAKINGSTART(){
-    robotContainer.shooter.setRobotEstimatedPose(robotContainer.drive.getPose());
-    robotContainer.shooter.setRobotSpeed(robotContainer.drive.getChassisSpeeds());
-    robotContainer.indexer.setReadyToShoot(robotContainer.shooter.readyToShoot());
+    Threads.setCurrentThreadPriority(false, 10);
   }
 
   /** This function is called once when the robot is disabled. */

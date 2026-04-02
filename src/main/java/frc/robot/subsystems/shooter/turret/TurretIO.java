@@ -1,3 +1,6 @@
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
+
 package frc.robot.subsystems.shooter.turret;
 
 import org.littletonrobotics.junction.AutoLog;
@@ -41,7 +44,6 @@ public interface TurretIO {
       double jerk, double acceleration, double velocity, double expokA, double expokV) {}
 
   public default void updateInputs(TurretIOInputs inputs) {}
-  ;
 
   /** Run open loop at the specified velocity. */
   public default void runSetpointDegree(double setpointDeg) {}

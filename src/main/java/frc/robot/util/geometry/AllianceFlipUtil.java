@@ -1,3 +1,6 @@
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
+
 package frc.robot.util.geometry;
 
 import edu.wpi.first.math.geometry.*;
@@ -5,6 +8,11 @@ import edu.wpi.first.wpilibj.DriverStation;
 import frc.robot.Constants;
 import frc.robot.FieldConstants;
 
+/**
+ * Red-alliance helpers for geometry authored from the blue driver station: mirrors X/Y in field space.
+ * Do not apply to {@link frc.robot.RobotState} pose (always blue-origin). Used for pass waypoints,
+ * PathPlanner mirroring (via {@link #shouldFlip()} in AutoBuilder), and similar.
+ */
 public class AllianceFlipUtil {
   public static double applyX(double x) {
     return shouldFlip() ? FieldConstants.fieldLength - x : x;

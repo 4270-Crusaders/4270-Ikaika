@@ -1,9 +1,5 @@
-// Copyright (c) 2025-2026 Littleton Robotics
-// http://github.com/Mechanical-Advantage
-//
-// Use of this source code is governed by an MIT-style
-// license that can be found in the LICENSE file at
-// the root directory of this project.
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
 
 package frc.robot;
 
@@ -42,16 +38,19 @@ public class FieldConstants {
    * Officially defined and relevant vertical lines found on the field (defined by X-axis offset)
    */
   public static class LinesVertical {
-    public static final double startTrench = 3.9;
-    public static final double endTrench = 5.450;
-
     public static final double center = fieldLength / 2.0;
     public static final double starting =
         AprilTagLayoutType.OFFICIAL.getLayout().getTagPose(26).get().getX();
     public static final double allianceZone = starting;
     public static final double hubCenter =
         AprilTagLayoutType.OFFICIAL.getLayout().getTagPose(26).get().getX() + Hub.width / 2.0;
+    /**
+     * Blue-origin X: blue alliance side is {@code x < neutralZoneNear}; neutral is {@code [near, far]};
+     * red side is {@code x > neutralZoneFar}. Used for teleop auto hub vs pass (see {@link
+     * frc.robot.subsystems.shooter.ShooterState#teleopAimModeForOwnFieldSide}).
+     */
     public static final double neutralZoneNear = center - Units.inchesToMeters(120);
+    /** @see #neutralZoneNear */
     public static final double neutralZoneFar = center + Units.inchesToMeters(120);
     public static final double oppHubCenter =
         AprilTagLayoutType.OFFICIAL.getLayout().getTagPose(4).get().getX() + Hub.width / 2.0;
@@ -82,15 +81,30 @@ public class FieldConstants {
     public static final double leftTrenchOpenStart = fieldWidth;
   }
 
-  /** Hub related constants */
+  /**
+   * Hub related constants.
+   *
+   * <p>Plan / controlled dimensions from FIRST 2026 field dwgs (FE-2026 Rev B), e.g. <a
+   * href="https://firstfrc.blob.core.windows.net/frc2026/FieldAssets/2026-field-dimension-dwgs.pdf">2026-field-dimension-dwgs.pdf</a>:
+   * 47" O.D., 72" top height, 41.73" inside scoring opening, hole center 44.25" AG, mouth inner
+   * radius 22.25" (2× 22.25 +0.25/−0.25 controlled on perimeter dwg; plan shows (22.25) from hub
+   * centerline).
+   */
   public static class Hub {
 
-    // Dimensions
     public static final double width = Units.inchesToMeters(47.0);
-    public static final double height =
-        Units.inchesToMeters(72.0); // includes the catcher at the top
-    public static final double innerWidth = Units.inchesToMeters(41.7);
-    public static final double innerHeight = Units.inchesToMeters(56.5);
+    /** Top of hub / funnel roof plane (72.000 ± 0.500 on GE-26300). */
+    public static final double height = Units.inchesToMeters(72.0);
+    /** Inside scoring opening ⌀ (field plan reference). */
+    public static final double innerWidth = Units.inchesToMeters(41.73);
+    /** Hole center height AG (field plan / hub origin table). */
+    public static final double innerHeight = Units.inchesToMeters(44.25);
+
+    /**
+     * Clear inner radius (m) at the funnel mouth plane ({@link #height}): nominal 22.25 in from
+     * official hub / field drawings (not half of {@link #width}, which is outer structure).
+     */
+    public static final double funnelMouthInnerRadius = Units.inchesToMeters(22.25);
 
     // Relevant reference points on alliance side
     public static final Translation3d topCenterPoint =
@@ -98,11 +112,49 @@ public class FieldConstants {
             AprilTagLayoutType.OFFICIAL.getLayout().getTagPose(26).get().getX() + width / 2.0,
             fieldWidth / 2.0,
             height);
+    /** Aim here for scoring shots (hole center), not {@link #topCenterPoint}. */
     public static final Translation3d innerCenterPoint =
         new Translation3d(
             AprilTagLayoutType.OFFICIAL.getLayout().getTagPose(26).get().getX() + width / 2.0,
             fieldWidth / 2.0,
             innerHeight);
+
+    /**
+     * Upside-down funnel: wider aperture at {@link #height}, narrowing to the hole at {@link
+     * #innerHeight}. Used for radial clearance along the shot.
+     */
+    public static double funnelInnerRadiusAtZ(double zMeters) {
+      double zHole = innerCenterPoint.getZ();
+      double zTop = height;
+      double rHole = innerWidth * 0.5;
+      double rMouth = funnelMouthInnerRadius;
+      if (zMeters <= zHole) {
+        return rHole;
+      }
+      if (zMeters >= zTop) {
+        return rMouth;
+      }
+      double t = (zMeters - zHole) / (zTop - zHole);
+      return rHole + t * (rMouth - rHole);
+    }
+
+    /**
+     * Inner funnel radius allowed at horizontal distance {@code approachMetersFromHole} before the
+     * hole along the shot (0 at hole center, larger when farther from hole). Linear frustum from hole
+     * to mouth; beyond {@code funnelAxialDepthMeters} the robot is outside the funnel walls.
+     */
+    public static double funnelInnerRadiusAtApproach(
+        double approachMetersFromHole, double funnelAxialDepthMeters) {
+        double rHole = innerWidth * 0.5;
+        double rMouth = funnelMouthInnerRadius;
+        if (approachMetersFromHole <= 0.0) {
+            return rHole;
+        }
+        if (approachMetersFromHole >= funnelAxialDepthMeters) {
+            return rMouth;
+        }
+        return rHole + (rMouth - rHole) * (approachMetersFromHole / funnelAxialDepthMeters);
+    }
 
     public static final Translation2d nearLeftCorner =
         new Translation2d(topCenterPoint.getX() - width / 2.0, fieldWidth / 2.0 + width / 2.0);
@@ -119,6 +171,12 @@ public class FieldConstants {
             AprilTagLayoutType.OFFICIAL.getLayout().getTagPose(4).get().getX() + width / 2.0,
             fieldWidth / 2.0,
             height);
+
+    /** Scoring hole center on the opposite-alliance hub (blue frame); same Z as {@link #innerCenterPoint}. */
+    public static final Translation3d oppInnerCenterPoint =
+        new Translation3d(
+            oppTopCenterPoint.getX(), oppTopCenterPoint.getY(), innerHeight);
+
     public static final Translation2d oppNearLeftCorner =
         new Translation2d(oppTopCenterPoint.getX() - width / 2.0, fieldWidth / 2.0 + width / 2.0);
     public static final Translation2d oppNearRightCorner =
@@ -230,6 +288,38 @@ public class FieldConstants {
         new Translation3d(LinesVertical.oppHubCenter, openingWidth, openingHeight);
     public static final Translation3d oppOpeningTopRight =
         new Translation3d(LinesVertical.oppHubCenter, 0, openingHeight);
+  }
+
+  /**
+   * Pass / alley partner-shot aim points in the <b>blue-origin</b> field frame (same as {@link
+   * frc.robot.RobotState}).
+   *
+   * <p>Longitudinal X is past {@link LinesVertical#neutralZoneFar} for <em>both</em> alliances (same
+   * field waypoint in blue coordinates). Do not use {@link
+   * frc.robot.util.geometry.AllianceFlipUtil#apply(Translation3d)} for passes—it mirrors into the wrong
+   * half. Y uses {@link LinesHorizontal} trench band (field left vs right).
+   */
+  public static final class Pass {
+    /** Past neutral toward +X (red wall in blue frame). Used for pass aim for blue and red alliance. */
+    public static final double AIM_X_METERS =
+        LinesVertical.neutralZoneFar + Units.inchesToMeters(24.0);
+
+    /** Lateral aim toward left trench opening side (high Y, blue-left). */
+    public static final double LEFT_LANE_Y_METERS =
+        LinesHorizontal.leftTrenchOpenEnd - Units.inchesToMeters(18.0);
+
+    /** Lateral aim toward right trench opening side (low Y, blue-right). */
+    public static final double RIGHT_LANE_Y_METERS =
+        LinesHorizontal.rightTrenchOpenStart + Units.inchesToMeters(18.0);
+
+    /** Ground plane / geometric pass height for ballistics-only Z (m). */
+    public static final double TARGET_Z_METERS = 0.0;
+
+    public static final Translation3d LEFT_TARGET_BLUE =
+        new Translation3d(AIM_X_METERS, LEFT_LANE_Y_METERS, TARGET_Z_METERS);
+
+    public static final Translation3d RIGHT_TARGET_BLUE =
+        new Translation3d(AIM_X_METERS, RIGHT_LANE_Y_METERS, TARGET_Z_METERS);
   }
 
   /** Tower related constants */

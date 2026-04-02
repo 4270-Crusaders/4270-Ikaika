@@ -1,269 +1,157 @@
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
 
 package frc.robot.commands.states;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
-import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.robot.RobotContainer;
-import frc.robot.subsystems.indexer.Indexer.INDEXER_STATE;
-import frc.robot.subsystems.intake.Intake.INTAKE_STATE;
-import frc.robot.subsystems.shooter.Shooter.SHOOTER_STATE;
+import frc.robot.commands.shooter.ShooterCommands;
+import frc.robot.subsystems.shooter.ShooterState;
 import frc.robot.subsystems.indexer.Indexer;
+import frc.robot.subsystems.indexer.Indexer.INDEXER_STATE;
 import frc.robot.subsystems.intake.Intake;
-import frc.robot.subsystems.shooter.Shooter;
+import frc.robot.subsystems.intake.Intake.INTAKE_STATE;
+/** Composes mechanism state changes into robot-wide modes. */
+public final class RobotStateCommands {
 
+  /** High-level modes selected by OI or autonomous. */
+  public enum RobotState {
+    DEFAULT,
+    AUTODEFAULT,
+    TRENCH,
+    INTAKE,
+    OUTTAKE,
+    AGITATE,
+    UN_AGITATE,
+    AUTO_START_SHOOT,
+    HUB_FOCUS,
 
-public class RobotStateCommands {
-    // //TODO: fix this shit
-    // public static Command home(){
-    //     return new ParallelCommandGroup(
-    //         Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
-    //         Intake.getSetStateCommand(INTAKE_STATE.DOWN, RobotContainer.intake),
-    //         Shooter.getSetStateCommand(SHOOTER_STATE.HOME, RobotContainer.shooter)
-    //     );
-    // }
+    /** Teleop shoot: hub vs pass from field pose; see {@code ShooterState.teleopAimModeForOwnFieldSide}. */
+    TELE_SHOOT,
+    CUSTOM,
+    PASS_FOCUS,
+    AUTO_SHOOT_PASS,
+  }
 
-    // public static Command testShoot(){
-    //     return new ParallelCommandGroup(
-    //         Indexer.getSetStateCommand(INDEXER_STATE.SHOOT, RobotContainer.indexer),
-    //         Intake.getSetStateCommand(INTAKE_STATE.SHOOT, RobotContainer.intake),
-    //         Shooter.getSetStateCommand(SHOOTER_STATE.HUB, RobotContainer.shooter)
-    //     );
-    // }
+  private RobotStateCommands() {}
 
-    public static Command CUSTOMSHOOT(){
-        return new ParallelCommandGroup(
-            Shooter.getSetStateCommand(SHOOTER_STATE.CUSTOM, RobotContainer.shooter),
-            Indexer.getSetStateCommand(INDEXER_STATE.SHOOT, RobotContainer.indexer)
-        );
-    }
-    
-    //TODO
-    public static Command defaultState() {
-        return new ParallelCommandGroup(
-            /**
-             * Intake: Down         done
-             * Indexer: Zero        done
-             * Shooter: Hub         done
-             * Climber: --
-             */
-            Intake.getSetStateCommand(INTAKE_STATE.DOWN, RobotContainer.intake),
-            Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
-            Shooter.getSetStateCommand(SHOOTER_STATE.HOME, RobotContainer.shooter)
-        );
-    }
+  /** Entry point for OI, auto paths, and tests. */
+  public static Command commandFor(RobotState state) {
+    return switch (state) {
+      case DEFAULT -> defaultState();
+      case AUTODEFAULT -> autoDefaultState();
+      case TRENCH -> trenchState();
+      case INTAKE -> intakeState();
+      case OUTTAKE -> outtakeState();
+      case AUTO_START_SHOOT -> autoShootStateCommand();
+      case AGITATE -> agitateState();
+      case UN_AGITATE -> unAgitateState();
+      case HUB_FOCUS -> hubFocusState();
+      case TELE_SHOOT -> teleShootState();
+      case CUSTOM -> customShootState();
+      case PASS_FOCUS -> passFocusState();
+      case AUTO_SHOOT_PASS -> autoShootPassState();
+    };
+  }
 
-    public static Command stopIntakeState() {
-        return new ParallelCommandGroup(
-            /**
-             * Intake: Down         done
-             * Indexer: Zero        done
-             * Shooter: Hub         done
-             * Climber: --
-             */
-            Intake.getSetStateCommand(INTAKE_STATE.DOWN, RobotContainer.intake),
-            Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer)
-        );
-    }
+  public static Command defaultState() {
+    return new ParallelCommandGroup(
+        Intake.getSetStateCommand(INTAKE_STATE.DOWN, RobotContainer.intake),
+        Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
+        ShooterCommands.getSetStateCommand(
+            ShooterState.ShooterMode.IDLE, RobotContainer.flywheel));
+  }
 
-    public static Command stopShootState() {
-        return new ParallelCommandGroup(
-            /**
-             * Intake: Down         done
-             * Indexer: Zero        done
-             * Shooter: Hub         done
-             * Climber: --
-             */
-            Shooter.getSetStateCommand(SHOOTER_STATE.HOME, RobotContainer.shooter)
-            // Indexer.getSetStateCommand(INDEXER_STATE.INTAKE, RobotContainer.indexer)
-        );
-    }
+  public static Command autoDefaultState() {
+    return new ParallelCommandGroup(
+        Intake.getSetStateCommand(INTAKE_STATE.DOWN, RobotContainer.intake),
+        Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
+        ShooterCommands.getSetStateCommand(
+            ShooterState.ShooterMode.IDLE, RobotContainer.flywheel));
+  }
 
-    public static Command autoDefaultState() {
-        return new ParallelCommandGroup(
-            /**
-             * Intake: Down         done
-             * Indexer: Zero        done
-             * Shooter: Hub         done
-             * Climber: --
-             */
-            Intake.getSetStateCommand(INTAKE_STATE.DOWN, RobotContainer.intake),
-            Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
-            Shooter.getSetStateCommand(SHOOTER_STATE.AUTOHOME, RobotContainer.shooter)
-        );
-    }
+  public static Command trenchState() {
+    return new ParallelCommandGroup(
+        Intake.getSetStateCommand(INTAKE_STATE.DOWN, RobotContainer.intake),
+        Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
+        ShooterCommands.getSetStateCommand(
+            ShooterState.ShooterMode.IDLE, RobotContainer.flywheel));
+  }
 
-    public static Command trenchState() {
-        return new ParallelCommandGroup(
-            /**
-             * Intake: Down         done
-             * Indexer: Zero        done
-             * Shooter: HOME        done
-             * Climber: Down
-             */
+  public static Command hubFocusState() {
+    return new ParallelCommandGroup(
+        Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
+        ShooterCommands.getSetStateCommand(
+            ShooterState.ShooterMode.HUB, RobotContainer.flywheel));
+  }
 
-            Intake.getSetStateCommand(INTAKE_STATE.DOWN, RobotContainer.intake),
-            Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
-            Shooter.getSetStateCommand(SHOOTER_STATE.HOME, RobotContainer.shooter)
-        );
-    }
+  public static Command passFocusState() {
+    return new ParallelCommandGroup(
+        Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
+        ShooterCommands.getSetStateCommand(
+            ShooterState.ShooterMode.PASS, RobotContainer.flywheel));
+  }
 
-    //TODO
-    public static Command aimState() {
-        return new ParallelCommandGroup(
-            /**
-             * Intake: Intake
-             * Indexer: Stop   
-             * Shooter: Hub        
-             * Climber: --
-             */
-            Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake),
-            Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
-            Shooter.getSetStateCommand(SHOOTER_STATE.AIM, RobotContainer.shooter)
-        );
-    }
+  public static Command autoShootStateCommand() {
+    return new ParallelCommandGroup(
+        Indexer.getSetStateCommand(INDEXER_STATE.AUTOSHOOT, RobotContainer.indexer),
+        ShooterCommands.getSetStateCommand(
+            ShooterState.ShooterMode.HUB, RobotContainer.flywheel));
+  }
 
-    //TODO
-    public static Command shootState() {
-        return new ParallelCommandGroup(
-            /**
-             * Intake: --
-             * Indexer: Stop   
-             * Shooter: Pass        
-             * Climber: --
-             */
-            Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake),
-            Indexer.getSetStateCommand(INDEXER_STATE.SHOOT, RobotContainer.indexer),
-            Shooter.getSetStateCommand(SHOOTER_STATE.AIM, RobotContainer.shooter)
-        );
-    }
+  public static Command autoShootPassState() {
+    return new ParallelCommandGroup(
+        Indexer.getSetStateCommand(INDEXER_STATE.AUTOSHOOT, RobotContainer.indexer),
+        ShooterCommands.getSetStateCommand(
+            ShooterState.ShooterMode.PASS, RobotContainer.flywheel));
+  }
 
-    public static Command autoAimHubState() {
-        return new ParallelCommandGroup(
-            /**
-             * Intake: Intake
-             * Indexer: Stop   
-             * Shooter: Hub        
-             * Climber: --
-             */
-            Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake),
-            Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
-            Shooter.getSetStateCommand(SHOOTER_STATE.AUTOAIMHUB, RobotContainer.shooter)
-        );
-    }
+  /**
+   * Teleop shoot (driver right trigger): intake, continuous hub/pass mode from field pose, and indexer
+   * {@code AUTOSHOOT} (same as auto) so balls feed while holding without readyToShoot gating. Bind with
+   * {@code whileTrue} so release cancels this group and {@code DEFAULT} can set {@link
+   * ShooterState.ShooterMode#IDLE}.
+   */
+  public static Command teleShootState() {
+    return new ParallelCommandGroup(
+        Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake),
+        Indexer.getSetStateCommand(INDEXER_STATE.AUTOSHOOT, RobotContainer.indexer),
+        // No subsystem requirements: requiring flywheel would cancel runTrackTargetCommand.
+        Commands.run(
+            () ->
+                ShooterState.getInstance()
+                    .setShooterMode(
+                        ShooterState.teleopAimModeForOwnFieldSide(
+                            frc.robot.RobotState.getInstance().getEstimatedPose()))));
+  }
 
-    //TODO
-    public static Command autoShootHubState() {
-        return new ParallelCommandGroup(
-            /**
-             * Intake: --
-             * Indexer: Shoot        done
-             * Shooter: HUB          done
-             * Climber: --
-             */
+  public static Command customShootState() {
+    return new ParallelCommandGroup(
+        ShooterCommands.getSetStateCommand(
+            ShooterState.ShooterMode.CUSTOM, RobotContainer.flywheel),
+        Indexer.getSetStateCommand(INDEXER_STATE.SHOOT, RobotContainer.indexer));
+  }
 
-            Indexer.getSetStateCommand(INDEXER_STATE.AUTOSHOOT, RobotContainer.indexer),
-            Shooter.getSetStateCommand(SHOOTER_STATE.AUTOAIMHUB, RobotContainer.shooter)
-        );
-    }
+  public static Command intakeState() {
+    return new ParallelCommandGroup(
+        Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake),
+        Indexer.getSetStateCommand(INDEXER_STATE.INTAKE, RobotContainer.indexer));
+  }
 
-    public static Command autoAimPassState() {
-        return new ParallelCommandGroup(
-            /**
-             * Intake: Intake
-             * Indexer: Stop   
-             * Shooter: Hub        
-             * Climber: --
-             */
-            Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake),
-            Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
-            Shooter.getSetStateCommand(SHOOTER_STATE.AUTOAIMPASS, RobotContainer.shooter)
-        );
-    }
+  /** Exit agitate: rollers back to normal intake behavior. */
+  public static Command unAgitateState() {
+    return Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake);
+  }
 
-    public static Command autoShootPassState() {
-        return new ParallelCommandGroup(
-            /**
-             * Intake: --
-             * Indexer: Shoot        done
-             * Shooter: HUB          done
-             * Climber: --
-             */
+  public static Command outtakeState() {
+    return new ParallelCommandGroup(
+        Intake.getSetStateCommand(INTAKE_STATE.OUTTAKE, RobotContainer.intake),
+        Indexer.getSetStateCommand(INDEXER_STATE.OUTTAKE, RobotContainer.indexer));
+  }
 
-            Indexer.getSetStateCommand(INDEXER_STATE.AUTOSHOOT, RobotContainer.indexer),
-            Shooter.getSetStateCommand(SHOOTER_STATE.AUTOAIMPASS, RobotContainer.shooter)
-        );
-    }
-
-    //TODO
-    public static Command intakeState() {
-        return new ParallelCommandGroup(
-            /**
-             * Intake: Intake           done
-             * Indexer: Intake          done
-             * Shooter: --
-             * Climber: --
-             */
-
-            Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake),
-            Indexer.getSetStateCommand(INDEXER_STATE.INTAKE, RobotContainer.indexer)
-        );
-    }
-
-    //TODO
-    public static Command unAgitate() {
-        return new ParallelCommandGroup(
-            /**
-             * Intake: Intake           done
-             * Indexer: Intake          done
-             * Shooter: --
-             * Climber: --
-             */
-
-            Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake)
-        );
-    }
-
-    //TODO
-    public static Command outtakeState() {
-        return new ParallelCommandGroup(
-            /**
-             * Intake: outtake           done
-             * Indexer: outtake         done
-             * Shooter: --            
-             * Climber: --
-             */
-
-            Intake.getSetStateCommand(INTAKE_STATE.OUTTAKE, RobotContainer.intake)
-           // Indexer.getSetStateCommand(INDEXER_STATE.OUTTAKE, RobotContainer.indexer)
-        );
-    }
-
-    //TODO
-    public static Command spitState() {
-        return new SequentialCommandGroup(
-            /**
-             * Intake: --
-             * Indexer: spit         done
-             * Shooter: --
-             * Climber: --
-             */
-
-            Indexer.getSetStateCommand(INDEXER_STATE.SPIT, RobotContainer.indexer)
-        );
-    }
-
-    //TODO
-    public static Command agitateState() {
-        return new SequentialCommandGroup(
-            /**
-             * Intake: Agitate          done
-             * Indexer: --
-             * Shooter: --         
-             * Climber: --
-             */
-
-            Intake.getSetStateCommand(INTAKE_STATE.AGITATE, RobotContainer.intake)
-        );
-    }
+  public static Command agitateState() {
+    return Intake.getSetStateCommand(INTAKE_STATE.AGITATE, RobotContainer.intake);
+  }
 }

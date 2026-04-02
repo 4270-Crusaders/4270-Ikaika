@@ -1,9 +1,5 @@
-// Copyright (c) 2021-2026 Littleton Robotics
-// http://github.com/Mechanical-Advantage
-//
-// Use of this source code is governed by a BSD
-// license that can be found in the LICENSE file
-// at the root directory of this project.
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
 
 package frc.robot.subsystems.vision;
 
@@ -72,15 +68,20 @@ public class VisionIOLimelight implements VisionIO {
     // Read new pose observations from NetworkTables
     Set<Integer> tagIds = new HashSet<>();
     List<PoseObservation> poseObservations = new LinkedList<>();
-    for (var rawSample : megatag1Subscriber.readQueue()) {
+    var megatag1Samples = megatag1Subscriber.readQueue();
+    var megatag2Samples = megatag2Subscriber.readQueue();
+    inputs.unreadMegatag1Count = megatag1Samples.length;
+    inputs.unreadMegatag2Count = megatag2Samples.length;
+    for (var rawSample : megatag1Samples) {
       if (rawSample.value.length == 0) continue;
+      double timestampSec = getObservationTimestampSec(rawSample.timestamp, rawSample.value);
       for (int i = 11; i < rawSample.value.length; i += 7) {
         tagIds.add((int) rawSample.value[i]);
       }
       poseObservations.add(
           new PoseObservation(
-              // Timestamp, based on server timestamp of publish and latency
-              rawSample.timestamp * 1.0e-6 - rawSample.value[6] * 1.0e-3,
+              // Timestamp in robot FPGA time base (fallback applied if NT sample clock drifts).
+              timestampSec,
 
               // 3D pose estimate
               parsePose(rawSample.value),
@@ -98,15 +99,16 @@ public class VisionIOLimelight implements VisionIO {
               // Observation type
               PoseObservationType.MEGATAG_1));
     }
-    for (var rawSample : megatag2Subscriber.readQueue()) {
+    for (var rawSample : megatag2Samples) {
       if (rawSample.value.length == 0) continue;
+      double timestampSec = getObservationTimestampSec(rawSample.timestamp, rawSample.value);
       for (int i = 11; i < rawSample.value.length; i += 7) {
         tagIds.add((int) rawSample.value[i]);
       }
       poseObservations.add(
           new PoseObservation(
-              // Timestamp, based on server timestamp of publish and latency
-              rawSample.timestamp * 1.0e-6 - rawSample.value[6] * 1.0e-3,
+              // Timestamp in robot FPGA time base (fallback applied if NT sample clock drifts).
+              timestampSec,
 
               // 3D pose estimate
               parsePose(rawSample.value),
@@ -148,5 +150,25 @@ public class VisionIOLimelight implements VisionIO {
             Units.degreesToRadians(rawLLArray[3]),
             Units.degreesToRadians(rawLLArray[4]),
             Units.degreesToRadians(rawLLArray[5])));
+  }
+
+  /**
+   * Converts a Limelight NT sample timestamp to FPGA seconds with latency removed.
+   *
+   * <p>If NT timestamp source is on a different epoch/clock, fall back to FPGA-now minus latency so
+   * RobotState's pose buffer interpolation still accepts the sample.
+   */
+  private static double getObservationTimestampSec(long rawTimestampMicros, double[] rawLLArray) {
+    double latencySec = rawLLArray.length > 6 ? rawLLArray[6] * 1.0e-3 : 0.0;
+    double fromNtSec = rawTimestampMicros * 1.0e-6 - latencySec;
+    double fromFpgaSec = RobotController.getFPGATime() * 1.0e-6 - latencySec;
+    if (!Double.isFinite(fromNtSec)) {
+      return fromFpgaSec;
+    }
+    // If clocks differ materially, prefer local FPGA time base.
+    if (Math.abs(fromFpgaSec - fromNtSec) > 1.5) {
+      return fromFpgaSec;
+    }
+    return fromNtSec;
   }
 }

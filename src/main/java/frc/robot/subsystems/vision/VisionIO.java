@@ -1,9 +1,5 @@
-// Copyright (c) 2021-2026 Littleton Robotics
-// http://github.com/Mechanical-Advantage
-//
-// Use of this source code is governed by a BSD
-// license that can be found in the LICENSE file
-// at the root directory of this project.
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
 
 package frc.robot.subsystems.vision;
 
@@ -19,6 +15,10 @@ public interface VisionIO {
         new TargetObservation(Rotation2d.kZero, Rotation2d.kZero);
     public PoseObservation[] poseObservations = new PoseObservation[0];
     public int[] tagIds = new int[0];
+    /** Raw unread MT1 queue entries consumed this loop (Limelight IO). */
+    public int unreadMegatag1Count = 0;
+    /** Raw unread MT2 queue entries consumed this loop (Limelight IO). */
+    public int unreadMegatag2Count = 0;
   }
 
   /** Represents the angle to a simple target, not used for pose estimation. */

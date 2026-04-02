@@ -1,5 +1,11 @@
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
+
 package frc.robot.subsystems.shooter.turret;
 
+import static frc.robot.Constants.TalonFxIo.CONFIG_APPLY_TIMEOUT_SEC;
+import static frc.robot.Constants.TalonFxIo.CONFIG_RETRY_COUNT;
+import static frc.robot.Constants.TalonFxIo.STATUS_SIGNAL_UPDATE_HZ;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
@@ -13,6 +19,7 @@ import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.GravityTypeValue;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
+import static edu.wpi.first.units.Units.RadiansPerSecond;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
@@ -28,19 +35,19 @@ import frc.robot.subsystems.shooter.ShooterConstants;
  */
 public class TurretIOTalonFX implements TurretIO {
   // Motor and absolute encoder on the turret
-  private final TalonFX Motor = new TalonFX(ShooterConstants.TurretConstants.TURRET_CAN_ID);
-  private final CANcoder Encoder =
-      new CANcoder(ShooterConstants.TurretConstants.TURRET_ENCODER_CAN_ID);
+  private final TalonFX motor = new TalonFX(ShooterConstants.ComponentsConstants.Turret.TURRET_CAN_ID);
+  private final CANcoder encoder =
+      new CANcoder(ShooterConstants.ComponentsConstants.Turret.TURRET_ENCODER_CAN_ID);
 
   // Status signals for commonly-used telemetry values
-  private final StatusSignal<AngularVelocity> veloRPS = Motor.getVelocity();
-  private final StatusSignal<Double> setPosRot = Motor.getClosedLoopReference();
-  private final StatusSignal<Angle> measuredPosRot = Motor.getPosition();
-  private final StatusSignal<Angle> measuredEncoderPosRot = Encoder.getAbsolutePosition();
-  private final StatusSignal<Voltage> appliedVoltage = Motor.getMotorVoltage();
-  private final StatusSignal<Current> supplyCurrentAmps = Motor.getSupplyCurrent();
-  private final StatusSignal<Current> torqueCurrentAmps = Motor.getTorqueCurrent();
-  private final StatusSignal<Temperature> deviceTemperature = Motor.getDeviceTemp();
+  private final StatusSignal<AngularVelocity> velocityRps = motor.getVelocity();
+  private final StatusSignal<Double> setpointPositionRotations = motor.getClosedLoopReference();
+  private final StatusSignal<Angle> measuredPositionRotations = motor.getPosition();
+  private final StatusSignal<Angle> measuredEncoderPositionRotations = encoder.getAbsolutePosition();
+  private final StatusSignal<Voltage> appliedVoltage = motor.getMotorVoltage();
+  private final StatusSignal<Current> supplyCurrentAmps = motor.getSupplyCurrent();
+  private final StatusSignal<Current> torqueCurrentAmps = motor.getTorqueCurrent();
+  private final StatusSignal<Temperature> deviceTemperature = motor.getDeviceTemp();
 
   // MotionMagic/torque FOC request object (used for position commands)
   private final MotionMagicExpoTorqueCurrentFOC positionRequest =
@@ -52,90 +59,93 @@ public class TurretIOTalonFX implements TurretIO {
   public TurretIOTalonFX() {
     // Configure encoder and motor controller using Turret-specific constants
     encoderConfig.MagnetSensor.AbsoluteSensorDiscontinuityPoint =
-        ShooterConstants.TurretConstants.TurretEncoderAbsoluteSensorDiscontinuityPoint;
+        ShooterConstants.ComponentsConstants.Turret.TurretEncoderAbsoluteSensorDiscontinuityPoint;
     encoderConfig.MagnetSensor.SensorDirection =
-        ShooterConstants.TurretConstants.turretEncoderDirection;
+        ShooterConstants.ComponentsConstants.Turret.turretEncoderDirection;
     encoderConfig.MagnetSensor.MagnetOffset =
-        ShooterConstants.TurretConstants.TurretEncoderMagnetOffset;
+        ShooterConstants.ComponentsConstants.Turret.TurretEncoderMagnetOffset;
 
     // Retry applying CANcoder config to tolerate CAN startup races
-    tryUntilOk(5, () -> Encoder.getConfigurator().apply(encoderConfig, 0.25));
+    tryUntilOk(
+        CONFIG_RETRY_COUNT, () -> encoder.getConfigurator().apply(encoderConfig, CONFIG_APPLY_TIMEOUT_SEC));
 
     motorConfig.CurrentLimits.SupplyCurrentLimit =
-        ShooterConstants.TurretConstants.TurretCurrentLimit;
+        ShooterConstants.ComponentsConstants.Turret.TurretCurrentLimit;
     motorConfig.CurrentLimits.SupplyCurrentLimitEnable =
-        ShooterConstants.TurretConstants.TurretSupplyCurrentLimitEnable;
-    motorConfig.MotorOutput.NeutralMode = ShooterConstants.TurretConstants.TurretNeutralModeValue;
-    motorConfig.MotorOutput.Inverted = ShooterConstants.TurretConstants.TurretInvertedValue;
+        ShooterConstants.ComponentsConstants.Turret.TurretSupplyCurrentLimitEnable;
+    motorConfig.MotorOutput.NeutralMode =
+        ShooterConstants.ComponentsConstants.Turret.TurretNeutralModeValue;
+    motorConfig.MotorOutput.Inverted = ShooterConstants.ComponentsConstants.Turret.TurretInvertedValue;
 
     // Default PID / feedforward values from constants
-    motorConfig.Slot0.kP = ShooterConstants.TurretConstants.TurretkP;
-    motorConfig.Slot0.kI = ShooterConstants.TurretConstants.TurretkI;
-    motorConfig.Slot0.kD = ShooterConstants.TurretConstants.TurretkD;
-    motorConfig.Slot0.kA = ShooterConstants.TurretConstants.TurretkA;
+    motorConfig.Slot0.kP = ShooterConstants.ComponentsConstants.Turret.Gains.kP;
+    motorConfig.Slot0.kI = ShooterConstants.ComponentsConstants.Turret.Gains.kI;
+    motorConfig.Slot0.kD = ShooterConstants.ComponentsConstants.Turret.Gains.kD;
+    motorConfig.Slot0.kA = ShooterConstants.ComponentsConstants.Turret.Gains.kA;
     motorConfig.Slot0.kV =
-        ShooterConstants.TurretConstants
-            .TurretMotionMagickV; // reuse motion magic kV if appropriate
-    motorConfig.Slot0.kS = 0; // leave static gain at 0 unless provided in constants
-    motorConfig.Slot0.kG = ShooterConstants.TurretConstants.TurretkG;
+        ShooterConstants.ComponentsConstants.Turret.Gains.kV;
+    motorConfig.Slot0.kS = ShooterConstants.ComponentsConstants.Turret.Gains.kS;
+    motorConfig.Slot0.kG = ShooterConstants.ComponentsConstants.Turret.Gains.kG;
     motorConfig.Slot0.GravityType = GravityTypeValue.Arm_Cosine;
 
     // Motion magic defaults
     motorConfig.MotionMagic.MotionMagicCruiseVelocity =
-        ShooterConstants.TurretConstants.TurretMotionMagicVelocity;
+        ShooterConstants.ComponentsConstants.Turret.Gains.MotionMagic.velocity;
     motorConfig.MotionMagic.MotionMagicAcceleration =
-        ShooterConstants.TurretConstants.TurretMotionMagicAcceleration;
+        ShooterConstants.ComponentsConstants.Turret.Gains.MotionMagic.acceleration;
     motorConfig.MotionMagic.MotionMagicJerk =
-        ShooterConstants.TurretConstants.TurretMotionMagicJerk;
+        ShooterConstants.ComponentsConstants.Turret.Gains.MotionMagic.jerk;
     motorConfig.MotionMagic.MotionMagicExpo_kA =
-        ShooterConstants.TurretConstants.TurretMotionMagickA;
+        ShooterConstants.ComponentsConstants.Turret.Gains.MotionMagic.expo_kA;
     motorConfig.MotionMagic.MotionMagicExpo_kV =
-        ShooterConstants.TurretConstants.TurretMotionMagickV;
+        ShooterConstants.ComponentsConstants.Turret.Gains.MotionMagic.expo_kV;
 
     // Feedback sensor setup: use fused CANcoder similar to hood
-    motorConfig.Feedback.FeedbackRemoteSensorID = Encoder.getDeviceID();
+    motorConfig.Feedback.FeedbackRemoteSensorID = encoder.getDeviceID();
     motorConfig.Feedback.FeedbackSensorSource = FeedbackSensorSourceValue.FusedCANcoder;
     motorConfig.Feedback.SensorToMechanismRatio =
-        ShooterConstants.TurretConstants.TurretSensorToMechanismRatio;
+        ShooterConstants.ComponentsConstants.Turret.sensorToMechanismRatio;
     motorConfig.Feedback.RotorToSensorRatio =
-        ShooterConstants.TurretConstants.TurretRotorToSensorRatio;
+        ShooterConstants.ComponentsConstants.Turret.rotorToSensorRatio;
 
-    tryUntilOk(5, () -> Motor.getConfigurator().apply(motorConfig, 0.25));
+    tryUntilOk(
+        CONFIG_RETRY_COUNT, () -> motor.getConfigurator().apply(motorConfig, CONFIG_APPLY_TIMEOUT_SEC));
 
     // Set the update frequency for the status signals we plan to read
     BaseStatusSignal.setUpdateFrequencyForAll(
-        50.0,
-        veloRPS,
-        setPosRot,
-        measuredPosRot,
+        STATUS_SIGNAL_UPDATE_HZ,
+        velocityRps,
+        setpointPositionRotations,
+        measuredPositionRotations,
         appliedVoltage,
         supplyCurrentAmps,
         torqueCurrentAmps,
         deviceTemperature,
-        measuredEncoderPosRot);
+        measuredEncoderPositionRotations);
   }
 
   @Override
   public void updateInputs(TurretIOInputs inputs) {
     // Refresh the cached status signals and populate the inputs struct.
     BaseStatusSignal.refreshAll(
-        veloRPS,
-        setPosRot,
-        measuredPosRot,
+        velocityRps,
+        setpointPositionRotations,
+        measuredPositionRotations,
         appliedVoltage,
         supplyCurrentAmps,
         torqueCurrentAmps,
         deviceTemperature,
-        measuredEncoderPosRot);
+        measuredEncoderPositionRotations);
 
     inputs.appliedVolts = appliedVoltage.getValueAsDouble();
     inputs.deviceTemperature = deviceTemperature.getValueAsDouble();
     // Convert rotations to degrees for convenience in higher-level code
-    inputs.measuredPostionDeg = Units.rotationsToDegrees(measuredPosRot.getValueAsDouble());
-    inputs.setPostionDeg = Units.rotationsToDegrees(setPosRot.getValueAsDouble());
+    inputs.measuredPostionDeg = Units.rotationsToDegrees(measuredPositionRotations.getValueAsDouble());
+    inputs.setPostionDeg = Units.rotationsToDegrees(setpointPositionRotations.getValueAsDouble());
+    inputs.velocityRadPerSec = velocityRps.getValue().in(RadiansPerSecond);
     inputs.supplyCurrentAmps = supplyCurrentAmps.getValueAsDouble();
     inputs.torqueCurrentAmps = torqueCurrentAmps.getValueAsDouble();
-    inputs.measuredEncoderPositionRot = measuredEncoderPosRot.getValueAsDouble();
+    inputs.measuredEncoderPositionRot = measuredEncoderPositionRotations.getValueAsDouble();
   }
 
   @Override
@@ -148,7 +158,7 @@ public class TurretIOTalonFX implements TurretIO {
     motorConfig.Slot0.kA = kA;
     motorConfig.Slot0.kG = kG;
     // Apply updated gains to the motor controller (retries for reliability)
-    tryUntilOk(5, () -> Motor.getConfigurator().apply(motorConfig));
+    tryUntilOk(CONFIG_RETRY_COUNT, () -> motor.getConfigurator().apply(motorConfig));
   }
 
   @Override
@@ -156,14 +166,15 @@ public class TurretIOTalonFX implements TurretIO {
       double jerk, double acceleration, double velocity, double expokA, double expokV) {
     motorConfig.MotionMagic.MotionMagicJerk = jerk;
     motorConfig.MotionMagic.MotionMagicAcceleration = acceleration;
+    motorConfig.MotionMagic.MotionMagicCruiseVelocity = velocity;
     motorConfig.MotionMagic.MotionMagicExpo_kA = expokA;
     motorConfig.MotionMagic.MotionMagicExpo_kV = expokV;
-    tryUntilOk(5, () -> Motor.getConfigurator().apply(motorConfig));
+    tryUntilOk(CONFIG_RETRY_COUNT, () -> motor.getConfigurator().apply(motorConfig));
   }
 
   @Override
   public void runSetpointDegree(double setpointDeg) {
-    Motor.setControl(positionRequest.withPosition(Units.degreesToRotations(setpointDeg)));
+    motor.setControl(positionRequest.withPosition(Units.degreesToRotations(setpointDeg)));
   }
 
   // public static double calculateTurretTarget(double currentAngle, double targetAngle){

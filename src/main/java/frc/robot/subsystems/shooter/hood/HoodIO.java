@@ -1,3 +1,6 @@
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
+
 package frc.robot.subsystems.shooter.hood;
 
 import org.littletonrobotics.junction.AutoLog;
@@ -44,7 +47,6 @@ public interface HoodIO {
       double jerk, double acceleration, double velocity, double expokA, double expokV) {}
 
   public default void updateInputs(HoodIOInputs inputs) {}
-  ;
 
   /** Run open loop at the specified velocity. */
   public default void runSetpointDegree(double setpointDeg) {}

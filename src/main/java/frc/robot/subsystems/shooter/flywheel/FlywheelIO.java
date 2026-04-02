@@ -1,3 +1,6 @@
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
+
 package frc.robot.subsystems.shooter.flywheel;
 
 import org.littletonrobotics.junction.AutoLog;
@@ -5,17 +8,19 @@ import org.littletonrobotics.junction.AutoLog;
 public interface FlywheelIO {
   @AutoLog
   public static class FlywheelIOInputs {
-    public double MainFlyWheelRPM = 0.0;
-    public double HoodFlyWheelRPM = 0.0;
-    public double positionRad[] = new double[] {};
+    /** Estimated main flywheel wheel speed (RPM), derived from motor speed and gearing. */
+    public double mainFlywheelRpm = 0.0;
+    /** Estimated hood flywheel wheel speed (RPM), derived from motor speed and gearing. */
+    public double hoodFlywheelRpm = 0.0;
+    public double motorPositionRadians[] = new double[] {};
     public double appliedVolts[] = new double[] {};
     public double torqueCurrentAmps[] = new double[] {};
     public double supplyCurrentAmps[] = new double[] {};
-    public double motorSetpointVelocityRPS[] = new double[] {};
-    public double motorMeasuredVelocityRPS[] = new double[] {};
-    public double motorSetpointVelocityRPM[] = new double[] {};
-    public double motorMeasuredVelocityRPM[] = new double[] {};
-    public double deviceTemperature[] = new double[] {};
+    public double motorSetpointVelocityRps[] = new double[] {};
+    public double motorMeasuredVelocityRps[] = new double[] {};
+    public double motorSetpointVelocityRpm[] = new double[] {};
+    public double motorMeasuredVelocityRpm[] = new double[] {};
+    public double deviceTemperatureCelsius[] = new double[] {};
   }
 
   /**
@@ -30,11 +35,7 @@ public interface FlywheelIO {
    */
   public default void setPID(double kP, double kI, double kD, double kS, double kV, double kA) {}
 
-  public default void setMotionMagicConstraints(
-      double jerk, double acceleration, double velocity) {}
-
   public default void updateInputs(FlywheelIOInputs inputs) {}
-  ;
 
   /** Run open loop at the specified velocity. */
   public default void runSetVelocity(double setpointVelocityRotPerSec) {}

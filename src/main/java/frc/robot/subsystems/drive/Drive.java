@@ -1,9 +1,5 @@
-// Copyright (c) 2021-2026 Littleton Robotics
-// http://github.com/Mechanical-Advantage
-//
-// Use of this source code is governed by a BSD
-// license that can be found in the LICENSE file
-// at the root directory of this project.
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
 
 package frc.robot.subsystems.drive;
 
@@ -19,8 +15,6 @@ import com.pathplanner.lib.util.PathPlannerLogging;
 import edu.wpi.first.hal.FRCNetComm.tInstances;
 import edu.wpi.first.hal.FRCNetComm.tResourceType;
 import edu.wpi.first.hal.HAL;
-import edu.wpi.first.math.Matrix;
-import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -29,8 +23,6 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.math.numbers.N1;
-import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
@@ -38,6 +30,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.RobotState;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants;
 import frc.robot.Constants.Mode;
@@ -45,6 +38,7 @@ import frc.robot.generated.TunerConstants;
 import frc.robot.util.LocalADStarAK;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.Optional;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
@@ -87,6 +81,12 @@ public class Drive extends SubsystemBase {
   private final Alert gyroDisconnectedAlert =
       new Alert("Disconnected gyro, using kinematics as fallback.", AlertType.kError);
 
+  /**
+   * When true, neutral open-loop commands were already sent this disabled episode. Re-sending every
+   * {@code periodic()} floods CAN (eight Talons at 50 Hz) and contributes to loop overrun / transmit errors.
+   */
+  private boolean swerveNeutralSentWhileDisabled = false;
+
   private SwerveDriveKinematics kinematics = new SwerveDriveKinematics(getModuleTranslations());
   private Rotation2d rawGyroRotation = Rotation2d.kZero;
   private SwerveModulePosition[] lastModulePositions = // For delta tracking
@@ -96,8 +96,6 @@ public class Drive extends SubsystemBase {
         new SwerveModulePosition(),
         new SwerveModulePosition()
       };
-  private SwerveDrivePoseEstimator poseEstimator =
-      new SwerveDrivePoseEstimator(kinematics, rawGyroRotation, lastModulePositions, Pose2d.kZero);
 
   public Drive(
       GyroIO gyroIO,
@@ -117,9 +115,10 @@ public class Drive extends SubsystemBase {
     // Start odometry thread
     PhoenixOdometryThread.getInstance().start();
 
-    // Configure AutoBuilder for PathPlanner
+    // Configure AutoBuilder for PathPlanner (pose from RobotState: wheels + gyro + vision).
+    // Paths authored in blue frame mirror on red so autos match driver station.
     AutoBuilder.configure(
-        this::getPose,
+        () -> RobotState.getInstance().getEstimatedPose(),
         this::setPose,
         this::getChassisSpeeds,
         this::runVelocity,
@@ -149,6 +148,9 @@ public class Drive extends SubsystemBase {
                 (state) -> Logger.recordOutput("Drive/SysIdState", state.toString())),
             new SysIdRoutine.Mechanism(
                 (voltage) -> runCharacterization(voltage.in(Volts)), null, this));
+
+    // Keep global robot-state estimator aligned with drive pose resets.
+    RobotState.getInstance().resetPose(Pose2d.kZero);
   }
 
   @Override
@@ -161,17 +163,21 @@ public class Drive extends SubsystemBase {
     }
     odometryLock.unlock();
 
-    // Stop moving when disabled
+    // Stop moving when disabled (once per disable; avoid repeating setControl every 20 ms).
     if (DriverStation.isDisabled()) {
-      for (var module : modules) {
-        module.stop();
+      if (!swerveNeutralSentWhileDisabled) {
+        for (var module : modules) {
+          module.stop();
+        }
+        swerveNeutralSentWhileDisabled = true;
       }
+    } else {
+      swerveNeutralSentWhileDisabled = false;
     }
 
     // Log empty setpoint states when disabled
     if (DriverStation.isDisabled()) {
       Logger.recordOutput("SwerveStates/Setpoints", new SwerveModuleState[] {});
-      Logger.recordOutput("SwerveStates/SetpointsOptimized", new SwerveModuleState[] {});
     }
 
     // TODO -> Look into odometry prioritization of camera pos estimation and pidgeon 
@@ -203,9 +209,18 @@ public class Drive extends SubsystemBase {
         rawGyroRotation = rawGyroRotation.plus(new Rotation2d(twist.dtheta));
       }
 
-      // Apply update
-      poseEstimator.updateWithTime(sampleTimestamps[i], rawGyroRotation, modulePositions);
+      RobotState.getInstance()
+          .addOdometryObservation(
+              new RobotState.OdometryObservation(
+                  sampleTimestamps[i],
+                  modulePositions,
+                  gyroInputs.connected
+                      ? Optional.of(rawGyroRotation)
+                      : Optional.empty()));
     }
+
+    // Robot-relative chassis velocity used by consumers (e.g. shooter lead solve).
+    RobotState.getInstance().setRobotVelocity(getChassisSpeeds());
 
     // Update gyro alert
     gyroDisconnectedAlert.set(!gyroInputs.connected && Constants.currentMode != Mode.SIM);
@@ -217,22 +232,24 @@ public class Drive extends SubsystemBase {
    * @param speeds Speeds in meters/sec
    */
   public void runVelocity(ChassisSpeeds speeds) {
+    // Default commands still run while disabled; avoid re-sending closed-loop setpoints every tick (CAN).
+    if (!DriverStation.isEnabled()) {
+      return;
+    }
+
     // Calculate module setpoints
     ChassisSpeeds discreteSpeeds = ChassisSpeeds.discretize(speeds, 0.02);
     SwerveModuleState[] setpointStates = kinematics.toSwerveModuleStates(discreteSpeeds);
     SwerveDriveKinematics.desaturateWheelSpeeds(setpointStates, TunerConstants.kSpeedAt12Volts);
 
-    // Log unoptimized setpoints and setpoint speeds
-    Logger.recordOutput("SwerveStates/Setpoints", setpointStates);
     Logger.recordOutput("SwerveChassisSpeeds/Setpoints", discreteSpeeds);
 
-    // Send setpoints to modules
+    // Send setpoints to modules (may optimize wheel angles / speeds in place)
     for (int i = 0; i < 4; i++) {
       modules[i].runSetpoint(setpointStates[i]);
     }
 
-    // Log optimized setpoints (runSetpoint mutates each state)
-    Logger.recordOutput("SwerveStates/SetpointsOptimized", setpointStates);
+    Logger.recordOutput("SwerveStates/Setpoints", setpointStates);
   }
 
   /** Runs the drive in a straight line with the specified drive output. */
@@ -315,10 +332,13 @@ public class Drive extends SubsystemBase {
     return output;
   }
 
-  /** Returns the current odometry pose. */
-  @AutoLogOutput(key = "Odometry/Robot")
+  /**
+   * Field pose for subsystem helpers; same as {@link RobotState#getEstimatedPose()} (logged as {@code
+   * Odometry/Robot}).
+   */
+  @AutoLogOutput(key = "Drive/PoseEstimator")
   public Pose2d getPose() {
-    return poseEstimator.getEstimatedPosition();
+    return RobotState.getInstance().getEstimatedPose();
   }
 
   /** Returns the current odometry rotation. */
@@ -328,16 +348,11 @@ public class Drive extends SubsystemBase {
 
   /** Resets the current odometry pose. */
   public void setPose(Pose2d pose) {
-    poseEstimator.resetPosition(rawGyroRotation, getModulePositions(), pose);
-  }
-
-  /** Adds a new timestamped vision measurement. */
-  public void addVisionMeasurement(
-      Pose2d visionRobotPoseMeters,
-      double timestampSeconds,
-      Matrix<N3, N1> visionMeasurementStdDevs) {
-    poseEstimator.addVisionMeasurement(
-        visionRobotPoseMeters, timestampSeconds, visionMeasurementStdDevs);
+    SwerveModulePosition[] positions = getModulePositions();
+    RobotState.getInstance().resetPose(pose, positions);
+    for (int i = 0; i < 4; i++) {
+      lastModulePositions[i] = positions[i];
+    }
   }
 
   /** Returns the maximum linear speed in meters per sec. */

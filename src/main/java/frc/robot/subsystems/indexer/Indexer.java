@@ -1,21 +1,30 @@
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
+
 package frc.robot.subsystems.indexer;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.subsystems.indexer.agitator.Agitator;
-import frc.robot.subsystems.indexer.agitator.Agitator.AgitatorGoal;
-import frc.robot.subsystems.indexer.agitator.AgitatorIO;
-import frc.robot.subsystems.indexer.conveyor.Conveyor;
-import frc.robot.subsystems.indexer.conveyor.Conveyor.ConveyorGoal;
-import frc.robot.subsystems.indexer.conveyor.ConveyorIO;
-import frc.robot.subsystems.indexer.kicker.Kicker;
-import frc.robot.subsystems.indexer.kicker.Kicker.KickerGoal;
-import frc.robot.subsystems.indexer.kicker.KickerIO;
-import frc.robot.subsystems.indexer.rollers.Rollers;
-import frc.robot.subsystems.indexer.rollers.Rollers.RollersGoal;
-import frc.robot.subsystems.indexer.rollers.RollersIO;
+import frc.robot.subsystems.shooter.ShooterState;
+import frc.robot.subsystems.indexer.indexerAgitator.IndexerAgitator;
+import frc.robot.subsystems.indexer.indexerAgitator.IndexerAgitator.IndexerAgitatorGoal;
+import frc.robot.subsystems.indexer.indexerAgitator.IndexerAgitatorIO;
+import frc.robot.subsystems.indexer.indexerConveyor.IndexerConveyor;
+import frc.robot.subsystems.indexer.indexerConveyor.IndexerConveyor.IndexerConveyorGoal;
+import frc.robot.subsystems.indexer.indexerConveyor.IndexerConveyorIO;
+import frc.robot.subsystems.indexer.indexerKicker.IndexerKicker;
+import frc.robot.subsystems.indexer.indexerKicker.IndexerKicker.IndexerKickerGoal;
+import frc.robot.subsystems.indexer.indexerKicker.IndexerKickerIO;
+import frc.robot.subsystems.indexer.indexerRollers.IndexerRollers;
+import frc.robot.subsystems.indexer.indexerRollers.IndexerRollers.IndexerRollersGoal;
+import frc.robot.subsystems.indexer.indexerRollers.IndexerRollersIO;
 import org.littletonrobotics.junction.AutoLogOutput;
 
+/**
+ * Coordinates indexer agitator, kicker, conveyor, and rollers into high-level {@link INDEXER_STATE}
+ * behaviors.
+ */
 public class Indexer extends SubsystemBase {
   public enum INDEXER_STATE {
     INTAKE,
@@ -27,99 +36,91 @@ public class Indexer extends SubsystemBase {
     CUSTOM
   }
 
-  @AutoLogOutput(key = "Indexer/currentState") private INDEXER_STATE currentIndexerState = INDEXER_STATE.ZERO;
+  @AutoLogOutput(key = "Indexer/currentState")
+  private INDEXER_STATE currentIndexerState = INDEXER_STATE.ZERO;
 
-  private Agitator agitator;
-  private Kicker kicker;
-  private Conveyor conveyor;
-  private Rollers Rollers;
-  private boolean readyToShoot = false;
+  private final IndexerAgitator indexerAgitator;
+  private final IndexerKicker indexerKicker;
+  private final IndexerConveyor indexerConveyor;
+  private final IndexerRollers indexerRollers;
 
   public Indexer(
-      AgitatorIO agitatorIO, KickerIO kickerIO, ConveyorIO conveyorIO, RollersIO RollersIO) {
-    this.agitator = new Agitator(agitatorIO);
-    this.kicker = new Kicker(kickerIO);
-    this.conveyor = new Conveyor(conveyorIO);
-    this.Rollers = new Rollers(RollersIO);
+      IndexerAgitatorIO indexerAgitatorIO,
+      IndexerKickerIO indexerKickerIO,
+      IndexerConveyorIO indexerConveyorIO,
+      IndexerRollersIO indexerRollersIO) {
+    this.indexerAgitator = new IndexerAgitator(indexerAgitatorIO);
+    this.indexerKicker = new IndexerKicker(indexerKickerIO);
+    this.indexerConveyor = new IndexerConveyor(indexerConveyorIO);
+    this.indexerRollers = new IndexerRollers(indexerRollersIO);
   }
 
   public void setIndexerState(INDEXER_STATE state) {
     currentIndexerState = state;
   }
 
-  public void setReadyToShoot(boolean value){
-    readyToShoot = value;
-  }
-
-
-
   @Override
   public void periodic() {
+    boolean readyToShoot = ShooterState.getInstance().isShooterReadyToShoot();
     switch (currentIndexerState) {
       case INTAKE:
-        agitator.Setpoint(AgitatorGoal.ZERO);
-        kicker.Setpoint(KickerGoal.ZERO);
-        conveyor.Setpoint(ConveyorGoal.ZERO);
-        Rollers.Setpoint(RollersGoal.INTAKE);
+        indexerAgitator.setGoalSetPoint(IndexerAgitatorGoal.ZERO);
+        indexerKicker.setGoalSetPoint(IndexerKickerGoal.ZERO);
+        indexerConveyor.setGoalSetPoint(IndexerConveyorGoal.ZERO);
+        indexerRollers.setGoalSetPoint(IndexerRollersGoal.INTAKE);
         break;
       case OUTTAKE:
-        agitator.Setpoint(AgitatorGoal.OUTTAKE);
-        kicker.Setpoint(KickerGoal.OUTTAKE);
-        conveyor.Setpoint(ConveyorGoal.OUTTAKE);
-        Rollers.Setpoint(RollersGoal.OUTTAKE);
+        indexerAgitator.setGoalSetPoint(IndexerAgitatorGoal.OUTTAKE);
+        indexerKicker.setGoalSetPoint(IndexerKickerGoal.OUTTAKE);
+        indexerConveyor.setGoalSetPoint(IndexerConveyorGoal.OUTTAKE);
+        indexerRollers.setGoalSetPoint(IndexerRollersGoal.OUTTAKE);
         break;
       case SPIT:
-        agitator.Setpoint(AgitatorGoal.SPIT);
-        kicker.Setpoint(KickerGoal.SPIT);
-        conveyor.Setpoint(ConveyorGoal.SPIT);
-        Rollers.Setpoint(RollersGoal.SPIT);
+        indexerAgitator.setGoalSetPoint(IndexerAgitatorGoal.SPIT);
+        indexerKicker.setGoalSetPoint(IndexerKickerGoal.SPIT);
+        indexerConveyor.setGoalSetPoint(IndexerConveyorGoal.SPIT);
+        indexerRollers.setGoalSetPoint(IndexerRollersGoal.SPIT);
         break;
       case SHOOT:
-        if(readyToShoot) {
-          agitator.Setpoint(AgitatorGoal.SHOOT);
-          kicker.Setpoint(KickerGoal.SHOOT);
-          conveyor.Setpoint(ConveyorGoal.SHOOT);
-          Rollers.Setpoint(RollersGoal.SHOOT);
+        if (readyToShoot) {
+          indexerAgitator.setGoalSetPoint(IndexerAgitatorGoal.SHOOT);
+          indexerKicker.setGoalSetPoint(IndexerKickerGoal.SHOOT);
+          indexerConveyor.setGoalSetPoint(IndexerConveyorGoal.SHOOT);
+          indexerRollers.setGoalSetPoint(IndexerRollersGoal.SHOOT);
+        } else {
+          indexerAgitator.setGoalSetPoint(IndexerAgitatorGoal.INTAKE);
+          indexerKicker.setGoalSetPoint(IndexerKickerGoal.ZERO);
+          indexerConveyor.setGoalSetPoint(IndexerConveyorGoal.INTAKE);
+          indexerRollers.setGoalSetPoint(IndexerRollersGoal.INTAKE);
         }
         break;
       case AUTOSHOOT:
-        agitator.Setpoint(AgitatorGoal.SHOOT);
-        kicker.Setpoint(KickerGoal.SHOOT);
-        conveyor.Setpoint(ConveyorGoal.SHOOT);
-        Rollers.Setpoint(RollersGoal.SHOOT);
+        indexerAgitator.setGoalSetPoint(IndexerAgitatorGoal.SHOOT);
+        indexerKicker.setGoalSetPoint(IndexerKickerGoal.SHOOT);
+        indexerConveyor.setGoalSetPoint(IndexerConveyorGoal.SHOOT);
+        indexerRollers.setGoalSetPoint(IndexerRollersGoal.SHOOT);
         break;
       case ZERO:
-        agitator.Setpoint(AgitatorGoal.ZERO);
-        kicker.Setpoint(KickerGoal.ZERO);
-        conveyor.Setpoint(ConveyorGoal.ZERO);
-        Rollers.Setpoint(RollersGoal.ZERO);
+        indexerAgitator.setGoalSetPoint(IndexerAgitatorGoal.ZERO);
+        indexerKicker.setGoalSetPoint(IndexerKickerGoal.ZERO);
+        indexerConveyor.setGoalSetPoint(IndexerConveyorGoal.ZERO);
+        indexerRollers.setGoalSetPoint(IndexerRollersGoal.ZERO);
         break;
       case CUSTOM:
-        agitator.Setpoint(AgitatorGoal.CUSTOM);
-        kicker.Setpoint(KickerGoal.CUSTOM);
-        conveyor.Setpoint(ConveyorGoal.CUSTOM);
-        Rollers.Setpoint(RollersGoal.CUSTOM);
+        indexerAgitator.setGoalSetPoint(IndexerAgitatorGoal.CUSTOM);
+        indexerKicker.setGoalSetPoint(IndexerKickerGoal.CUSTOM);
+        indexerConveyor.setGoalSetPoint(IndexerConveyorGoal.CUSTOM);
+        indexerRollers.setGoalSetPoint(IndexerRollersGoal.CUSTOM);
         break;
     }
 
-    agitator.periodic();
-    kicker.periodic();
-    conveyor.periodic();
-    Rollers.periodic();
+    indexerAgitator.periodic();
+    indexerKicker.periodic();
+    indexerConveyor.periodic();
+    indexerRollers.periodic();
   }
 
   public static Command getSetStateCommand(INDEXER_STATE state, Indexer indexer) {
-    return new Command() {
-      @Override
-      public void initialize() {
-        addRequirements(indexer);
-        indexer.setIndexerState(state);
-      }
-
-      @Override
-      public boolean isFinished() {
-        return indexer.currentIndexerState == state;
-      }
-    };
+    return Commands.runOnce(() -> indexer.setIndexerState(state), indexer);
   }
 }

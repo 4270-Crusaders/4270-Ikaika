@@ -1,9 +1,5 @@
-// Copyright (c) 2021-2026 Littleton Robotics
-// http://github.com/Mechanical-Advantage
-//
-// Use of this source code is governed by a BSD
-// license that can be found in the LICENSE file
-// at the root directory of this project.
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
 
 package frc.robot;
 
@@ -20,11 +16,13 @@ import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import java.util.Set;
 import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.commands.DriveCommands;
-import frc.robot.commands.states.SetRobotStateCommand;
-import frc.robot.commands.states.SetRobotStateCommand.ROBOT_STATE;
+import frc.robot.commands.states.RobotStateCommands;
+import frc.robot.commands.states.RobotStateCommands.RobotState;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.GyroIO;
@@ -33,21 +31,24 @@ import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.subsystems.indexer.Indexer;
-import frc.robot.subsystems.indexer.agitator.AgitatorIO;
-import frc.robot.subsystems.indexer.agitator.AgitatorIOTalonFX;
-import frc.robot.subsystems.indexer.conveyor.ConveyorIO;
-import frc.robot.subsystems.indexer.conveyor.ConveyorIOTalonFX;
-import frc.robot.subsystems.indexer.kicker.KickerIO;
-import frc.robot.subsystems.indexer.kicker.KickerIOTalonFX;
-import frc.robot.subsystems.indexer.rollers.RollersIO;
-import frc.robot.subsystems.indexer.rollers.RollersIOTalonFX;
+import frc.robot.subsystems.indexer.indexerAgitator.IndexerAgitatorIO;
+import frc.robot.subsystems.indexer.indexerAgitator.IndexerAgitatorIOTalonFX;
+import frc.robot.subsystems.indexer.indexerConveyor.IndexerConveyorIO;
+import frc.robot.subsystems.indexer.indexerConveyor.IndexerConveyorIOTalonFX;
+import frc.robot.subsystems.indexer.indexerKicker.IndexerKickerIO;
+import frc.robot.subsystems.indexer.indexerKicker.IndexerKickerIOTalonFX;
+import frc.robot.subsystems.indexer.indexerRollers.IndexerRollersIO;
+import frc.robot.subsystems.indexer.indexerRollers.IndexerRollersIOTalonFX;
 import frc.robot.subsystems.intake.Intake;
-import frc.robot.subsystems.intake.intakeRollers.IntakeRollerIOTalonFX;
-import frc.robot.subsystems.intake.intakeRollers.IntakeRollersIO;
+import frc.robot.subsystems.intake.intakeRoller.IntakeRollerIO;
+import frc.robot.subsystems.intake.intakeRoller.IntakeRollerIOTalonFX;
 import frc.robot.subsystems.intake.intakeWrist.IntakeWristIO;
 import frc.robot.subsystems.intake.intakeWrist.IntakeWristIOTalonFX;
-import frc.robot.subsystems.shooter.Shooter;
+import frc.robot.subsystems.shooter.ShooterCalculator;
+import frc.robot.subsystems.shooter.flywheel.Flywheel;
 import frc.robot.subsystems.shooter.flywheel.FlywheelIO;
+import frc.robot.subsystems.shooter.hood.Hood;
+import frc.robot.subsystems.shooter.turret.Turret;
 import frc.robot.subsystems.shooter.flywheel.FlywheelIOTalonFX;
 import frc.robot.subsystems.shooter.hood.HoodIO;
 import frc.robot.subsystems.shooter.hood.HoodIOTalonFX;
@@ -66,10 +67,16 @@ import frc.robot.subsystems.vision.VisionIOPhotonVisionSim;
  */
 public class RobotContainer {
 
+  /**
+   * Constructed for side effects only: {@link Vision} registers with {@link
+   * edu.wpi.first.wpilibj2.command.CommandScheduler} and runs {@code periodic()} each loop.
+   */
   @SuppressWarnings("unused")
   private final Vision vision;
   public static Drive drive;
-  public static Shooter shooter;
+  public static Flywheel flywheel;
+  public static Hood hood;
+  public static Turret turret;
   public static Intake intake;
   public static Indexer indexer;
 
@@ -92,14 +99,26 @@ public class RobotContainer {
                 new ModuleIOTalonFX(TunerConstants.BackLeft),
                 new ModuleIOTalonFX(TunerConstants.BackRight));
         vision =
-        new Vision(
-            drive::addVisionMeasurement,
-            new VisionIOLimelight(cameraFrontName, drive::getRotation),
-            new VisionIOLimelight(cameraLeftName, drive::getRotation),
-            new VisionIOLimelight(cameraRightName, drive::getRotation));
-
-        shooter = new Shooter(new FlywheelIOTalonFX(), new TurretIOTalonFX(), new HoodIOTalonFX());
-        indexer = new Indexer(new AgitatorIOTalonFX(), new KickerIOTalonFX(), new ConveyorIOTalonFX(), new RollersIOTalonFX());
+            new Vision(
+                new VisionIOLimelight(
+                    cameraFrontName,
+                    () -> frc.robot.RobotState.getInstance().getEstimatedPose().getRotation()),
+                new VisionIOLimelight(
+                    cameraLeftName,
+                    () -> frc.robot.RobotState.getInstance().getEstimatedPose().getRotation()),
+                new VisionIOLimelight(
+                    cameraRightName,
+                    () -> frc.robot.RobotState.getInstance().getEstimatedPose().getRotation()));
+        configureShooterMechanismDefaults(
+            new Flywheel(new FlywheelIOTalonFX()),
+            new Turret(new TurretIOTalonFX()),
+            new Hood(new HoodIOTalonFX()));
+        indexer =
+            new Indexer(
+                new IndexerAgitatorIOTalonFX(),
+                new IndexerKickerIOTalonFX(),
+                new IndexerConveyorIOTalonFX(),
+                new IndexerRollersIOTalonFX());
         intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeWristIOTalonFX());
 
         break;
@@ -115,25 +134,29 @@ public class RobotContainer {
                 new ModuleIOSim(TunerConstants.BackRight));
         vision =
             new Vision(
-                drive::addVisionMeasurement,
-                new VisionIOPhotonVisionSim(cameraFrontName, robotToFrontCam, drive::getPose),
-                new VisionIOPhotonVisionSim(cameraLeftName, robotToLeftCam, drive::getPose),
-                new VisionIOPhotonVisionSim(cameraRightName, robotToRightCam, drive::getPose));
-        shooter = new Shooter(
-          new FlywheelIO() {},
-          new TurretIO() {},
-          new HoodIO() {}
-        );
-        indexer = new Indexer(
-          new AgitatorIO(){},
-          new KickerIO(){},
-          new ConveyorIO(){},
-          new RollersIO(){}
-        );
-        intake = new Intake(
-          new IntakeRollersIO(){},
-          new IntakeWristIO(){}
-        );
+                new VisionIOPhotonVisionSim(
+                    cameraFrontName,
+                    robotToFrontCam,
+                    () -> frc.robot.RobotState.getInstance().getEstimatedPose()),
+                new VisionIOPhotonVisionSim(
+                    cameraLeftName,
+                    robotToLeftCam,
+                    () -> frc.robot.RobotState.getInstance().getEstimatedPose()),
+                new VisionIOPhotonVisionSim(
+                    cameraRightName,
+                    robotToRightCam,
+                    () -> frc.robot.RobotState.getInstance().getEstimatedPose()));
+        configureShooterMechanismDefaults(
+            new Flywheel(new FlywheelIO() {}),
+            new Turret(new TurretIO() {}),
+            new Hood(new HoodIO() {}));
+        indexer =
+            new Indexer(
+                new IndexerAgitatorIO() {},
+                new IndexerKickerIO() {},
+                new IndexerConveyorIO() {},
+                new IndexerRollersIO() {});
+        intake = new Intake(new IntakeRollerIO() {}, new IntakeWristIO() {});
         break;
 
       default:
@@ -146,21 +169,21 @@ public class RobotContainer {
                 new ModuleIO() {},
                 new ModuleIO() {},
                 new ModuleIO() {});
-        vision = new Vision(drive::addVisionMeasurement, new VisionIO() {}, new VisionIO() {});
-        shooter = new Shooter(
-          new FlywheelIO() {},
-          new TurretIO() {},
-          new HoodIO() {});
-        indexer = new Indexer(
-          new AgitatorIO(){},
-          new KickerIO(){},
-          new ConveyorIO(){},
-          new RollersIO(){}
-        );
-        intake = new Intake(
-          new IntakeRollersIO(){},
-          new IntakeWristIO(){}
-        );
+        vision =
+            new Vision(
+                new VisionIO() {},
+                new VisionIO() {});
+        configureShooterMechanismDefaults(
+            new Flywheel(new FlywheelIO() {}),
+            new Turret(new TurretIO() {}),
+            new Hood(new HoodIO() {}));
+        indexer =
+            new Indexer(
+                new IndexerAgitatorIO() {},
+                new IndexerKickerIO() {},
+                new IndexerConveyorIO() {},
+                new IndexerRollersIO() {});
+        intake = new Intake(new IntakeRollerIO() {}, new IntakeWristIO() {});
         break;
     }
 
@@ -168,6 +191,26 @@ public class RobotContainer {
     configureButtonBindings();
     registerNamedCommand();
     autoSelector = new LoggedDashboardChooser<>("Auto Selection", AutoBuilder.buildAutoChooser());
+  }
+
+  private void configureShooterMechanismDefaults(Flywheel fw, Turret tr, Hood hd) {
+    flywheel = fw;
+    turret = tr;
+    hood = hd;
+    flywheel.setDefaultCommand(flywheel.runTrackTargetCommand());
+    hood.setDefaultCommand(hood.runTrackTargetCommand());
+    turret.setDefaultCommand(turret.runTrackTargetCommand());
+  }
+
+  /**
+   * Invoked from {@link Robot#robotPeriodic()} after {@code CommandScheduler.getInstance().run()} so
+   * mechanism {@code periodic()} has updated sensors, and before {@link
+   * frc.robot.util.FullSubsystem#runAllPeriodicAfterScheduler()}.
+   */
+  public static void runShooterCoordinationAfterScheduler() {
+    if (flywheel != null && hood != null && turret != null) {
+      ShooterCalculator.getInstance().coordinateAfterScheduler(flywheel, hood, turret);
+    }
   }
 
   /**
@@ -186,34 +229,77 @@ public class RobotContainer {
             () -> -driverController.getRightX()));
 
     // Tare
-    driverController.povDown().onTrue(
-      Commands.runOnce(
-        ()->{
-          drive.setPose(new Pose2d(drive.getPose().getX(),drive.getPose().getY(),new Rotation2d()));
-        },
-        drive
-      ).ignoringDisable(true)
-    );
+    driverController
+        .povDown()
+        .onTrue(
+            Commands.runOnce(
+                    () ->
+                        drive.setPose(
+                            new Pose2d(drive.getPose().getTranslation(), Rotation2d.kZero)),
+                    drive)
+                .ignoringDisable(true));
 
-    driverController.leftTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.INTAKE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.STOP_INTAKE));
-    driverController.rightTrigger().onTrue(new SetRobotStateCommand(ROBOT_STATE.SHOOT)).onFalse(new SetRobotStateCommand(ROBOT_STATE.STOP_SHOOT));
-    driverController.povRight().onTrue(new SetRobotStateCommand(ROBOT_STATE.OUTTAKE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.STOP_INTAKE));
-    
-    driverController.a().onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
-    operatorController.button(3).onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
-    operatorController.button(4).onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
-    operatorController.button(5).onTrue(new SetRobotStateCommand(ROBOT_STATE.AGITATE)).onFalse(new SetRobotStateCommand(ROBOT_STATE.UN_AGITATE));
-    operatorController.button(1).onTrue(new SetRobotStateCommand(ROBOT_STATE.CUSTOM)).onFalse(new SetRobotStateCommand(ROBOT_STATE.STOP_SHOOT));
+    // Command groups must be freshly built each schedule; reusing a finished group breaks the scheduler.
+    driverController
+        .leftTrigger()
+        .onTrue(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.INTAKE), Set.of()))
+        .onFalse(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.DEFAULT), Set.of()));
+    // whileTrue cancels TELE_SHOOT when released; the mode RunCommand has no requirements so onTrue/onFalse
+    // alone would never interrupt it and would keep overriding IDLE after DEFAULT.
+    Trigger teleopShoot = new Trigger(() -> driverController.getRightTriggerAxis() > 0.12);
+    teleopShoot
+        .whileTrue(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.TELE_SHOOT), Set.of()))
+        .onFalse(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.DEFAULT), Set.of()));
+    driverController
+        .povRight()
+        .onTrue(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.OUTTAKE), Set.of()))
+        .onFalse(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.DEFAULT), Set.of()));
+    driverController
+        .a()
+        .onTrue(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.AGITATE), Set.of()))
+        .onFalse(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.UN_AGITATE), Set.of()));
+
+    operatorController
+        .button(3)
+        .onTrue(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.AGITATE), Set.of()))
+        .onFalse(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.UN_AGITATE), Set.of()));
+    operatorController
+        .button(4)
+        .onTrue(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.AGITATE), Set.of()))
+        .onFalse(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.UN_AGITATE), Set.of()));
+    operatorController
+        .button(5)
+        .onTrue(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.AGITATE), Set.of()))
+        .onFalse(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.UN_AGITATE), Set.of()));
+    operatorController
+        .button(1)
+        .onTrue(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.CUSTOM), Set.of()))
+        .onFalse(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.DEFAULT), Set.of()));
   }
 
-  void registerNamedCommand(){
-    NamedCommands.registerCommand("TRENCH", new SetRobotStateCommand(ROBOT_STATE.TRENCH));
-    NamedCommands.registerCommand("INTAKE", new SetRobotStateCommand(ROBOT_STATE.INTAKE));
-    NamedCommands.registerCommand("DEFAULT", new SetRobotStateCommand(ROBOT_STATE.AUTODEFAULT));
-    NamedCommands.registerCommand("HUB_FOCUS", new SetRobotStateCommand(ROBOT_STATE.AUTO_AIM_HUB));
-    NamedCommands.registerCommand("HUB_SHOOT", new SetRobotStateCommand(ROBOT_STATE.AUTO_SHOOT_HUB));
-    NamedCommands.registerCommand("PASS_FOCUS", new SetRobotStateCommand(ROBOT_STATE.AUTO_SHOOT_PASS));
-    NamedCommands.registerCommand("PASS_SHOOT", new SetRobotStateCommand(ROBOT_STATE.AUTO_SHOOT_PASS));
+  void registerNamedCommand() {
+    // Defer builds a fresh CommandGroup each schedule; reusing a finished group causes scheduler bugs.
+    NamedCommands.registerCommand(
+        "TRENCH",
+        Commands.defer(() -> RobotStateCommands.commandFor(RobotState.TRENCH), Set.of()));
+    NamedCommands.registerCommand(
+        "INTAKE",
+        Commands.defer(() -> RobotStateCommands.commandFor(RobotState.INTAKE), Set.of()));
+    NamedCommands.registerCommand(
+        "DEFAULT",
+        Commands.defer(() -> RobotStateCommands.commandFor(RobotState.AUTODEFAULT), Set.of()));
+    NamedCommands.registerCommand(
+        "HUB_FOCUS",
+        Commands.defer(() -> RobotStateCommands.commandFor(RobotState.HUB_FOCUS), Set.of()));
+    NamedCommands.registerCommand(
+        "HUB_SHOOT",
+        Commands.defer(() -> RobotStateCommands.commandFor(RobotState.AUTO_START_SHOOT), Set.of()));
+    NamedCommands.registerCommand(
+        "PASS_FOCUS",
+        Commands.defer(() -> RobotStateCommands.commandFor(RobotState.PASS_FOCUS), Set.of()));
+    NamedCommands.registerCommand(
+        "PASS_SHOOT",
+        Commands.defer(() -> RobotStateCommands.commandFor(RobotState.AUTO_SHOOT_PASS), Set.of()));
   }
 
   /**

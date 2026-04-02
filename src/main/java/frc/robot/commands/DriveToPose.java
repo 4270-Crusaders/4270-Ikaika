@@ -1,9 +1,5 @@
-// Copyright (c) 2025-2026 Littleton Robotics
-// http://github.com/Mechanical-Advantage
-//
-// Use of this source code is governed by an MIT-style
-// license that can be found in the LICENSE file at
-// the root directory of this project.
+// Copyright (c) 2026 FRC Team 4270
+// Credit: FRC 6328 Mechanical Advantage.
 
 package frc.robot.commands;
 
@@ -29,34 +25,38 @@ import frc.robot.util.geometry.GeomUtil;
 import org.littletonrobotics.junction.Logger;
 
 public class DriveToPose extends Command {
-  private static final LoggedTunableNumber drivekP = new LoggedTunableNumber("DriveToPose/DrivekP");
-  private static final LoggedTunableNumber drivekD = new LoggedTunableNumber("DriveToPose/DrivekD");
-  private static final LoggedTunableNumber thetakP = new LoggedTunableNumber("DriveToPose/ThetakP");
-  private static final LoggedTunableNumber thetakD = new LoggedTunableNumber("DriveToPose/ThetakD");
+  private static final LoggedTunableNumber drivekP =
+      new LoggedTunableNumber("Drive/DriveToPose/Translation/kP");
+  private static final LoggedTunableNumber drivekD =
+      new LoggedTunableNumber("Drive/DriveToPose/Translation/kD");
+  private static final LoggedTunableNumber thetakP =
+      new LoggedTunableNumber("Drive/DriveToPose/Rotation/kP");
+  private static final LoggedTunableNumber thetakD =
+      new LoggedTunableNumber("Drive/DriveToPose/Rotation/kD");
   private static final LoggedTunableNumber driveMaxVelocity =
-      new LoggedTunableNumber("DriveToPose/DriveMaxVelocity");
+      new LoggedTunableNumber("Drive/DriveToPose/Translation/MaxVelocity");
   private static final LoggedTunableNumber driveMaxAcceleration =
-      new LoggedTunableNumber("DriveToPose/DriveMaxAcceleration");
+      new LoggedTunableNumber("Drive/DriveToPose/Translation/MaxAcceleration");
   private static final LoggedTunableNumber thetaMaxVelocity =
-      new LoggedTunableNumber("DriveToPose/ThetaMaxVelocity");
+      new LoggedTunableNumber("Drive/DriveToPose/Rotation/MaxVelocity");
   private static final LoggedTunableNumber thetaMaxAcceleration =
-      new LoggedTunableNumber("DriveToPose/ThetaMaxAcceleration");
+      new LoggedTunableNumber("Drive/DriveToPose/Rotation/MaxAcceleration");
   private static final LoggedTunableNumber driveTolerance =
-      new LoggedTunableNumber("DriveToPose/DriveTolerance");
+      new LoggedTunableNumber("Drive/DriveToPose/Translation/Tolerance");
   private static final LoggedTunableNumber thetaTolerance =
-      new LoggedTunableNumber("DriveToPose/ThetaTolerance");
+      new LoggedTunableNumber("Drive/DriveToPose/Rotation/Tolerance");
   private static final LoggedTunableNumber thetaFFMinError =
-      new LoggedTunableNumber("DriveToPose/ThetaFFMinError");
+      new LoggedTunableNumber("Drive/DriveToPose/Rotation/FeedforwardMinError");
   private static final LoggedTunableNumber thetaFFMaxError =
-      new LoggedTunableNumber("DriveToPose/ThetaFFMaxError");
+      new LoggedTunableNumber("Drive/DriveToPose/Rotation/FeedforwardMaxError");
   private static final LoggedTunableNumber setpointMinVelocity =
-      new LoggedTunableNumber("DriveToPose/SetpointMinVelocity");
+      new LoggedTunableNumber("Drive/DriveToPose/Translation/SetpointMinVelocity");
   private static final LoggedTunableNumber minDistanceVelocityCorrection =
-      new LoggedTunableNumber("DriveToPose/MinDistanceVelocityCorrection");
+      new LoggedTunableNumber("Drive/DriveToPose/Translation/MinDistanceVelocityCorrection");
   private static final LoggedTunableNumber linearFFMinRadius =
-      new LoggedTunableNumber("DriveToPose/LinearFFMinRadius");
+      new LoggedTunableNumber("Drive/DriveToPose/Translation/LinearFFMinRadius");
   private static final LoggedTunableNumber linearFFMaxRadius =
-      new LoggedTunableNumber("DriveToPose/LinearFFMaxRadius");
+      new LoggedTunableNumber("Drive/DriveToPose/Translation/LinearFFMaxRadius");
 
   static {
     drivekP.initDefault(1.8);
@@ -230,21 +230,24 @@ public class DriveToPose extends Command {
     }
 
     // Log data
-    Logger.recordOutput("DriveToPose/DistanceMeasured", driveErrorAbs);
-    Logger.recordOutput("DriveToPose/DistanceSetpoint", driveSetpoint.position);
-    Logger.recordOutput("DriveToPose/DistanceSetpointVelocity", driveSetpoint.velocity);
-    Logger.recordOutput("DriveToPose/ThetaMeasured", currentPose.getRotation().getRadians());
-    Logger.recordOutput("DriveToPose/ThetaSetpoint", thetaController.getSetpoint().position);
+    Logger.recordOutput("Drive/DriveToPose/Translation/DistanceMeasured", driveErrorAbs);
+    Logger.recordOutput("Drive/DriveToPose/Translation/DistanceSetpoint", driveSetpoint.position);
     Logger.recordOutput(
-        "DriveToPose/ThetaSetpointVelocity", thetaController.getSetpoint().velocity);
+        "Drive/DriveToPose/Translation/DistanceSetpointVelocity", driveSetpoint.velocity);
     Logger.recordOutput(
-        "DriveToPose/Setpoint",
+        "Drive/DriveToPose/Rotation/Measured", currentPose.getRotation().getRadians());
+    Logger.recordOutput(
+        "Drive/DriveToPose/Rotation/Setpoint", thetaController.getSetpoint().position);
+    Logger.recordOutput(
+        "Drive/DriveToPose/Rotation/SetpointVelocity", thetaController.getSetpoint().velocity);
+    Logger.recordOutput(
+        "Drive/DriveToPose/TrajectorySetpoint",
         new Pose2d[] {
           new Pose2d(
               lastSetpointTranslation,
               Rotation2d.fromRadians(thetaController.getSetpoint().position))
         });
-    Logger.recordOutput("DriveToPose/Goal", new Pose2d[] {targetPose});
+    Logger.recordOutput("Drive/DriveToPose/Goal", new Pose2d[] {targetPose});
   }
 
   @Override
@@ -253,8 +256,8 @@ public class DriveToPose extends Command {
     running = false;
 
     // Clear logs
-    Logger.recordOutput("DriveToPose/Setpoint", new Pose2d[] {});
-    Logger.recordOutput("DriveToPose/Goal", new Pose2d[] {});
+    Logger.recordOutput("Drive/DriveToPose/TrajectorySetpoint", new Pose2d[] {});
+    Logger.recordOutput("Drive/DriveToPose/Goal", new Pose2d[] {});
   }
 
   /** Checks if the robot pose is within the allowed drive and theta tolerances. */
