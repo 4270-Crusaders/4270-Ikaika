@@ -237,7 +237,7 @@ public class ShooterConstants {
        * Expands trench protection strips in X and Y (m). See ShooterCalculator {@code isUnderTrenchOverhang}
        * and {@link frc.robot.FieldConstants} hub and trench openings; only margin lives here for tuning.
        */
-      public static final double PROTECTION_MARGIN_METERS = 0.0875;
+      public static final double PROTECTION_MARGIN_METERS = 0.0375;
       /**
        * Constant-velocity horizon for {@code shooterPose + v t} (field frame): trench pre-checks and
        * logged look-ahead pose. Larger values predict farther along current translation; tune live via
@@ -303,7 +303,7 @@ public class ShooterConstants {
      * Quadratic-drag Cd (lumped). Values ~3+ force the solver to over-command speed vs a typical foam
      * ball and read as close-range overshoot; ~0.5–0.65 matches sphere-like foam for a better baseline.
      */
-    public static final double DRAG_COEFFICIENT_SMOOTH_SPHERE = 0.58;
+    public static final double DRAG_COEFFICIENT_SMOOTH_SPHERE = 0.8;
 
     /**
      * Magnus lift coefficient {@code Cl} (unitless, lumped backspin). Runtime: {@link
@@ -398,7 +398,7 @@ public class ShooterConstants {
      * solving hub, pass, and 3D tracking trajectories. Example: 0.10 = +10% speed headroom.
      */
     /** Fraction above vacuum minimum exit speed for shoot/hub solves (e.g. 0.06 = +6%). */
-    public static final double MIN_EXIT_VELOCITY_HEADROOM_RATIO = 0.08;
+    public static final double MIN_EXIT_VELOCITY_HEADROOM_RATIO = 0.1;
 
     /**
      * Moving-target lead fixed-point iterations. Each step runs a full shoot solve; default 3 trades a
