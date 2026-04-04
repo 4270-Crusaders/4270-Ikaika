@@ -181,7 +181,7 @@ public class ShooterConstants {
   // General Constants
   public static final double GRAVITY = 9.80665;
   /** Base half-width RPM window for flywheel {@code nearGoal}. */
-  public static final double READY_TO_SHOOT_FLYWHEEL_RPM_TOLERANCE = 250;
+  public static final double READY_TO_SHOOT_FLYWHEEL_RPM_TOLERANCE = 225;
   
   public static final double READY_TO_SHOOT_HOOD_DEG_TOLERANCE = 2.5;
   /** Max |hood slew rate| (deg/s) to still count as settled. */
@@ -189,7 +189,7 @@ public class ShooterConstants {
 
   public static final double READY_TO_SHOOT_TURRET_DEG_TOLERANCE = 5;
   /** Max |turret slew rate| (deg/s) to still count as "settled" during slow aim tracking. */
-  public static final double READY_TO_SHOOT_TURRET_MAX_DEG_PER_SEC = 75;
+  public static final double READY_TO_SHOOT_TURRET_MAX_DEG_PER_SEC = 50;
 
   /** Field aim geometry (turret offset, pass targets, trench protection). */
   public static final class ShooterAimConstants {
@@ -436,7 +436,7 @@ public class ShooterConstants {
     public static final int TRAJECTORY_THETA_SCAN_SAMPLES = 23;
     /** Max launch speed considered by numeric speed solves (m/s). */
     /** FRC-scale cap (~25–30 m/s); raise only if the model truly needs faster trial speeds. */
-    public static final double TRAJECTORY_MAX_LAUNCH_SPEED_MPS = 28.0;
+    public static final double TRAJECTORY_MAX_LAUNCH_SPEED_MPS = 80.0;
     /**
      * Vacuum minimum ball speed can be too low for the drag integrator to reach {@code d} before {@code v_x}
      * dies, which yields no launch-angle root and invalid shooter output. Each step multiplies trial ball speed by
