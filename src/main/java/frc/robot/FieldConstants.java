@@ -301,25 +301,26 @@ public class FieldConstants {
    */
   public static final class Pass {
     /** Past neutral toward +X (red wall in blue frame). Used for pass aim for blue and red alliance. */
-    public static final double AIM_X_METERS =
-        LinesVertical.neutralZoneFar + Units.inchesToMeters(24.0);
+    public static final double AIM_X_METERS = 3.5;
+        // LinesVertical.neutralZoneFar + Units.inchesToMeters(24.0);
 
     /** Lateral aim toward left trench opening side (high Y, blue-left). */
-    public static final double LEFT_LANE_Y_METERS =
-        LinesHorizontal.leftTrenchOpenEnd - Units.inchesToMeters(18.0);
+    public static final double LEFT_LANE_Y_METERS = 5.500;
+        // LinesHorizontal.leftTrenchOpenEnd - Units.inchesToMeters(18.0);
 
     /** Lateral aim toward right trench opening side (low Y, blue-right). */
-    public static final double RIGHT_LANE_Y_METERS =
-        LinesHorizontal.rightTrenchOpenStart + Units.inchesToMeters(18.0);
+    public static final double RIGHT_LANE_Y_METERS = 2.543;
+        // LinesHorizontal.rightTrenchOpenStart + Units.inchesToMeters(18.0);
+    
 
     /** Ground plane / geometric pass height for ballistics-only Z (m). */
     public static final double TARGET_Z_METERS = 0.0;
 
     public static final Translation3d LEFT_TARGET_BLUE =
-        new Translation3d(AIM_X_METERS, LEFT_LANE_Y_METERS, TARGET_Z_METERS);
+        new Translation3d(3.5, 5.500, 0);
 
     public static final Translation3d RIGHT_TARGET_BLUE =
-        new Translation3d(AIM_X_METERS, RIGHT_LANE_Y_METERS, TARGET_Z_METERS);
+        new Translation3d(3.5,  2.543, 0);
   }
 
   /** Tower related constants */

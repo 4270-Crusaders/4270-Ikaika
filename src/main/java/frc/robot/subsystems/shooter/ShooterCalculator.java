@@ -589,10 +589,16 @@ public class ShooterCalculator {
     ShootingParameters shootParam = EMPTY_PARAMETERS;
     Translation3d solveTarget3d = Translation3d.kZero;
     switch (mode) {
+      case START:
+        clearShootingParameters();
+        flywheel.setGoalSetPoint(FlyWheelGoal.IDLE);
+        turret.setGoalSetPoint(TurretGoal.START);
+        hood.setGoalSetPoint(HoodGoal.ZERO);
+        solveTarget3d = hubTarget3d;
+        break;
       case IDLE:
         clearShootingParameters();
-        flywheel.setGoalSetPoint(
-            DriverStation.isAutonomous() ? FlyWheelGoal.IDLE : FlyWheelGoal.IDLE);
+        flywheel.setGoalSetPoint(FlyWheelGoal.IDLE);
         turret.setGoalSetPoint(TurretGoal.ZERO);
         hood.setGoalSetPoint(HoodGoal.ZERO);
         solveTarget3d = hubTarget3d;

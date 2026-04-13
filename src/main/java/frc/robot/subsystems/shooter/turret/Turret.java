@@ -73,7 +73,7 @@ public class Turret extends FullSubsystem {
   }
 
   public enum TurretGoal {
-    START(new LoggedTunableNumber("Shooter/Turret/Goals/Zero", -22)),
+    START(new LoggedTunableNumber("Shooter/Turret/Goals/Start", -20)),
     ZERO(new LoggedTunableNumber("Shooter/Turret/Goals/Zero", 0)),
     CUSTOM(new LoggedTunableNumber("Shooter/Turret/Goals/Custom", 0.0));
 
@@ -93,7 +93,7 @@ public class Turret extends FullSubsystem {
 
   private boolean setpointMode = true;
 
-  private double goalDeg = 0.0;
+  private double goalDeg = TurretGoal.START.getDegrees();
   /** Commanded position after soft limits (sent to hardware in {@link #periodicAfterScheduler}). */
   private double commandedDeg = 0.0;
 

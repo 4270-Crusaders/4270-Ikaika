@@ -16,7 +16,7 @@ public class IndexerConstants {
 
   public static final class IndexerRollers {
     public static final int CAN_ID = 40;
-    public static final double CURRENT_LIMIT = 15;
+    public static final double CURRENT_LIMIT = 30;
     public static final boolean CURRENT_LIMIT_ENABLE = true;
     public static final NeutralModeValue NEUTRAL_MODE = NeutralModeValue.Coast;
     public static final InvertedValue INVERTED = InvertedValue.CounterClockwise_Positive;
@@ -33,7 +33,7 @@ public class IndexerConstants {
 
   public static final class IndexerConveyor {
     public static final int CAN_ID = 41;
-    public static final double CURRENT_LIMIT = 25;
+    public static final double CURRENT_LIMIT = 30;
     public static final boolean CURRENT_LIMIT_ENABLE = true;
     public static final NeutralModeValue NEUTRAL_MODE = NeutralModeValue.Coast;
     public static final InvertedValue INVERTED = InvertedValue.Clockwise_Positive;
@@ -50,7 +50,7 @@ public class IndexerConstants {
 
   public static final class IndexerAgitator {
     public static final int CAN_ID = 42;
-    public static final double CURRENT_LIMIT = 60;
+    public static final double CURRENT_LIMIT = 20;
     public static final boolean CURRENT_LIMIT_ENABLE = true;
     public static final NeutralModeValue NEUTRAL_MODE = NeutralModeValue.Coast;
     public static final InvertedValue INVERTED = InvertedValue.Clockwise_Positive;
@@ -67,7 +67,7 @@ public class IndexerConstants {
 
   public static final class IndexerKicker {
     public static final int CAN_ID = 43;
-    public static final double CURRENT_LIMIT = 75;
+    public static final double CURRENT_LIMIT = 30;
     public static final boolean CURRENT_LIMIT_ENABLE = true;
     public static final NeutralModeValue NEUTRAL_MODE = NeutralModeValue.Brake;
     public static final InvertedValue INVERTED = InvertedValue.CounterClockwise_Positive;

@@ -21,6 +21,7 @@ import org.littletonrobotics.junction.AutoLogOutput;
 public class ShooterState {
   /** High-level aim mode. {@link #IDLE} keeps mechanisms at home/idle setpoints. */
   public enum ShooterMode {
+    START,
     IDLE,
     HUB,
     PASS,
@@ -62,14 +63,11 @@ public class ShooterState {
   public static Translation3d passShootTargetTranslation3d(Pose2d robotEstimatedPose) {
     double halfWidth = FieldConstants.fieldWidth * 0.5;
     double robotY = robotEstimatedPose.getY();
-    double laneYMeters =
-        robotY > halfWidth
-            ? FieldConstants.Pass.LEFT_LANE_Y_METERS
-            : FieldConstants.Pass.RIGHT_LANE_Y_METERS;
+    Translation3d targetPoint = robotY > halfWidth ? FieldConstants.Pass.LEFT_TARGET_BLUE : FieldConstants.Pass.RIGHT_TARGET_BLUE;
     return new Translation3d(
-        FieldConstants.Pass.AIM_X_METERS,
-        laneYMeters,
-        ShooterConstants.ShooterAimConstants.PASS_TARGET_Z_METERS);
+        AllianceFlipUtil.shouldFlip() ? FieldConstants.fieldLength - targetPoint.getX() : targetPoint.getX(),
+        targetPoint.getY(),
+        targetPoint.getZ());
   }
 
   /**
@@ -95,7 +93,7 @@ public class ShooterState {
 
   @Getter @Setter @AutoLogOutput(key = "Shooter/State/ReadyToShoot") private boolean shooterReadyToShoot = false;
 
-  @Getter @Setter @AutoLogOutput(key = "Shooter/State/Mode") private ShooterMode shooterMode = ShooterMode.IDLE;
+  @Getter @Setter @AutoLogOutput(key = "Shooter/State/Mode") private ShooterMode shooterMode = ShooterMode.START;
 
   /**
    * Blue-field aim for {@link ShooterMode#POINT_3D}; set via {@link #applyShooterPoint3dTargetBlue}.

@@ -143,6 +143,8 @@ public class ModuleIOTalonFX implements ModuleIO {
         constants.SteerMotorInverted
             ? InvertedValue.Clockwise_Positive
             : InvertedValue.CounterClockwise_Positive;
+    turnConfig.CurrentLimits.SupplyCurrentLimit = 30; // COMP
+    turnConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
     tryUntilOk(
         CONFIG_RETRY_COUNT, () -> turnTalon.getConfigurator().apply(turnConfig, CONFIG_APPLY_TIMEOUT_SEC));
 

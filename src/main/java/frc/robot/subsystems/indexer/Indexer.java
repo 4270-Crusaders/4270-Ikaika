@@ -61,18 +61,17 @@ public class Indexer extends SubsystemBase {
 
   @Override
   public void periodic() {
-    boolean readyToShoot = ShooterState.getInstance().isShooterReadyToShoot();
     switch (currentIndexerState) {
       case INTAKE:
-        indexerAgitator.setGoalSetPoint(IndexerAgitatorGoal.ZERO);
-        indexerKicker.setGoalSetPoint(IndexerKickerGoal.ZERO);
-        indexerConveyor.setGoalSetPoint(IndexerConveyorGoal.ZERO);
+        indexerAgitator.setGoalSetPoint(IndexerAgitatorGoal.INTAKE);
+        // indexerKicker.setGoalSetPoint(IndexerKickerGoal.ZERO);
+        // indexerConveyor.setGoalSetPoint(IndexerConveyorGoal.ZERO);
         indexerRollers.setGoalSetPoint(IndexerRollersGoal.INTAKE);
         break;
       case OUTTAKE:
         indexerAgitator.setGoalSetPoint(IndexerAgitatorGoal.OUTTAKE);
-        indexerKicker.setGoalSetPoint(IndexerKickerGoal.OUTTAKE);
-        indexerConveyor.setGoalSetPoint(IndexerConveyorGoal.OUTTAKE);
+        // indexerKicker.setGoalSetPoint(IndexerKickerGoal.OUTTAKE);
+        // indexerConveyor.setGoalSetPoint(IndexerConveyorGoal.OUTTAKE);
         indexerRollers.setGoalSetPoint(IndexerRollersGoal.OUTTAKE);
         break;
       case SPIT:
@@ -82,7 +81,7 @@ public class Indexer extends SubsystemBase {
         indexerRollers.setGoalSetPoint(IndexerRollersGoal.SPIT);
         break;
       case SHOOT:
-        if (readyToShoot) {
+        if (ShooterState.getInstance().isShooterReadyToShoot()) {
           indexerAgitator.setGoalSetPoint(IndexerAgitatorGoal.SHOOT);
           indexerKicker.setGoalSetPoint(IndexerKickerGoal.SHOOT);
           indexerConveyor.setGoalSetPoint(IndexerConveyorGoal.SHOOT);
