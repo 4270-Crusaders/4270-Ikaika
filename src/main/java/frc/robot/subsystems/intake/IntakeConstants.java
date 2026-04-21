@@ -11,7 +11,7 @@ public class IntakeConstants {
   /** Intake wrist (single joint). */
   public static final class IntakeWristConstants {
     public static final int CAN_ID = 30;
-    public static final double CURRENT_LIMIT = 60;
+    public static final double CURRENT_LIMIT = 30;
     public static final boolean CURRENT_LIMIT_ENABLE = true;
     public static final NeutralModeValue NEUTRAL_MODE = NeutralModeValue.Brake;
     public static final InvertedValue INVERTED = InvertedValue.CounterClockwise_Positive;
@@ -37,7 +37,7 @@ public class IntakeConstants {
   public static final class IntakeRollerConstants {
     public static final int LEAD_CAN_ID = 31;
     public static final int FOLLOW_CAN_ID = 32;
-    public static final double CURRENT_LIMIT = 60;
+    public static final double CURRENT_LIMIT = 50;
     public static final boolean CURRENT_LIMIT_ENABLE = true;
     public static final NeutralModeValue NEUTRAL_MODE = NeutralModeValue.Coast;
     public static final InvertedValue LEAD_INVERTED = InvertedValue.CounterClockwise_Positive;

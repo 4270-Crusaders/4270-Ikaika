@@ -32,7 +32,10 @@ public final class RobotStateCommands {
     TELE_SHOOT,
     CUSTOM,
     PASS_FOCUS,
-    AUTO_SHOOT_PASS,
+    AUTO_START_PASS,
+
+    STOP_INTAKE,
+    STOP_SHOOT
   }
 
   private RobotStateCommands() {}
@@ -41,6 +44,9 @@ public final class RobotStateCommands {
   public static Command commandFor(RobotState state) {
     return switch (state) {
       case DEFAULT -> defaultState();
+      case STOP_INTAKE -> stopIntakeState();
+      case STOP_SHOOT -> stopShootingState();
+
       case AUTODEFAULT -> autoDefaultState();
       case TRENCH -> trenchState();
       case INTAKE -> intakeState();
@@ -52,7 +58,7 @@ public final class RobotStateCommands {
       case TELE_SHOOT -> teleShootState();
       case CUSTOM -> customShootState();
       case PASS_FOCUS -> passFocusState();
-      case AUTO_SHOOT_PASS -> autoShootPassState();
+      case AUTO_START_PASS -> autoShootPassState();
     };
   }
 
@@ -62,6 +68,17 @@ public final class RobotStateCommands {
         Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
         ShooterCommands.getSetStateCommand(
             ShooterState.ShooterMode.IDLE, RobotContainer.flywheel));
+  }
+
+  public static Command stopShootingState() {
+    return new ParallelCommandGroup(
+        Indexer.getSetStateCommand(INDEXER_STATE.ZERO, RobotContainer.indexer),
+        ShooterCommands.getSetStateCommand(
+            ShooterState.ShooterMode.IDLE, RobotContainer.flywheel));
+  }
+
+  public static Command stopIntakeState() {
+    return Intake.getSetStateCommand(INTAKE_STATE.DOWN, RobotContainer.intake);
   }
 
   public static Command autoDefaultState() {
@@ -96,14 +113,14 @@ public final class RobotStateCommands {
 
   public static Command autoShootStateCommand() {
     return new ParallelCommandGroup(
-        Indexer.getSetStateCommand(INDEXER_STATE.AUTOSHOOT, RobotContainer.indexer),
+        Indexer.getSetStateCommand(INDEXER_STATE.SHOOT, RobotContainer.indexer),
         ShooterCommands.getSetStateCommand(
             ShooterState.ShooterMode.HUB, RobotContainer.flywheel));
   }
 
   public static Command autoShootPassState() {
     return new ParallelCommandGroup(
-        Indexer.getSetStateCommand(INDEXER_STATE.AUTOSHOOT, RobotContainer.indexer),
+        Indexer.getSetStateCommand(INDEXER_STATE.SHOOT, RobotContainer.indexer),
         ShooterCommands.getSetStateCommand(
             ShooterState.ShooterMode.PASS, RobotContainer.flywheel));
   }
@@ -116,9 +133,8 @@ public final class RobotStateCommands {
    */
   public static Command teleShootState() {
     return new ParallelCommandGroup(
-        Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake),
-        Indexer.getSetStateCommand(INDEXER_STATE.AUTOSHOOT, RobotContainer.indexer),
-        // No subsystem requirements: requiring flywheel would cancel runTrackTargetCommand.
+        // Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake),
+        Indexer.getSetStateCommand(INDEXER_STATE.SHOOT, RobotContainer.indexer),
         Commands.run(
             () ->
                 ShooterState.getInstance()
@@ -129,15 +145,16 @@ public final class RobotStateCommands {
 
   public static Command customShootState() {
     return new ParallelCommandGroup(
-        ShooterCommands.getSetStateCommand(
-            ShooterState.ShooterMode.CUSTOM, RobotContainer.flywheel),
-        Indexer.getSetStateCommand(INDEXER_STATE.SHOOT, RobotContainer.indexer));
+      ShooterCommands.getSetStateCommand(ShooterState.ShooterMode.CUSTOM, RobotContainer.flywheel),
+      Indexer.getSetStateCommand(INDEXER_STATE.SHOOT, RobotContainer.indexer)
+    );
   }
 
   public static Command intakeState() {
     return new ParallelCommandGroup(
-        Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake),
-        Indexer.getSetStateCommand(INDEXER_STATE.INTAKE, RobotContainer.indexer));
+      Indexer.getSetStateCommand(INDEXER_STATE.INTAKE, RobotContainer.indexer),
+      Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake)
+    );
   }
 
   /** Exit agitate: rollers back to normal intake behavior. */

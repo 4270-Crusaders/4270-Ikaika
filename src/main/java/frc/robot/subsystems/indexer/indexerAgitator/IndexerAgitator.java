@@ -35,7 +35,7 @@ public class IndexerAgitator {
 
   public enum IndexerAgitatorGoal {
     ZERO(new LoggedTunableNumber("Indexer/IndexerAgitator/Goals/Zero", 0)),
-    INTAKE(new LoggedTunableNumber("Indexer/IndexerAgitator/Goals/Intake", 600)),
+    INTAKE(new LoggedTunableNumber("Indexer/IndexerAgitator/Goals/Intake", 2000)),
     SHOOT(new LoggedTunableNumber("Indexer/IndexerAgitator/Goals/Shoot", 3000)),
     OUTTAKE(new LoggedTunableNumber("Indexer/IndexerAgitator/Goals/Outtake", 0)),
     SPIT(new LoggedTunableNumber("Indexer/IndexerAgitator/Goals/Spit", 0)),
