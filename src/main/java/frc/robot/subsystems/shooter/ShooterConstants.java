@@ -242,7 +242,7 @@ public class ShooterConstants {
        * logged look-ahead pose. Larger values predict farther along current translation; tune live via
        * {@code TunableNumbers/Shooter/Physics/HorizontalLookaheadTimeSec}.
        */
-      public static final double LOOKAHEAD_TIME_SEC = 1.5; //TODO 1.35 past
+      public static final double LOOKAHEAD_TIME_SEC = 1.35; //TODO 1.35 past
       /**
        * Folded hood (mechanical deg) commanded while {@link frc.robot.subsystems.shooter.ShooterState}
        * trench protection is active. Matches {@link ComponentsConstants.Hood#MIN_DEGREE}.
