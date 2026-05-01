@@ -35,7 +35,9 @@ public final class RobotStateCommands {
     AUTO_START_PASS,
 
     STOP_INTAKE,
-    STOP_SHOOT
+    STOP_SHOOT,
+
+    DMODE
   }
 
   private RobotStateCommands() {}
@@ -43,6 +45,7 @@ public final class RobotStateCommands {
   /** Entry point for OI, auto paths, and tests. */
   public static Command commandFor(RobotState state) {
     return switch (state) {
+      case DMODE ->dModeState();
       case DEFAULT -> defaultState();
       case STOP_INTAKE -> stopIntakeState();
       case STOP_SHOOT -> stopShootingState();
@@ -61,6 +64,11 @@ public final class RobotStateCommands {
       case AUTO_START_PASS -> autoShootPassState();
     };
   }
+
+  public static Command dModeState() {
+    return Intake.getSetStateCommand(INTAKE_STATE.UP, RobotContainer.intake);
+  }
+
 
   public static Command defaultState() {
     return new ParallelCommandGroup(

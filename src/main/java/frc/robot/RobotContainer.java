@@ -257,17 +257,14 @@ public class RobotContainer {
             .onFalse(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.UN_AGITATE), Set.of()));
 
         operatorController
+            .button(5)
+            .onTrue(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.DMODE), Set.of()));
+        
+        operatorController
             .button(3)
             .onTrue(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.AGITATE), Set.of()))
             .onFalse(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.UN_AGITATE), Set.of()));
-        operatorController
-            .button(4)
-            .onTrue(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.AGITATE), Set.of()))
-            .onFalse(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.UN_AGITATE), Set.of()));
-        operatorController
-            .button(5)
-            .onTrue(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.AGITATE), Set.of()))
-            .onFalse(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.UN_AGITATE), Set.of()));
+        
         operatorController
             .button(1)
             .onTrue(Commands.defer(() -> RobotStateCommands.commandFor(RobotState.CUSTOM), Set.of()))

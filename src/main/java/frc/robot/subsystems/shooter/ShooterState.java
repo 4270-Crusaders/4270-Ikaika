@@ -209,6 +209,7 @@ public class ShooterState {
     this.shooterSolveInputsValid = true;
   }
 
+
   public void clearShooterSolveInputs() {
     shooterSolveInputsValid = false;
   }

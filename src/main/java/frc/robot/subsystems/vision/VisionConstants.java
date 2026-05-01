@@ -28,7 +28,7 @@ public class VisionConstants {
         new Transform3d(Units.inchesToMeters(-12.33976),       // Right
                         Units.inchesToMeters(-6.295478),       // Forward
                         Units.inchesToMeters(20.4200),  // Up
-                        new Rotation3d(0, Units.degreesToRadians(10), 0));
+                        new Rotation3d(0, 0, 0));
     public static Transform3d robotToLeftCam =
         new Transform3d(Units.inchesToMeters(-12.45784),       // Right
                         Units.inchesToMeters(-9.440023),       // Forward

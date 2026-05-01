@@ -16,7 +16,7 @@ public class ShooterConstants {
       public static final int FLYWHEEL_LEAD_CAN_ID = 20;
       public static final int FLYWHEEL_FOLLOW_CAN_ID = 21;
 
-      public static final double FLYWHEEL_MAX_RPM = 6500;
+      public static final double FLYWHEEL_MAX_RPM = 4000;
       public static final boolean FLYWHEEL_CURRENT_LIMIT_ENABLE = true;
       public static final double FLYWHEEL_CURRENT_LIMIT = 60;
       public static final InvertedValue MAIN_FLYWHEEL_INVERTED_VALUE =
@@ -112,7 +112,7 @@ public class ShooterConstants {
       public static final SensorDirectionValue hoodEncoderDirection =
           SensorDirectionValue.Clockwise_Positive;
       public static final double HoodEncoderAbsoluteSensorDiscontinuityPoint = 0.5;
-      public static final double HoodEncoderMagnetOffset = 0.305908203125; // TUNE ALOT!!
+      public static final double HoodEncoderMagnetOffset = 0.40087890625; // TUNE ALOT!!
       public static final double HoodCurrentLimit = 60.0;
       public static final InvertedValue HoodInvertedValue = InvertedValue.CounterClockwise_Positive;
       public static final boolean HoodSupplyCurrentLimitEnable = true;
@@ -145,7 +145,7 @@ public class ShooterConstants {
       public static final int TURRET_ENCODER_CAN_ID = 25;
       public static final double sensorToMechanismRatio = 1;
       public static final double rotorToSensorRatio = 62.5;
-      public static final double TurretEncoderMagnetOffset = 0.401611328125; //Tune Alot
+      public static final double TurretEncoderMagnetOffset = 0.398193359375; //Tune Alot
       public static final SensorDirectionValue turretEncoderDirection =
           SensorDirectionValue.CounterClockwise_Positive;
       public static final double TurretEncoderAbsoluteSensorDiscontinuityPoint = 0.5;
@@ -193,7 +193,6 @@ public class ShooterConstants {
 
   /** Field aim geometry (turret offset, pass targets, trench protection). */
   public static final class ShooterAimConstants {
-    // TODO(PHYSICS_TUNE): tune pass/hub state switch distance for strategy + make rate.
     public static double passPoint = 4.425;
 
     /** Field Z (m) at or below this uses geometric height only in the hood arc solve (no extra rise). */
@@ -243,7 +242,7 @@ public class ShooterConstants {
        * logged look-ahead pose. Larger values predict farther along current translation; tune live via
        * {@code TunableNumbers/Shooter/Physics/HorizontalLookaheadTimeSec}.
        */
-      public static final double LOOKAHEAD_TIME_SEC = 1.35;
+      public static final double LOOKAHEAD_TIME_SEC = 1.5; //TODO 1.35 past
       /**
        * Folded hood (mechanical deg) commanded while {@link frc.robot.subsystems.shooter.ShooterState}
        * trench protection is active. Matches {@link ComponentsConstants.Hood#MIN_DEGREE}.
@@ -303,14 +302,14 @@ public class ShooterConstants {
      * Quadratic-drag Cd (lumped). Values ~3+ force the solver to over-command speed vs a typical foam
      * ball and read as close-range overshoot; ~0.5–0.65 matches sphere-like foam for a better baseline.
      */
-    public static final double DRAG_COEFFICIENT_SMOOTH_SPHERE = 1.12;
+    public static final double DRAG_COEFFICIENT_SMOOTH_SPHERE = 1.89;
 
     /**
      * Magnus lift coefficient {@code Cl} (unitless, lumped backspin). Runtime: {@link
      * ShooterPhysicsTunables} {@code MagnusLiftCoefficientCl}. Tune after Cd: increase if shots land
      * low while range already matches; typical final band often ~0.03–0.15 for FRC-scale speeds.
      */
-    public static final double MAGNUS_LIFT_COEFFICIENT = 0.15;
+    public static final double MAGNUS_LIFT_COEFFICIENT = 0.125;
 
     /** Drag acceleration factor (1/m): 0.5 * rho * Cd * A / m. */
     public static final double DRAG_ACCEL_FACTOR_PER_M =
@@ -398,7 +397,7 @@ public class ShooterConstants {
      * solving hub, pass, and 3D tracking trajectories. Example: 0.10 = +10% speed headroom.
      */
     /** Fraction above vacuum minimum exit speed for shoot/hub solves (e.g. 0.06 = +6%). */
-    public static final double MIN_EXIT_VELOCITY_HEADROOM_RATIO = 0.05;
+    public static final double MIN_EXIT_VELOCITY_HEADROOM_RATIO = 0.1;
 
     /**
      * Moving-target lead fixed-point iterations. Each step runs a full shoot solve; default 3 trades a

@@ -4,12 +4,12 @@
     {
       "anchor": {
         "x": 3.27,
-        "y": 2.482
+        "y": 2.54
       },
       "prevControl": null,
       "nextControl": {
         "x": 2.3153693181818182,
-        "y": 2.4405757575757563
+        "y": 2.498575757575756
       },
       "isLocked": false,
       "linkedName": null
@@ -64,16 +64,16 @@
     },
     {
       "anchor": {
-        "x": 6.6130842230130495,
-        "y": 1.3183036773428227
+        "x": 6.919806818181818,
+        "y": 1.1697045454545458
       },
       "prevControl": {
-        "x": 6.4723593760872085,
-        "y": 0.7905855013709159
+        "x": 6.569375,
+        "y": 0.7986590909090909
       },
       "nextControl": {
-        "x": 6.8456221018009265,
-        "y": 2.1903207227973676
+        "x": 7.539477459363223,
+        "y": 1.8258264008230936
       },
       "isLocked": false,
       "linkedName": null
@@ -178,7 +178,7 @@
   "eventMarkers": [
     {
       "name": "HUB_SHOOT",
-      "waypointRelativePos": 0.35593220338983056,
+      "waypointRelativePos": 0.35,
       "endWaypointRelativePos": null,
       "command": {
         "type": "named",
@@ -189,7 +189,7 @@
     },
     {
       "name": "AGITATE",
-      "waypointRelativePos": 1.1023622047244088,
+      "waypointRelativePos": 0.8,
       "endWaypointRelativePos": null,
       "command": {
         "type": "named",
@@ -200,7 +200,7 @@
     },
     {
       "name": "TRENCH",
-      "waypointRelativePos": 1.9842519685039375,
+      "waypointRelativePos": 1.8,
       "endWaypointRelativePos": null,
       "command": {
         "type": "named",

@@ -395,6 +395,33 @@ public class ShooterCalculator {
     double lx = sx;
     double ly = sy;
     double lz = sz;
+
+    double dx = targetTranslation3d.getX() - shooterPose3d.getX();
+      double dy = targetTranslation3d.getY() - shooterPose3d.getY();
+      double lookaheadDistanceM = Math.hypot(dx, dy);
+      if (lookaheadDistanceM > 7){ // constant
+        maxShooting = true;
+      } else {
+        maxShooting = false; 
+      }
+
+    double relFx = tx - lx;
+    double relFy = ty - ly;
+    double relFz = tz - lz;
+    double dFinal = new Translation2d(lx, ly).getDistance(new Translation2d(tx, ty));
+    Rotation2d solvedTurretAngle = new Rotation2d(Math.atan2(relFy, relFx));
+
+    if (this.maxShooting){
+      latestParameters = new ShootingParameters(
+        true,
+        solvedTurretAngle,
+        0,
+        ShooterConstants.ComponentsConstants.Hood.MAX_DEGREE,
+        0,
+        ShooterConstants.ComponentsConstants.Flywheel.FLYWHEEL_MAX_RPM);
+        return;
+    }
+
     for (int i = 0; i < ShooterPhysicsTunables.movingTargetLeadIterations(); i++) {
       double dIter =
           new Translation2d(lx, ly).getDistance(new Translation2d(tx, ty));
@@ -409,12 +436,6 @@ public class ShooterCalculator {
       ly = sy + shooterVelocity3d.getY() * tof;
       lz = sz + shooterVelocity3d.getZ() * tof;
     }
-
-    double relFx = tx - lx;
-    double relFy = ty - ly;
-    double relFz = tz - lz;
-    double dFinal = new Translation2d(lx, ly).getDistance(new Translation2d(tx, ty));
-    Rotation2d solvedTurretAngle = new Rotation2d(Math.atan2(relFy, relFx));
 
     computeCommandRpmShoot(dFinal, relFz, shootingArc);
 
@@ -447,15 +468,16 @@ public class ShooterCalculator {
             scratchRpmWheel + ShooterPhysicsTunables.flywheelCommandRpmOffset(),
             0.0,
             ShooterConstants.ComponentsConstants.Flywheel.FLYWHEEL_MAX_RPM);
-
-    latestParameters =
+    if (!this.maxShooting) {
+      latestParameters =
         new ShootingParameters(
-            true,
-            solvedTurretAngle,
-            turretVelocityRadPerSec,
-            hoodAngleRad,
-            hoodVelocityRadPerSec,
-            flywheelRpmCommand);
+          true,
+          solvedTurretAngle,
+          turretVelocityRadPerSec,
+          hoodAngleRad,
+          hoodVelocityRadPerSec,
+          flywheelRpmCommand);
+    }
 
     lastSolveLaunchThetaDeg = Units.radiansToDegrees(scratchThetaRad);
     lastSolveBallExitMps = scratchExitSpeedMps;
@@ -761,6 +783,8 @@ public class ShooterCalculator {
     }
     return result;
   }
+
+  boolean maxShooting = false;
 
   private static Translation2d getShooterFieldPoseNative(Pose2d robotEstimatedPose) {
     return robotEstimatedPose
