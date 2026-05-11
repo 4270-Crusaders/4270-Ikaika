@@ -22,8 +22,9 @@ import frc.robot.subsystems.indexer.indexerRollers.IndexerRollersIO;
 import org.littletonrobotics.junction.AutoLogOutput;
 
 /**
- * Coordinates indexer agitator, kicker, conveyor, and rollers into high-level {@link INDEXER_STATE}
- * behaviors.
+ * Coordinates indexer agitator, kicker, conveyor, and rollers into high-level {@link
+ * Indexer.INDEXER_STATE} behaviors. Each {@code periodic()} applies the active state's velocity goals
+ * to all four mechanisms so intake, outtake, shoot, and spit paths stay synchronized.
  */
 public class Indexer extends SubsystemBase {
   public enum INDEXER_STATE {
@@ -64,14 +65,14 @@ public class Indexer extends SubsystemBase {
     switch (currentIndexerState) {
       case INTAKE:
         indexerAgitator.setGoalSetPoint(IndexerAgitatorGoal.INTAKE);
-        // indexerKicker.setGoalSetPoint(IndexerKickerGoal.ZERO);
-        // indexerConveyor.setGoalSetPoint(IndexerConveyorGoal.ZERO);
+        indexerKicker.setGoalSetPoint(IndexerKickerGoal.INTAKE);
+        indexerConveyor.setGoalSetPoint(IndexerConveyorGoal.INTAKE);
         indexerRollers.setGoalSetPoint(IndexerRollersGoal.INTAKE);
         break;
       case OUTTAKE:
         indexerAgitator.setGoalSetPoint(IndexerAgitatorGoal.OUTTAKE);
-        // indexerKicker.setGoalSetPoint(IndexerKickerGoal.OUTTAKE);
-        // indexerConveyor.setGoalSetPoint(IndexerConveyorGoal.OUTTAKE);
+        indexerKicker.setGoalSetPoint(IndexerKickerGoal.OUTTAKE);
+        indexerConveyor.setGoalSetPoint(IndexerConveyorGoal.OUTTAKE);
         indexerRollers.setGoalSetPoint(IndexerRollersGoal.OUTTAKE);
         break;
       case SPIT:

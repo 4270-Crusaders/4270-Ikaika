@@ -10,6 +10,11 @@ import java.util.function.DoubleSupplier;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
+/**
+ * Velocity-controlled indexer agitator. Tunable PID and goal RPM values are logged for on-robot
+ * tuning via AdvantageKit. {@link #setManualVoltage(double)} bypasses closed loop until the next
+ * {@link #setGoalSetPoint(IndexerAgitatorGoal)}.
+ */
 public class IndexerAgitator {
   private final IndexerAgitatorIO io;
   private final IndexerAgitatorIOInputsAutoLogged inputs = new IndexerAgitatorIOInputsAutoLogged();
@@ -33,6 +38,11 @@ public class IndexerAgitator {
       new LoggedTunableNumber(
           "Indexer/IndexerAgitator/Gains/kS", IndexerConstants.IndexerAgitator.Gains.kS);
 
+  /**
+   * Named velocity setpoints (RPM). {@link #OUTTAKE} and {@link #SPIT} default to zero so the
+   * agitator can stay idle while kicker and conveyor handle reversal; tune in AdvantageScope if the
+   * mechanism needs assist during those modes.
+   */
   public enum IndexerAgitatorGoal {
     ZERO(new LoggedTunableNumber("Indexer/IndexerAgitator/Goals/Zero", 0)),
     INTAKE(new LoggedTunableNumber("Indexer/IndexerAgitator/Goals/Intake", 2000)),
@@ -63,16 +73,19 @@ public class IndexerAgitator {
     this.io = io;
   }
 
+  /** Select a named RPM goal and resume velocity closed loop if it was overridden manually. */
   public void setGoalSetPoint(IndexerAgitatorGoal goal) {
     velocityClosedLoop = true;
     this.goalSetpoint = goal;
   }
 
+  /** Open-loop output for testing or recovery; does not change {@link #goalSetpoint} until a goal is set. */
   public void setManualVoltage(double voltageVolts) {
     velocityClosedLoop = false;
     io.runSetVoltage(voltageVolts);
   }
 
+  /** Refresh inputs, apply velocity or hold last manual output, push PID if tunables changed. */
   public void periodic() {
     io.updateInputs(inputs);
     Logger.processInputs("Indexer/IndexerAgitator", inputs);

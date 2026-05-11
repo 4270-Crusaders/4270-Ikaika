@@ -126,14 +126,14 @@ public final class RobotStateCommands {
   }
 
   /**
-   * Teleop shoot (driver right trigger): intake, continuous hub/pass mode from field pose, and indexer
-   * {@code AUTOSHOOT} (same as auto) so balls feed while holding without readyToShoot gating. Bind with
-   * {@code whileTrue} so release cancels this group and {@code DEFAULT} can set {@link
-   * ShooterState.ShooterMode#IDLE}.
+   * Teleop shoot (driver right trigger): continuous hub/pass mode from field pose and indexer
+   * {@link INDEXER_STATE#SHOOT} (gated by {@link ShooterState#isShooterReadyToShoot()} in {@link
+   * Indexer#periodic()}). Intake is not included here; use the driver left trigger {@link
+   * RobotState#INTAKE} path in parallel when feeding. Bind with {@code whileTrue} so release cancels
+   * this group and {@code STOP_SHOOT} can return the shooter to idle.
    */
   public static Command teleShootState() {
     return new ParallelCommandGroup(
-        // Intake.getSetStateCommand(INTAKE_STATE.INTAKE, RobotContainer.intake),
         Indexer.getSetStateCommand(INDEXER_STATE.SHOOT, RobotContainer.indexer),
         Commands.run(
             () ->
