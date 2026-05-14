@@ -97,6 +97,8 @@ public class Turret extends FullSubsystem {
   /** Commanded position after soft limits (sent to hardware in {@link #periodicAfterScheduler}). */
   private double commandedDeg = 0.0;
 
+  private double commandedVelDegPerSec = 0.0;
+
   public boolean nearGoal = false;
 
   /** True when turret angular speed is low (not slewing / wrapping). */
@@ -142,6 +144,7 @@ public class Turret extends FullSubsystem {
   public void applySetpointForOutput() {
     if (setpointMode) {
       goalDeg = goalSetpoint.getDegrees();
+      commandedVelDegPerSec = 0.0;
     }
     commandedDeg = getLimitedDeg(wrapDeg(goalDeg));
   }
@@ -210,7 +213,7 @@ public class Turret extends FullSubsystem {
 
   @Override
   public void periodicAfterScheduler() {
-    io.runSetpointDegree(commandedDeg);
+    io.runSetpointDegreeWithVelocity(commandedDeg, commandedVelDegPerSec);
   }
 
   public Command runTrackTargetCommand() {
@@ -221,6 +224,7 @@ public class Turret extends FullSubsystem {
           }
           if (ShooterState.getInstance().isShooterTrenchProtectionActive()) {
             setGoalSetPoint(0.0);
+            commandedVelDegPerSec = 0.0;
             return;
           }
           ShooterCalculator.ShootingParameters p = ShooterCalculator.getInstance().getParameters();
@@ -229,8 +233,12 @@ public class Turret extends FullSubsystem {
           }
           Rotation2d robotAngle = RobotState.getInstance().getEstimatedPose().getRotation();
           setGoalSetPoint(robotAngle.minus(p.turretAngle()).getDegrees());
+          commandedVelDegPerSec = -edu.wpi.first.math.util.Units.radiansToDegrees(p.turretVelocity());
         },
-        () -> setGoalSetPoint(TurretGoal.ZERO));
+        () -> {
+          setGoalSetPoint(TurretGoal.ZERO);
+          commandedVelDegPerSec = 0.0;
+        });
   }
 
   public void setPID(double kP, double kI, double kD, double kS, double kV, double kA, double kG) {

@@ -27,6 +27,8 @@ public interface HoodIO {
     public double deviceTemperature = 0.0;
     // Raw absolute encoder reading (rotations) from the CANcoder
     public double measuredEncoderPositionRot = 0.0;
+    // Hood angular velocity in radians per second
+    public double velocityRadPerSec = 0.0;
   }
 
   /**

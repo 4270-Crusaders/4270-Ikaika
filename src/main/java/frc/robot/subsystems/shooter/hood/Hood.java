@@ -169,12 +169,13 @@ public class Hood extends FullSubsystem {
 
     goalDeg = clampHoodAngleDeg(goalDeg);
 
+    double hoodVelDegPerSec = Math.abs(edu.wpi.first.math.util.Units.radiansToDegrees(inputs.velocityRadPerSec));
     nearGoal =
         EqualsUtil.epsilonEquals(
             inputs.measuredPostionDeg,
             goalDeg,
-            ShooterConstants.READY_TO_SHOOT_HOOD_DEG_TOLERANCE);
-    double hoodVelDegPerSec = 0.0;
+            ShooterConstants.READY_TO_SHOOT_HOOD_DEG_TOLERANCE)
+        && hoodVelDegPerSec < ShooterConstants.READY_TO_SHOOT_HOOD_MAX_DEG_PER_SEC;
     if (ShooterConstants.Logging.LOG_SHOOTER_MECHANISM_TELEM) {
       Logger.recordOutput("Shooter/Hood/GoalDegrees", goalDeg, Degrees);
       Logger.recordOutput("Shooter/Hood/VelocityDegPerSec", hoodVelDegPerSec);

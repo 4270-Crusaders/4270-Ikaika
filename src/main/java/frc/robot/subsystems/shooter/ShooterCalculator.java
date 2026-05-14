@@ -715,7 +715,7 @@ public class ShooterCalculator {
     }
 
     ss.recordShooterMechanismProcess(flywheel.nearGoal, hood.nearGoal, turret.nearGoal, trenchTeleNear);
-    ss.setShooterReadyToShoot(flywheel.nearGoal && hood.nearGoal && turret.nearGoal && !trenchTeleNear);
+    ss.setShooterReadyToShoot(flywheel.nearGoal && hood.nearGoal && turret.nearGoal && turret.settled && !trenchTeleNear);
 
     flywheel.applySetpointForOutput();
     hood.applySetpointForOutput();

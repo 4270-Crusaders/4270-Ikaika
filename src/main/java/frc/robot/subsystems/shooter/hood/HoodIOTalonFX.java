@@ -3,6 +3,7 @@
 
 package frc.robot.subsystems.shooter.hood;
 
+import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static frc.robot.Constants.TalonFxIo.CONFIG_APPLY_TIMEOUT_SEC;
 import static frc.robot.Constants.TalonFxIo.CONFIG_RETRY_COUNT;
 import static frc.robot.Constants.TalonFxIo.STATUS_SIGNAL_UPDATE_HZ;
@@ -132,6 +133,7 @@ public class HoodIOTalonFX implements HoodIO {
     inputs.torqueCurrentAmps = torqueCurrentAmps.getValueAsDouble();
     // Raw absolute encoder rotations (useful for diagnostics/offsets)
     inputs.measuredEncoderPositionRot = measuredEncoderPositionRotations.getValueAsDouble();
+    inputs.velocityRadPerSec = velocityRps.getValue().in(RadiansPerSecond);
   }
 
   @Override

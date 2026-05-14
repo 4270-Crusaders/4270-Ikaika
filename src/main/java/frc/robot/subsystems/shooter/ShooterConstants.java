@@ -257,18 +257,18 @@ public class ShooterConstants {
      * Rich calculator aim/geometry logs. Default off to reduce loop time; enable on bench or when tuning
      * in AdvantageScope.
      */
-    public static boolean SHOOTER_VERBOSE_AIMING = true;
+    public static boolean SHOOTER_VERBOSE_AIMING = false;
     /** Trench zone diagnostic channels in {@link frc.robot.subsystems.shooter.ShooterCalculator}. */
-    public static boolean SHOOTER_VERBOSE_TRENCH = true;
+    public static boolean SHOOTER_VERBOSE_TRENCH = false;
     /**
      * When true (or {@link #SHOOTER_VERBOSE_AIMING}), logs calculator trajectory/hood diagnostics. Default
      * off for match/real-time cycles.
      */
-    public static boolean LOG_SHOOTER_CALC_HOOD_COMP = true;
+    public static boolean LOG_SHOOTER_CALC_HOOD_COMP = false;
     /**
      * Compact {@code Shooter/Calculator/Sanity/} bundle. Default off; turn on for quick field checks.
      */
-    public static boolean LOG_SHOOTER_SANITY_BUNDLE = true;
+    public static boolean LOG_SHOOTER_SANITY_BUNDLE = false;
     /**
      * Extra {@link org.littletonrobotics.junction.Logger#recordOutput} calls in Flywheel, Hood, and Turret
      * {@code periodic()} (does not affect {@code Logger.processInputs}). Default off to save cycle time;
@@ -377,7 +377,7 @@ public class ShooterConstants {
    */
   public static final class ShooterCalculatorConstants {
     /** Moving-average window (s) for turret/hood angular velocity from filtered angle deltas. */
-    public static final double ANGLE_VELOCITY_FILTER_WINDOW_SEC = 0.1;
+    public static final double ANGLE_VELOCITY_FILTER_WINDOW_SEC = 0.06;
 
     public static final double EPSILON_SURFACE_SPEED_MPS = 1e-6;
     
@@ -437,7 +437,7 @@ public class ShooterConstants {
    
     /** Max launch speed considered by numeric speed solves (m/s). */
     /** FRC-scale cap (~25–30 m/s); raise only if the model truly needs faster trial speeds. */
-    public static final double TRAJECTORY_MAX_LAUNCH_SPEED_MPS = 200.0;
+    public static final double TRAJECTORY_MAX_LAUNCH_SPEED_MPS = 25.0;
     
     /**
      * Vacuum minimum ball speed can be too low for the drag integrator to reach {@code d} before {@code v_x}

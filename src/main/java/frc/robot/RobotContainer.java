@@ -169,6 +169,7 @@ public class RobotContainer {
         vision =
             new Vision(
                 new VisionIO() {},
+                new VisionIO() {},
                 new VisionIO() {});
         configureShooterMechanismDefaults(
             new Flywheel(new FlywheelIO() {}),

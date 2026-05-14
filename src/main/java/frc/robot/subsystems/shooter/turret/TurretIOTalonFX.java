@@ -177,6 +177,16 @@ public class TurretIOTalonFX implements TurretIO {
     motor.setControl(positionRequest.withPosition(Units.degreesToRotations(setpointDeg)));
   }
 
+  @Override
+  public void runSetpointDegreeWithVelocity(double setpointDeg, double velocityDegPerSec) {
+    double velocityRps = Units.degreesToRotations(velocityDegPerSec);
+    double feedforwardAmps = velocityRps * ShooterConstants.ComponentsConstants.Turret.Gains.kV;
+    motor.setControl(
+        positionRequest
+            .withPosition(Units.degreesToRotations(setpointDeg))
+            .withFeedForward(feedforwardAmps));
+  }
+
   // public static double calculateTurretTarget(double currentAngle, double targetAngle){
   // }
 }

@@ -47,4 +47,8 @@ public interface TurretIO {
 
   /** Run open loop at the specified velocity. */
   public default void runSetpointDegree(double setpointDeg) {}
+
+  public default void runSetpointDegreeWithVelocity(double setpointDeg, double velocityDegPerSec) {
+    runSetpointDegree(setpointDeg);
+  }
 }
