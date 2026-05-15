@@ -145,7 +145,7 @@ public class ShooterConstants {
       public static final int TURRET_ENCODER_CAN_ID = 25;
       public static final double sensorToMechanismRatio = 1;
       public static final double rotorToSensorRatio = 62.5;
-      public static final double TurretEncoderMagnetOffset = 0.398193359375; //Tune Alot
+      public static final double TurretEncoderMagnetOffset = 0.368896484375; //Tune Alot
       public static final SensorDirectionValue turretEncoderDirection =
           SensorDirectionValue.CounterClockwise_Positive;
       public static final double TurretEncoderAbsoluteSensorDiscontinuityPoint = 0.5;
@@ -302,7 +302,7 @@ public class ShooterConstants {
      * Quadratic-drag Cd (lumped). Values ~3+ force the solver to over-command speed vs a typical foam
      * ball and read as close-range overshoot; ~0.5–0.65 matches sphere-like foam for a better baseline.
      */
-    public static final double DRAG_COEFFICIENT_SMOOTH_SPHERE = 1.89;
+    public static final double DRAG_COEFFICIENT_SMOOTH_SPHERE = 1.865;
 
     /**
      * Magnus lift coefficient {@code Cl} (unitless, lumped backspin). Runtime: {@link

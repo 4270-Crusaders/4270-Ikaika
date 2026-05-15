@@ -21,6 +21,18 @@
           "data": {
             "pathName": "Left-Double-Pass-3"
           }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 0.5
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AGITATE"
+          }
         }
       ]
     }

@@ -117,7 +117,7 @@
   "constraintZones": [
     {
       "name": "Constraints Zone",
-      "minWaypointRelativePos": 0.21372328458942766,
+      "minWaypointRelativePos": 0.4161979752530928,
       "maxWaypointRelativePos": 0.821147356580427,
       "constraints": {
         "maxVelocity": 0.5,
@@ -133,7 +133,7 @@
   "eventMarkers": [
     {
       "name": "HUB_SHOOT",
-      "waypointRelativePos": 0.10123734533183545,
+      "waypointRelativePos": 0.55,
       "endWaypointRelativePos": null,
       "command": {
         "type": "named",
@@ -174,17 +174,6 @@
           "name": "INTAKE"
         }
       }
-    },
-    {
-      "name": "HUB_FOCUS",
-      "waypointRelativePos": 5.0,
-      "endWaypointRelativePos": null,
-      "command": {
-        "type": "named",
-        "data": {
-          "name": "HUB_FOCUS"
-        }
-      }
     }
   ],
   "globalConstraints": {
@@ -200,7 +189,7 @@
     "rotation": 180.0
   },
   "reversed": false,
-  "folder": "Left-Double-Pass",
+  "folder": "CT-Left",
   "idealStartingState": {
     "velocity": 2.0,
     "rotation": -45.0

@@ -175,7 +175,7 @@
     },
     {
       "name": "TRENCH",
-      "waypointRelativePos": 4.026996625421806,
+      "waypointRelativePos": 3.5,
       "endWaypointRelativePos": null,
       "command": {
         "type": "named",
@@ -220,7 +220,7 @@
     "rotation": -45.0
   },
   "reversed": false,
-  "folder": "Left-Double-Pass",
+  "folder": "CT-Left",
   "idealStartingState": {
     "velocity": 0,
     "rotation": -90.0

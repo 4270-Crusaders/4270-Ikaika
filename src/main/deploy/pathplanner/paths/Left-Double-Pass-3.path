@@ -16,15 +16,15 @@
     },
     {
       "anchor": {
-        "x": 0.7062870699881383,
+        "x": 0.781601423487545,
         "y": 5.084021352313167
       },
       "prevControl": {
-        "x": 0.7878236687595485,
+        "x": 0.8631380222589552,
         "y": 4.131514018056541
       },
       "nextControl": {
-        "x": 0.5252558840181186,
+        "x": 0.6005702375175254,
         "y": 7.198820534077428
       },
       "isLocked": false,
@@ -58,21 +58,7 @@
       "rotationDegrees": 0.0
     }
   ],
-  "constraintZones": [
-    {
-      "name": "Constraints Zone",
-      "minWaypointRelativePos": 0.5849268841394825,
-      "maxWaypointRelativePos": 1.0393700787401368,
-      "constraints": {
-        "maxVelocity": 2.0,
-        "maxAcceleration": 2.0,
-        "maxAngularVelocity": 540.0,
-        "maxAngularAcceleration": 720.0,
-        "nominalVoltage": 12.0,
-        "unlimited": false
-      }
-    }
-  ],
+  "constraintZones": [],
   "pointTowardsZones": [],
   "eventMarkers": [
     {
@@ -121,23 +107,12 @@
     },
     {
       "name": "HUB_SHOOT",
-      "waypointRelativePos": 1.8492688413948262,
+      "waypointRelativePos": 1.9,
       "endWaypointRelativePos": null,
       "command": {
         "type": "named",
         "data": {
           "name": "HUB_SHOOT"
-        }
-      }
-    },
-    {
-      "name": "AGITATE",
-      "waypointRelativePos": 1.9617547806524218,
-      "endWaypointRelativePos": null,
-      "command": {
-        "type": "named",
-        "data": {
-          "name": "AGITATE"
         }
       }
     }
@@ -155,7 +130,7 @@
     "rotation": 0.0
   },
   "reversed": false,
-  "folder": "Left-Double-Pass",
+  "folder": "CT-Left",
   "idealStartingState": {
     "velocity": 1.0,
     "rotation": 180.0

@@ -234,7 +234,7 @@
     "rotation": -90.0
   },
   "reversed": false,
-  "folder": "Right-Double-Pass",
+  "folder": "CT-Right",
   "idealStartingState": {
     "velocity": 2.0,
     "rotation": -90.0

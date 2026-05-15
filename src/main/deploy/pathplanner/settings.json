@@ -3,10 +3,9 @@
   "robotLength": 0.8128,
   "holonomicMode": true,
   "pathFolders": [
-    "Left-Double-Pass",
-    "Right-Double-Pass",
-    "Right-Double-Swipe",
-    "Right-Pass-Swipe",
+    "CT-Left",
+    "CT-Right",
+    "EL-No-World",
     "Right-Rush-Double-Swipe",
     "Tests"
   ],
